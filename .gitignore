@@ -1,5 +1,7 @@
 # node module
 node_modules/
+# next.js build output
+.next/
 # build output
 dist/
 build/
