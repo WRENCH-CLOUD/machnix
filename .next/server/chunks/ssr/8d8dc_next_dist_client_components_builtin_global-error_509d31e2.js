@@ -1,3 +1,0 @@
-module.exports=[23049,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(78512);a.n(d("[project]/machanix/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},22256,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(78512);a.n(d("[project]/machanix/node_modules/next/dist/client/components/builtin/global-error.js"))},80270,a=>{"use strict";a.i(23049);var b=a.i(22256);a.n(b)}];
-
-//# sourceMappingURL=8d8dc_next_dist_client_components_builtin_global-error_509d31e2.js.map
