@@ -1,4 +1,4 @@
-export type JobStatus = "received" | "assigned" | "working" | "ready" | "completed"
+export type JobStatus = "received" | "working" | "ready" | "completed"
 
 export interface Customer {
   id: string
@@ -214,7 +214,7 @@ export const mockJobs: JobCard[] = [
     customer: { id: "c2", name: "Anita Sharma", phone: "+91 88776 65432", email: "anita.s@email.com" },
     vehicle: { id: "v2", make: "Honda", model: "City", year: 2020, regNo: "KA 02 CD 5678", color: "White" },
     mechanic: mechanics[1],
-    status: "assigned",
+    status: "received",
     dviPending: false,
     dviTemplate: "Quick Service Check",
     dviItems: [],
@@ -316,7 +316,7 @@ export const mockJobs: JobCard[] = [
         id: "a11",
         timestamp: new Date("2024-01-15T09:00:00"),
         type: "status_change",
-        description: "Status changed to Ready for Payment",
+        description: "Status changed to Ready",
         user: "Amit Singh",
       },
       {
@@ -384,7 +384,6 @@ export const mockJobs: JobCard[] = [
 
 export const statusConfig: Record<JobStatus, { label: string; color: string; bgColor: string }> = {
   received: { label: "Received", color: "text-blue-400", bgColor: "bg-blue-500/20" },
-  assigned: { label: "Assigned", color: "text-purple-400", bgColor: "bg-purple-500/20" },
   working: { label: "Working", color: "text-amber-400", bgColor: "bg-amber-500/20" },
   ready: { label: "Ready for Payment", color: "text-emerald-400", bgColor: "bg-emerald-500/20" },
   completed: { label: "Completed", color: "text-slate-400", bgColor: "bg-slate-500/20" },

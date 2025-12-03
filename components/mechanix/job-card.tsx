@@ -5,17 +5,35 @@ import { Phone, Clock, AlertTriangle, User, ChevronRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { type JobCard as JobCardType, statusConfig } from "@/lib/mock-data"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { type JobCard as JobCardType, type JobStatus, statusConfig, mechanics } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 interface JobCardProps {
   job: JobCardType
   onClick: () => void
   isMechanicMode?: boolean
+  onStatusChange?: (jobId: string, newStatus: JobStatus) => void
+  onMechanicChange?: (jobId: string, mechanicId: string) => void
 }
 
-export function JobCard({ job, onClick, isMechanicMode }: JobCardProps) {
+export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechanicChange }: JobCardProps) {
   const statusInfo = statusConfig[job.status]
+  const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
+
+  const handleStatusClick = (e: React.MouseEvent, newStatus: JobStatus) => {
+    e.stopPropagation()
+    if (onStatusChange && newStatus !== job.status) {
+      onStatusChange(job.id, newStatus)
+    }
+  }
+
+  const handleMechanicChange = (mechanicId: string) => {
+    if (onMechanicChange) {
+      onMechanicChange(job.id, mechanicId)
+    }
+  }
 
   return (
     <motion.div

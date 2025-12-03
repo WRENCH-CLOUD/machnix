@@ -21,7 +21,7 @@ interface CreateJobWizardProps {
 const steps = [
   { id: 1, title: "Customer", icon: User },
   { id: 2, title: "Vehicle", icon: Car },
-  { id: 3, title: "Job Setup", icon: Clipboard },
+  { id: 3, title: "Create Job", icon: Clipboard },
 ]
 
 export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
@@ -66,6 +66,13 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
       setCustomerFound(true)
       setShowQuickCreate(false)
     } else if (phoneSearch.length >= 10) {
+      setFormData((prev) => ({
+        ...prev,
+        customer: {
+          ...prev.customer,
+          phone: phoneSearch,
+        },
+      }))
       setCustomerFound(false)
       setShowQuickCreate(true)
     }
@@ -86,7 +93,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.customer.name && formData.customer.phone
+        return (customerFound || showQuickCreate) && formData.customer.name && formData.customer.phone
       case 2:
         return formData.vehicle.make && formData.vehicle.model && formData.vehicle.regNo
       case 3:

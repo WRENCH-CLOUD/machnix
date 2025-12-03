@@ -15,13 +15,14 @@ import { LoginPage } from "@/components/mechanix/login-page"
 import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
 import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
 import { AuthProvider, useAuth } from "@/lib/auth-context"
-import { mockJobs, type JobCard } from "@/lib/mock-data"
+import { mockJobs, type JobCard, type JobStatus, mechanics } from "@/lib/mock-data"
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null)
+  const [jobs, setJobs] = useState<JobCard[]>(mockJobs)
 
   // Show login page if not authenticated
   if (!isAuthenticated) {
@@ -45,6 +46,65 @@ function AppContent() {
     console.log("Creating job:", data)
   }
 
+  const handleStatusChange = (jobId: string, newStatus: JobStatus) => {
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              status: newStatus,
+              updatedAt: new Date(),
+              activities: [
+                ...job.activities,
+                {
+                  id: `a${Date.now()}`,
+                  timestamp: new Date(),
+                  type: "status_change" as const,
+                  description: `Status changed to ${newStatus}`,
+                  user: user?.name || "Front Desk",
+                },
+              ],
+            }
+          : job,
+      ),
+    )
+    // Update selected job if it's the one being changed
+    if (selectedJob?.id === jobId) {
+      setSelectedJob((prev) => (prev ? { ...prev, status: newStatus, updatedAt: new Date() } : null))
+    }
+  }
+
+  const handleMechanicChange = (jobId: string, mechanicId: string) => {
+    const mechanic = mechanics.find((m) => m.id === mechanicId)
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              mechanic: mechanic,
+              updatedAt: new Date(),
+              activities: [
+                ...job.activities,
+                {
+                  id: `a${Date.now()}`,
+                  timestamp: new Date(),
+                  type: "status_change" as const,
+                  description: mechanic
+                    ? `Assigned to ${mechanic.name}`
+                    : "Mechanic unassigned",
+                  user: user?.name || "Front Desk",
+                },
+              ],
+            }
+          : job,
+      ),
+    )
+    // Update selected job if it's the one being changed
+    if (selectedJob?.id === jobId) {
+      setSelectedJob((prev) => (prev ? { ...prev, mechanic: mechanic, updatedAt: new Date() } : null))
+    }
+  }
+
   // Frontdesk view (default)
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -57,10 +117,16 @@ function AppContent() {
 
         <main className="flex-1 overflow-hidden">
           {activeView === "dashboard" && (
-            <JobBoard jobs={mockJobs} onJobClick={handleJobClick} isMechanicMode={false} />
+            <JobBoard
+              jobs={jobs}
+              onJobClick={handleJobClick}
+              isMechanicMode={false}
+              onStatusChange={handleStatusChange}
+              onMechanicChange={handleMechanicChange}
+            />
           )}
 
-          {activeView === "jobs" && <AllJobsView jobs={mockJobs} onJobClick={handleJobClick} />}
+          {activeView === "jobs" && <AllJobsView jobs={jobs} onJobClick={handleJobClick} />}
 
           {activeView === "customers" && <CustomersView />}
 
@@ -97,7 +163,15 @@ function AppContent() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {selectedJob && <JobDetails job={selectedJob} onClose={() => setSelectedJob(null)} isMechanicMode={false} />}
+        {selectedJob && (
+          <JobDetails
+            job={selectedJob}
+            onClose={() => setSelectedJob(null)}
+            isMechanicMode={false}
+            onStatusChange={handleStatusChange}
+            onMechanicChange={handleMechanicChange}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

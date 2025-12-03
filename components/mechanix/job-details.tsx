@@ -35,13 +35,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { type JobCard, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
+import { type JobCard, type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part, mechanics } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 interface JobDetailsProps {
   job: JobCard
   onClose: () => void
   isMechanicMode: boolean
+  onStatusChange?: (jobId: string, newStatus: JobStatus) => void
+  onMechanicChange?: (jobId: string, mechanicId: string) => void
 }
 
 const dviStatusConfig = {
@@ -51,13 +53,31 @@ const dviStatusConfig = {
   pending: { label: "Pending", icon: Circle, color: "text-muted-foreground", bg: "bg-muted" },
 }
 
-export function JobDetails({ job, onClose, isMechanicMode }: JobDetailsProps) {
+export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMechanicChange }: JobDetailsProps) {
   const [activeTab, setActiveTab] = useState(isMechanicMode ? "dvi" : "overview")
   const [dviItems, setDviItems] = useState<DVIItem[]>(job.dviItems)
   const [parts, setParts] = useState<Part[]>(job.parts)
   const [newNote, setNewNote] = useState("")
+  const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
+  const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
 
-  const statusInfo = statusConfig[job.status]
+  const statusInfo = statusConfig[currentStatus]
+  const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
+
+  const handleStatusChange = (newStatus: JobStatus) => {
+    setCurrentStatus(newStatus)
+    if (onStatusChange) {
+      onStatusChange(job.id, newStatus)
+    }
+  }
+
+  const handleMechanicChange = (mechanicId: string) => {
+    const mechanic = mechanics.find((m) => m.id === mechanicId)
+    setCurrentMechanic(mechanic)
+    if (onMechanicChange) {
+      onMechanicChange(job.id, mechanicId)
+    }
+  }
 
   const updateDviStatus = (itemId: string, status: DVIItem["status"]) => {
     setDviItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, status } : item)))
@@ -121,9 +141,32 @@ export function JobDetails({ job, onClose, isMechanicMode }: JobDetailsProps) {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h2 className="text-xl font-bold text-foreground">{job.jobNumber}</h2>
-              <Badge className={cn("text-xs", statusInfo.bgColor, statusInfo.color, "border-0")}>
-                {statusInfo.label}
-              </Badge>
+              {!isMechanicMode && onStatusChange ? (
+                <div className="flex flex-wrap gap-1">
+                  {statusOptions.map((status) => {
+                    const config = statusConfig[status]
+                    return (
+                      <Button
+                        key={status}
+                        size="sm"
+                        variant={currentStatus === status ? "default" : "outline"}
+                        className={cn(
+                          "h-7 px-3 text-xs transition-all",
+                          currentStatus === status && cn(config.bgColor, config.color, "border-0"),
+                          currentStatus !== status && "hover:scale-105"
+                        )}
+                        onClick={() => handleStatusChange(status)}
+                      >
+                        {config.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <Badge className={cn("text-xs", statusInfo.bgColor, statusInfo.color, "border-0")}>
+                  {statusInfo.label}
+                </Badge>
+              )}
               {job.dviPending && (
                 <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs gap-1">
                   <AlertTriangle className="w-3 h-3" />
@@ -138,6 +181,29 @@ export function JobDetails({ job, onClose, isMechanicMode }: JobDetailsProps) {
               </span>
               <span className="font-mono">{job.vehicle.regNo}</span>
             </div>
+            {!isMechanicMode && onMechanicChange && (
+              <div className="mt-3">
+                <Select
+                  value={currentMechanic?.id || "unassigned"}
+                  onValueChange={handleMechanicChange}
+                >
+                  <SelectTrigger className="w-64 h-9">
+                    <SelectValue placeholder="Assign Mechanic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {mechanics.map((mechanic) => (
+                      <SelectItem key={mechanic.id} value={mechanic.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{mechanic.name}</span>
+                          <span className="text-xs text-muted-foreground">({mechanic.specialty})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -766,19 +832,26 @@ export function JobDetails({ job, onClose, isMechanicMode }: JobDetailsProps) {
                   </Card>
 
                   {/* Payment Actions */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" className="gap-2 bg-transparent">
                       <Download className="w-4 h-4" />
                       Generate PDF
                     </Button>
-                    <Button variant="outline" className="gap-2 bg-transparent">
+                    {/* <Button variant="outline" className="gap-2 bg-transparent">
                       <ExternalLink className="w-4 h-4" />
                       Share Payment Link
                       <Badge variant="secondary" className="ml-1 text-xs">
                         Razorpay
                       </Badge>
-                    </Button>
-                    <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                    </Button> */} 
+                    <Button 
+                      className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => {
+                        if (onStatusChange) {
+                          handleStatusChange("completed")
+                        }
+                      }}
+                    >
                       <Check className="w-4 h-4" />
                       Mark Paid (Cash)
                     </Button>
