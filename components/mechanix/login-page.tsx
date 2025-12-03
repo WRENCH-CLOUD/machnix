@@ -10,26 +10,31 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-provider"
 
 export function LoginPage() {
-  const { login, isLoading } = useAuth()
+  const { signIn } = useAuth()
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setIsLoading(true)
 
-    const identifier = loginMethod === "email" ? email : phone
-    const result = await login(identifier, password)
-
-    if (!result.success) {
-      setError(result.error || "Login failed")
+    try {
+      const identifier = loginMethod === "email" ? email : phone
+      await signIn(identifier, password)
+    } catch (err) {
+      console.error('Login error:', err)
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setIsLoading(false)
     }
   }
 

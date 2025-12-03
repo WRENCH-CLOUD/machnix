@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Search, Plus, Check, User, Car, Clipboard, ChevronRight, ChevronLeft } from "lucide-react"
+import { X, Search, Plus, Check, User, Car, Clipboard, ChevronRight, ChevronLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,8 +10,18 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { mechanics, dviTemplates } from "@/lib/mock-data"
+import { CustomerService, VehicleService, MechanicService, JobService, DVIService } from "@/lib/supabase/services"
+import { supabase } from "@/lib/supabase/client"
+import { useAuth } from "@/lib/auth-provider"
+import type { Database } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
+
+type Customer = Database['tenant']['Tables']['customers']['Row']
+type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
+type Mechanic = Database['tenant']['Tables']['mechanics']['Row']
+type VehicleMake = Database['public']['Tables']['vehicle_make']['Row']
+type VehicleModel = Database['public']['Tables']['vehicle_model']['Row']
+type DVITemplate = Database['tenant']['Tables']['dvi_templates']['Row']
 
 interface CreateJobWizardProps {
   onClose: () => void
@@ -25,18 +35,32 @@ const steps = [
 ]
 
 export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
+  const { tenantId } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [customerFound, setCustomerFound] = useState(false)
   const [showQuickCreate, setShowQuickCreate] = useState(false)
   const [phoneSearch, setPhoneSearch] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [searching, setSearching] = useState(false)
+  
+  // Data from Supabase
+  const [foundCustomer, setFoundCustomer] = useState<Customer | null>(null)
+  const [customerVehicles, setCustomerVehicles] = useState<Vehicle[]>([])
+  const [mechanics, setMechanics] = useState<Mechanic[]>([])
+  const [vehicleMakes, setVehicleMakes] = useState<VehicleMake[]>([])
+  const [vehicleModels, setVehicleModels] = useState<VehicleModel[]>([])
+  const [dviTemplates, setDviTemplates] = useState<DVITemplate[]>([])
+  const [selectedMake, setSelectedMake] = useState<string>("")
 
   const [formData, setFormData] = useState({
     customer: {
+      id: "",
       name: "",
       phone: "",
       email: "",
     },
     vehicle: {
+      id: "",
       make: "",
       model: "",
       year: "",
@@ -45,44 +69,186 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
       odometer: "",
     },
     job: {
-      dviTemplate: "",
       mechanic: "",
       complaints: "",
       estimatedCompletion: "",
     },
   })
 
-  const handlePhoneSearch = () => {
-    // Simulate customer lookup
-    if (phoneSearch === "+91 99887 76543") {
-      setFormData((prev) => ({
-        ...prev,
-        customer: {
-          name: "Rajesh Verma",
-          phone: phoneSearch,
-          email: "rajesh.v@email.com",
-        },
-      }))
-      setCustomerFound(true)
-      setShowQuickCreate(false)
-    } else if (phoneSearch.length >= 10) {
-      setFormData((prev) => ({
-        ...prev,
-        customer: {
-          ...prev.customer,
-          phone: phoneSearch,
-        },
-      }))
-      setCustomerFound(false)
-      setShowQuickCreate(true)
+  // Load mechanics and vehicle makes on mount
+  useEffect(() => {
+    loadMechanics()
+    loadVehicleMakes()
+    loadDviTemplates()
+  }, [])
+
+  // Load vehicle models when make is selected
+  useEffect(() => {
+    if (selectedMake) {
+      loadVehicleModels(selectedMake)
+    }
+  }, [selectedMake])
+
+  const loadMechanics = async () => {
+    try {
+      const data = await MechanicService.getActive()
+      setMechanics(data)
+    } catch (error) {
+      console.error('Error loading mechanics:', error)
     }
   }
 
-  const handleNext = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1)
-    else {
-      onSubmit(formData)
+  const loadVehicleMakes = async () => {
+    try {
+      const data = await VehicleService.getMakes()
+      setVehicleMakes(data)
+    } catch (error) {
+      console.error('Error loading makes:', error)
+    }
+  }
+
+  const loadVehicleModels = async (makeId: string) => {
+    try {
+      const data = await VehicleService.getModelsByMakeId(makeId)
+      setVehicleModels(data)
+    } catch (error) {
+      console.error('Error loading models:', error)
+    }
+  }
+
+  const loadDviTemplates = async () => {
+    if (!tenantId) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('dvi_templates')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .order('name')
+      
+      if (error) throw error
+      setDviTemplates(data || [])
+    } catch (error) {
+      console.error('Error loading DVI templates:', error)
+    }
+  }
+
+  const handlePhoneSearch = async () => {
+    if (!phoneSearch || phoneSearch.length < 10) return
+    
+    setSearching(true)
+    try {
+      const customer = await CustomerService.searchByPhone(phoneSearch)
+      
+      if (customer) {
+        // Customer found
+        setFoundCustomer(customer)
+        setFormData((prev) => ({
+          ...prev,
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone || "",
+            email: customer.email || "",
+          },
+        }))
+        setCustomerFound(true)
+        setShowQuickCreate(false)
+        
+        // Load customer's vehicles
+        const vehicles = await VehicleService.getByCustomerId(customer.id)
+        setCustomerVehicles(vehicles)
+      } else {
+        // Customer not found
+        setFormData((prev) => ({
+          ...prev,
+          customer: {
+            ...prev.customer,
+            phone: phoneSearch,
+          },
+        }))
+        setFoundCustomer(null)
+        setCustomerFound(false)
+        setShowQuickCreate(true)
+      }
+    } catch (error) {
+      console.error('Error searching customer:', error)
+      alert('Error searching for customer')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleNext = async () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      // Submit the job
+      await handleSubmit()
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!tenantId) {
+      alert('No tenant selected')
+      return
+    }
+
+    setLoading(true)
+    try {
+      let customerId = formData.customer.id
+      let vehicleId = formData.vehicle.id
+
+      // Create customer if new
+      if (!customerId) {
+        const newCustomer = await CustomerService.create({
+          tenant_id: tenantId,
+          name: formData.customer.name,
+          phone: formData.customer.phone,
+          email: formData.customer.email || null,
+        })
+        customerId = newCustomer.id
+      }
+
+      // Create vehicle if new
+      if (!vehicleId) {
+        const newVehicle = await VehicleService.create({
+          tenant_id: tenantId,
+          customer_id: customerId,
+          reg_no: formData.vehicle.regNo,
+          make_id: formData.vehicle.make || null,
+          model_id: formData.vehicle.model || null,
+          year: formData.vehicle.year ? parseInt(formData.vehicle.year) : null,
+          odometer: formData.vehicle.odometer ? parseInt(formData.vehicle.odometer) : null,
+        })
+        vehicleId = newVehicle.id
+      }
+
+      // Create job
+      const newJob = await JobService.createJob({
+        tenant_id: tenantId,
+        job_number: '', // Will be auto-generated by trigger
+        customer_id: customerId,
+        vehicle_id: vehicleId,
+        assigned_mechanic_id: formData.job.mechanic || null,
+        complaints: formData.job.complaints,
+        estimated_completion: formData.job.estimatedCompletion || null,
+        status: 'received',
+      })
+
+      // Initialize DVI items if template selected
+      if (formData.job.dviTemplate) {
+        await DVIService.initializeJobDVI(newJob.id, formData.job.dviTemplate)
+      }
+
+      onSubmit(newJob)
       onClose()
+    } catch (error) {
+      console.error('Error creating job:', error)
+      alert('Error creating job. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -293,20 +459,21 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                     <Label>Make *</Label>
                     <Select
                       value={formData.vehicle.make}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
                         setFormData((prev) => ({
                           ...prev,
-                          vehicle: { ...prev.vehicle, make: value },
+                          vehicle: { ...prev.vehicle, make: value, model: '' },
                         }))
-                      }
+                        loadVehicleModels(value)
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select make" />
                       </SelectTrigger>
                       <SelectContent>
-                        {["Toyota", "Honda", "Maruti", "Hyundai", "Tata", "Mahindra", "Kia", "MG"].map((make) => (
-                          <SelectItem key={make} value={make}>
-                            {make}
+                        {vehicleMakes.map((make) => (
+                          <SelectItem key={make.id} value={make.id}>
+                            {make.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -314,17 +481,31 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                   </div>
                   <div>
                     <Label>Model *</Label>
-                    <Input
-                      placeholder="e.g., Camry, City, Swift"
+                    <Select
                       value={formData.vehicle.model}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setFormData((prev) => ({
                           ...prev,
-                          vehicle: { ...prev.vehicle, model: e.target.value },
+                          vehicle: { ...prev.vehicle, model: value },
                         }))
                       }
-                    />
+                      disabled={!formData.vehicle.make}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicleModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Year</Label>
                     <Select
@@ -442,10 +623,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                       <SelectContent>
                         {dviTemplates.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <span>{template.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">({template.itemCount} items)</span>
-                            </div>
+                            {template.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -499,13 +677,14 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-border bg-secondary/30">
-          <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2">
+          <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1 || loading} className="gap-2">
             <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
-          <Button onClick={handleNext} disabled={!canProceed()} className="gap-2">
+          <Button onClick={handleNext} disabled={!canProceed() || loading} className="gap-2">
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {currentStep === 3 ? "Create Job" : "Continue"}
-            {currentStep < 3 && <ChevronRight className="w-4 h-4" />}
+            {currentStep < 3 && !loading && <ChevronRight className="w-4 h-4" />}
           </Button>
         </div>
       </motion.div>

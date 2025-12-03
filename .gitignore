@@ -49,3 +49,6 @@ Thumbs.db
 
 # Misc
 *.pem
+
+# supabase
+supabase/

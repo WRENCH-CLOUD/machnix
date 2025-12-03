@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion"
 import { LayoutGrid, List, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
 import { JobCard } from "./job-card"
 import { type JobCard as JobCardType, type JobStatus, statusConfig } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
@@ -15,11 +16,12 @@ interface JobBoardProps {
   isMechanicMode: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void
   onMechanicChange?: (jobId: string, mechanicId: string) => void
+  loading?: boolean
 }
 
 const statusOrder: JobStatus[] = ["received", "working", "ready", "completed"]
 
-export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onMechanicChange }: JobBoardProps) {
+export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onMechanicChange, loading = false }: JobBoardProps) {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban")
   const [hiddenStatuses, setHiddenStatuses] = useState<JobStatus[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; status: JobStatus } | null>(null)
@@ -89,20 +91,28 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-3">
-            <AnimatePresence>
-              {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onClick={() => onJobClick(job)}
-                  isMechanicMode={isMechanicMode}
-                  onStatusChange={onStatusChange}
-                  onMechanicChange={onMechanicChange}
-                />
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
               ))}
-            </AnimatePresence>
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <AnimatePresence>
+                {jobs.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    onClick={() => onJobClick(job)}
+                    isMechanicMode={isMechanicMode}
+                    onStatusChange={onStatusChange}
+                    onMechanicChange={onMechanicChange}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -177,20 +187,30 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
 
                 {/* Column Content with Scroll */}
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                  <AnimatePresence>
-                    {columnJobs.map((job) => (
-                      <JobCard
-                        key={job.id}
-                        job={job}
-                        onClick={() => onJobClick(job)}
-                        isMechanicMode={isMechanicMode}
-                        onStatusChange={onStatusChange}
-                        onMechanicChange={onMechanicChange}
-                      />
-                    ))}
-                  </AnimatePresence>
-                  {columnJobs.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-xs">No jobs in this status</div>
+                  {loading ? (
+                    <div className="space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <Skeleton key={i} className="h-32 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <AnimatePresence>
+                        {columnJobs.map((job) => (
+                          <JobCard
+                            key={job.id}
+                            job={job}
+                            onClick={() => onJobClick(job)}
+                            isMechanicMode={isMechanicMode}
+                            onStatusChange={onStatusChange}
+                            onMechanicChange={onMechanicChange}
+                          />
+                        ))}
+                      </AnimatePresence>
+                      {columnJobs.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground text-xs">No jobs in this status</div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

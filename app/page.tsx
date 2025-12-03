@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AnimatePresence } from "framer-motion"
 import { AppSidebar } from "@/components/mechanix/app-sidebar"
 import { TopHeader } from "@/components/mechanix/top-header"
@@ -14,95 +14,152 @@ import { ReportsView } from "@/components/mechanix/reports-view"
 import { LoginPage } from "@/components/mechanix/login-page"
 import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
 import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
-import { AuthProvider, useAuth } from "@/lib/auth-context"
-import { mockJobs, type JobCard, type JobStatus, mechanics } from "@/lib/mock-data"
+import { useAuth } from "@/lib/auth-provider"
+import { JobService, MechanicService } from "@/lib/supabase/services"
+import type { JobWithRelations } from "@/lib/supabase/services/job.service"
+import { type JobStatus } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function AppContent() {
-  const { isAuthenticated, user } = useAuth()
+  const { user, session, tenantId, loading: authLoading } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
-  const [selectedJob, setSelectedJob] = useState<JobCard | null>(null)
-  const [jobs, setJobs] = useState<JobCard[]>(mockJobs)
+  const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null)
+  const [jobs, setJobs] = useState<JobWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch jobs when tenant is set
+  useEffect(() => {
+    if (tenantId && session) {
+      loadJobs()
+      
+      // Subscribe to real-time job changes
+      const subscription = JobService.subscribeToJobs((payload) => {
+        console.log('Job update:', payload)
+        loadJobs() // Reload jobs on any change
+      })
+
+      return () => {
+        subscription.unsubscribe()
+      }
+    }
+  }, [tenantId, session])
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await JobService.getJobs()
+      setJobs(data)
+    } catch (err) {
+      console.error('Error loading jobs:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load jobs')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Skeleton className="h-12 w-64 mx-auto" />
+          <Skeleton className="h-4 w-48 mx-auto" />
+        </div>
+      </div>
+    )
+  }
 
   // Show login page if not authenticated
-  if (!isAuthenticated) {
+  if (!session || !user) {
     return <LoginPage />
   }
 
-  if (user?.role === "mechanic") {
-    return <MechanicDashboard />
+  // TODO: Implement role-based views
+  // if (user?.role === "mechanic") {
+  //   return <MechanicDashboard />
+  // }
+
+  // if (user?.role === "admin") {
+  //   return <AdminDashboard />
+  // }
+
+  const handleJobClick = async (job: JobWithRelations) => {
+    // Fetch full job details
+    try {
+      const fullJob = await JobService.getJobById(job.id)
+      setSelectedJob(fullJob)
+    } catch (err) {
+      console.error('Error loading job details:', err)
+      setSelectedJob(job) // Fallback to the job we have
+    }
   }
 
-  // Show admin dashboard for admin users
-  if (user?.role === "admin") {
-    return <AdminDashboard />
-  }
-
-  const handleJobClick = (job: JobCard) => {
-    setSelectedJob(job)
-  }
-
-  const handleCreateJob = (data: unknown) => {
+  const handleCreateJob = async (data: unknown) => {
     console.log("Creating job:", data)
+    // TODO: Implement job creation
+    await loadJobs()
   }
 
-  const handleStatusChange = (jobId: string, newStatus: JobStatus) => {
-    setJobs((prevJobs) =>
-      prevJobs.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              status: newStatus,
-              updatedAt: new Date(),
-              activities: [
-                ...job.activities,
-                {
-                  id: `a${Date.now()}`,
-                  timestamp: new Date(),
-                  type: "status_change" as const,
-                  description: `Status changed to ${newStatus}`,
-                  user: user?.name || "Front Desk",
-                },
-              ],
-            }
-          : job,
-      ),
-    )
-    // Update selected job if it's the one being changed
-    if (selectedJob?.id === jobId) {
-      setSelectedJob((prev) => (prev ? { ...prev, status: newStatus, updatedAt: new Date() } : null))
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
+    try {
+      await JobService.updateStatus(jobId, newStatus, user?.id)
+      
+      // Update local state
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === jobId
+            ? { ...job, status: newStatus, updated_at: new Date().toISOString() }
+            : job
+        )
+      )
+
+      // Update selected job if it's the one being changed
+      if (selectedJob?.id === jobId) {
+        const updatedJob = await JobService.getJobById(jobId)
+        setSelectedJob(updatedJob)
+      }
+    } catch (err) {
+      console.error('Error updating status:', err)
+      alert('Failed to update status')
     }
   }
 
-  const handleMechanicChange = (jobId: string, mechanicId: string) => {
-    const mechanic = mechanics.find((m) => m.id === mechanicId)
-    setJobs((prevJobs) =>
-      prevJobs.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              mechanic: mechanic,
-              updatedAt: new Date(),
-              activities: [
-                ...job.activities,
-                {
-                  id: `a${Date.now()}`,
-                  timestamp: new Date(),
-                  type: "status_change" as const,
-                  description: mechanic
-                    ? `Assigned to ${mechanic.name}`
-                    : "Mechanic unassigned",
-                  user: user?.name || "Front Desk",
-                },
-              ],
-            }
-          : job,
-      ),
-    )
-    // Update selected job if it's the one being changed
-    if (selectedJob?.id === jobId) {
-      setSelectedJob((prev) => (prev ? { ...prev, mechanic: mechanic, updatedAt: new Date() } : null))
+  const handleMechanicChange = async (jobId: string, mechanicId: string) => {
+    try {
+      await JobService.assignMechanic(jobId, mechanicId, user?.id)
+      
+      // Update local state
+      await loadJobs()
+
+      // Update selected job if it's the one being changed
+      if (selectedJob?.id === jobId) {
+        const updatedJob = await JobService.getJobById(jobId)
+        setSelectedJob(updatedJob)
+      }
+    } catch (err) {
+      console.error('Error assigning mechanic:', err)
+      alert('Failed to assign mechanic')
     }
+  }
+
+  // Show error state
+  if (error && !loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">{error}</p>
+          <button
+            onClick={loadJobs}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Frontdesk view (default)
@@ -113,20 +170,21 @@ function AppContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopHeader tenantName={user?.tenantName || "Garage A"} onCreateJob={() => setShowCreateJob(true)} />
+        <TopHeader tenantName="Mechanix Garage" onCreateJob={() => setShowCreateJob(true)} />
 
         <main className="flex-1 overflow-hidden">
           {activeView === "dashboard" && (
             <JobBoard
-              jobs={jobs}
-              onJobClick={handleJobClick}
+              jobs={jobs as any} // TODO: Fix type mismatch
+              onJobClick={handleJobClick as any}
               isMechanicMode={false}
               onStatusChange={handleStatusChange}
               onMechanicChange={handleMechanicChange}
+              loading={loading}
             />
           )}
 
-          {activeView === "jobs" && <AllJobsView jobs={jobs} onJobClick={handleJobClick} />}
+          {activeView === "jobs" && <AllJobsView jobs={jobs as any} onJobClick={handleJobClick as any} />}
 
           {activeView === "customers" && <CustomersView />}
 
@@ -165,7 +223,7 @@ function AppContent() {
       <AnimatePresence>
         {selectedJob && (
           <JobDetails
-            job={selectedJob}
+            job={selectedJob as any} // TODO: Fix type mismatch
             onClose={() => setSelectedJob(null)}
             isMechanicMode={false}
             onStatusChange={handleStatusChange}
@@ -178,9 +236,5 @@ function AppContent() {
 }
 
 export default function MechanixApp() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  )
+  return <AppContent />
 }
