@@ -35,7 +35,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { type JobCard, type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part, mechanics } from "@/lib/mock-data"
+import { type JobCard, type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
+// Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
 
 interface JobDetailsProps {

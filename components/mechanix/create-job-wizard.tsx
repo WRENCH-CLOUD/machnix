@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth-provider"
 import type { Database } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 
+
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Mechanic = Database['tenant']['Tables']['mechanics']['Row']

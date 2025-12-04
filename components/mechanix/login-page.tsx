@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/lib/auth-provider"
 
 export function LoginPage() {
-  const { signIn } = useAuth()
+  const { signIn, signUp } = useAuth()
+  const [mode, setMode] = useState<"signin" | "signup">("signin")
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email")
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
@@ -28,26 +30,22 @@ export function LoginPage() {
     setIsLoading(true)
 
     try {
-      const identifier = loginMethod === "email" ? email : phone
-      await signIn(identifier, password)
+      if (mode === "signup") {
+        if (!name.trim()) {
+          setError("Name is required")
+          return
+        }
+        await signUp(email, password, name)
+      } else {
+        const identifier = loginMethod === "email" ? email : phone
+        await signIn(identifier, password)
+      }
     } catch (err) {
-      console.error('Login error:', err)
-      setError(err instanceof Error ? err.message : 'Login failed')
+      console.error('Auth error:', err)
+      setError(err instanceof Error ? err.message : 'Authentication failed')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const demoAccounts = [
-    { role: "Frontdesk", email: "frontdesk@mechanix.com", phone: "+91 99887 76543", password: "demo123", icon: User },
-    { role: "Mechanic", email: "mechanic@mechanix.com", phone: "+91 98765 43210", password: "demo123", icon: HardHat },
-    { role: "Central Admin", email: "admin@mechanix.com", phone: "-", password: "admin123", icon: Shield },
-  ]
-
-  const fillDemo = (email: string, password: string) => {
-    setLoginMethod("email")
-    setEmail(email)
-    setPassword(password)
   }
 
   return (
@@ -112,17 +110,39 @@ export function LoginPage() {
 
           <Card className="border-border/50 shadow-xl">
             <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl">Welcome Back</CardTitle>
-              <CardDescription>Sign in to your account to continue</CardDescription>
+              <CardTitle className="text-2xl">{mode === "signin" ? "Welcome Back" : "Create Account"}</CardTitle>
+              <CardDescription>
+                {mode === "signin" ? "Sign in to your account to continue" : "Get started with your garage management"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              {mode === "signup" && (
+                <div className="space-y-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Tabs value={loginMethod} onValueChange={(v) => setLoginMethod(v as "email" | "phone")}>
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="email" className="gap-2">
                     <Mail className="w-4 h-4" />
                     Email
                   </TabsTrigger>
-                  <TabsTrigger value="phone" className="gap-2">
+                  <TabsTrigger value="phone" className="gap-2" disabled={mode === "signup"}>
                     <Phone className="w-4 h-4" />
                     Phone
                   </TabsTrigger>
@@ -199,40 +219,27 @@ export function LoginPage() {
                     {isLoading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                        Signing in...
+                        {mode === "signin" ? "Signing in..." : "Creating account..."}
                       </>
                     ) : (
                       <>
-                        Sign In
+                        {mode === "signin" ? "Sign In" : "Sign Up"}
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </Button>
+
+                  <div className="text-center mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                    </button>
+                  </div>
                 </form>
               </Tabs>
-
-              {/* Demo Accounts */}
-              <div className="mt-8 pt-6 border-t border-border">
-                <p className="text-sm text-muted-foreground text-center mb-4">Demo Accounts (Click to fill)</p>
-                <div className="space-y-2">
-                  {demoAccounts.map((account) => (
-                    <button
-                      key={account.role}
-                      onClick={() => fillDemo(account.email, account.password)}
-                      className="w-full p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-border/50 transition-colors text-left flex items-center gap-3"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <account.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{account.role}</div>
-                        <div className="text-xs text-muted-foreground truncate">{account.email}</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">{account.password}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
         </motion.div>

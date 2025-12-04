@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-provider"
 
 interface TopHeaderProps {
   tenantName: string
@@ -21,7 +21,7 @@ interface TopHeaderProps {
 }
 
 export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
@@ -77,7 +77,7 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
             <DropdownMenuItem>Profile Settings</DropdownMenuItem>
             <DropdownMenuItem>Preferences</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={logout}>
+            <DropdownMenuItem className="text-destructive" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </DropdownMenuItem>

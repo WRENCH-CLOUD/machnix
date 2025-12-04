@@ -29,7 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-provider"
 
 // Mock tenant data
 interface Tenant {

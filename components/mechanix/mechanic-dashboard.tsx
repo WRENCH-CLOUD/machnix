@@ -26,7 +26,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-provider"
 import { type JobCard, statusConfig, mockJobs, type DVIItem, type JobStatus } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 

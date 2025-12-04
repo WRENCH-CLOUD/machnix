@@ -13,7 +13,7 @@ import { VehiclesView } from "@/components/mechanix/vehicles-view"
 import { ReportsView } from "@/components/mechanix/reports-view"
 import { LoginPage } from "@/components/mechanix/login-page"
 import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
-import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
+// import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard" // MECHANIC FEATURES DISABLED
 import { useAuth } from "@/lib/auth-provider"
 import { JobService, MechanicService } from "@/lib/supabase/services"
 import type { JobWithRelations } from "@/lib/supabase/services/job.service"

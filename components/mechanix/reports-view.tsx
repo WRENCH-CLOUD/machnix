@@ -21,7 +21,8 @@ import {
   Tooltip,
 } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
-import { mockJobs, mechanics } from "@/lib/mock-data"
+import { mockJobs } from "@/lib/mock-data"
+// Note: mechanics import removed - mechanic performance section disabled
 
 // Generate report data
 const generateReportData = () => {
@@ -46,6 +47,7 @@ const generateReportData = () => {
     { name: "Others", value: 13, color: "#6b7280" },
   ]
 
+  /* MECHANIC PERFORMANCE DATA DISABLED
   const mechanicPerformance = mechanics.map((m) => {
     const jobs = mockJobs.filter((j) => j.mechanic?.id === m.id)
     const revenue = jobs.reduce((sum, j) => sum + j.partsTotal + j.laborTotal, 0)
@@ -55,6 +57,8 @@ const generateReportData = () => {
       revenue: revenue + Math.floor(Math.random() * 50000) + 20000,
     }
   })
+  */
+  const mechanicPerformance: any[] = [] // Placeholder - mechanic features disabled
 
   const weeklyJobs = [
     { day: "Mon", jobs: 12 },
@@ -270,51 +274,14 @@ export function ReportsView() {
 
       {/* Bottom Row */}
       <div className="grid grid-cols-2 gap-6">
-        {/* Mechanic Performance */}
+        {/* MECHANIC PERFORMANCE SECTION DISABLED */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Mechanic Performance</CardTitle>
-            <CardDescription>Jobs completed and revenue generated</CardDescription>
+            <CardDescription>Feature temporarily disabled</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                jobs: { label: "Jobs", color: "hsl(var(--primary))" },
-                revenue: { label: "Revenue", color: "#10b981" },
-              }}
-              className="h-[220px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.mechanicPerformance} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    width={60}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-                            <p className="font-medium">{payload[0].payload.name}</p>
-                            <p className="text-sm text-muted-foreground">{payload[0].payload.jobs} jobs</p>
-                            <p className="text-sm text-emerald-500">
-                              ₹{payload[0].payload.revenue.toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                  <Bar dataKey="jobs" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+          <CardContent className="h-[220px] flex items-center justify-center">
+            <p className="text-muted-foreground text-sm">Mechanic features are currently disabled</p>
           </CardContent>
         </Card>
 
