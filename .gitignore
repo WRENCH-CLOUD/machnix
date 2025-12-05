@@ -52,5 +52,6 @@ Thumbs.db
 
 # supabase
 supabase/.branches
+supabase/.config
+supabase/.local
 supabase/.temp
-
