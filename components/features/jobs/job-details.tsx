@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   X,
@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { type JobCard, type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
+import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
 
@@ -56,11 +57,22 @@ const dviStatusConfig = {
 
 export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMechanicChange }: JobDetailsProps) {
   const [activeTab, setActiveTab] = useState(isMechanicMode ? "dvi" : "overview")
-  const [dviItems, setDviItems] = useState<DVIItem[]>(job.dviItems)
-  const [parts, setParts] = useState<Part[]>(job.parts)
+  
+  // Enrich job with dummy data if needed
+  const enrichedJob = enrichJobWithDummyData(job)
+  
+  const [dviItems, setDviItems] = useState<DVIItem[]>(enrichedJob.dviItems || [])
+  const [parts, setParts] = useState<Part[]>(enrichedJob.parts || [])
   const [newNote, setNewNote] = useState("")
   const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
+  
+  // Update DVI items when job changes
+  useEffect(() => {
+    const enrichedJob = enrichJobWithDummyData(job)
+    setDviItems(enrichedJob.dviItems || [])
+    setParts(enrichedJob.parts || [])
+  }, [job.id])
 
   const statusInfo = statusConfig[currentStatus]
   const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
@@ -73,8 +85,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   }
 
   const handleMechanicChange = (mechanicId: string) => {
-    const mechanic = mechanics.find((m) => m.id === mechanicId)
-    setCurrentMechanic(mechanic)
+    // Mechanic lookup will be handled by parent component
     if (onMechanicChange) {
       onMechanicChange(job.id, mechanicId)
     }
@@ -184,25 +195,10 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
             </div>
             {!isMechanicMode && onMechanicChange && (
               <div className="mt-3">
-                <Select
-                  value={currentMechanic?.id || "unassigned"}
-                  onValueChange={handleMechanicChange}
-                >
-                  <SelectTrigger className="w-64 h-9">
-                    <SelectValue placeholder="Assign Mechanic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {mechanics.map((mechanic) => (
-                      <SelectItem key={mechanic.id} value={mechanic.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{mechanic.name}</span>
-                          <span className="text-xs text-muted-foreground">({mechanic.specialty})</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {currentMechanic ? `Assigned to: ${currentMechanic.name}` : 'No mechanic assigned'}
+                </p>
+                {/* Mechanic selection temporarily disabled - use admin panel to assign */}
               </div>
             )}
           </div>
@@ -376,20 +372,20 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Created</span>
-                        <span className="text-sm">{new Date(job.createdAt).toLocaleDateString("en-IN")}</span>
+                        <span className="text-sm">{new Date(enrichedJob.created_at || enrichedJob.createdAt).toLocaleDateString("en-IN")}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Parts</span>
-                        <span className="font-medium">₹{job.partsTotal.toLocaleString()}</span>
+                        <span className="font-medium">₹{(enrichedJob.partsTotal || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Labor</span>
-                        <span className="font-medium">₹{job.laborTotal.toLocaleString()}</span>
+                        <span className="font-medium">₹{(enrichedJob.laborTotal || 0).toLocaleString()}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
                         <span>Total</span>
-                        <span>₹{(job.partsTotal + job.laborTotal + job.tax).toLocaleString()}</span>
+                        <span>₹{((enrichedJob.partsTotal || 0) + (enrichedJob.laborTotal || 0) + (enrichedJob.tax || 0)).toLocaleString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -404,24 +400,28 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {job.activities.map((activity, index) => (
-                          <div key={activity.id} className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className="w-2 h-2 rounded-full bg-primary" />
-                              {index < job.activities.length - 1 && <div className="w-px h-full bg-border" />}
-                            </div>
-                            <div className="flex-1 pb-4">
-                              <p className="text-sm text-foreground">{activity.description}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(activity.timestamp).toLocaleString("en-IN")}
-                                </span>
-                                <span className="text-xs text-muted-foreground">•</span>
-                                <span className="text-xs text-muted-foreground">{activity.user}</span>
+                        {enrichedJob.activities && enrichedJob.activities.length > 0 ? (
+                          enrichedJob.activities.map((activity: any, index: number) => (
+                            <div key={activity.id} className="flex gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className="w-2 h-2 rounded-full bg-primary" />
+                                {index < enrichedJob.activities.length - 1 && <div className="w-px h-full bg-border" />}
+                              </div>
+                              <div className="flex-1 pb-4">
+                                <p className="text-sm text-foreground">{activity.description}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(activity.timestamp).toLocaleString("en-IN")}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <span className="text-xs text-muted-foreground">{activity.user}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No activity recorded yet</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -438,7 +438,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-foreground">Digital Vehicle Inspection</h3>
-                    <p className="text-sm text-muted-foreground">{job.dviTemplate || "Full Vehicle Inspection"}</p>
+                    <p className="text-sm text-muted-foreground">{enrichedJob.dviTemplate || "Full Vehicle Inspection"}</p>
                   </div>
                   <div className="flex gap-2">
                     {Object.entries(dviStatusConfig).map(([key, config]) => {

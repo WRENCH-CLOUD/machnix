@@ -40,6 +40,8 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [customerFound, setCustomerFound] = useState(false)
   const [showQuickCreate, setShowQuickCreate] = useState(false)
+  const [showVehicleCreate, setShowVehicleCreate] = useState(false)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [phoneSearch, setPhoneSearch] = useState("")
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -167,6 +169,11 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
         // Load customer's vehicles
         const vehicles = await VehicleService.getByCustomerId(customer.id)
         setCustomerVehicles(vehicles)
+        
+        // If customer has no vehicles, show create form
+        if (vehicles.length === 0) {
+          setShowVehicleCreate(true)
+        }
       } else {
         // Customer not found
         setFormData((prev) => ({
@@ -178,6 +185,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
         }))
         setFoundCustomer(null)
         setCustomerFound(false)
+        setCustomerVehicles([])
         setShowQuickCreate(true)
       }
     } catch (error) {
@@ -188,11 +196,56 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
     }
   }
 
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle)
+    setShowVehicleCreate(false)
+    
+    // Populate form with selected vehicle data
+    setFormData((prev) => ({
+      ...prev,
+      vehicle: {
+        id: vehicle.id,
+        make: vehicle.make_id || "",
+        model: vehicle.model_id || "",
+        year: vehicle.year?.toString() || "",
+        regNo: vehicle.reg_no,
+        color: "", // TODO: add color field to vehicle table
+        odometer: vehicle.odometer?.toString() || "",
+      },
+    }))
+    
+    // Load models for the selected make
+    if (vehicle.make_id) {
+      loadVehicleModels(vehicle.make_id)
+    }
+  }
+
+  const handleAddNewVehicle = () => {
+    setSelectedVehicle(null)
+    setShowVehicleCreate(true)
+    
+    // Clear vehicle form
+    setFormData((prev) => ({
+      ...prev,
+      vehicle: {
+        id: "",
+        make: "",
+        model: "",
+        year: "",
+        regNo: "",
+        color: "",
+        odometer: "",
+      },
+    }))
+  }
+
   const handleNext = async () => {
     if (currentStep < 3) {
+      console.log(`[WIZARD] Moving to step ${currentStep + 1}`, { formData })
       setCurrentStep(currentStep + 1)
     } else {
       // Submit the job
+      console.log('[WIZARD] Final submit triggered')
       await handleSubmit()
     }
   }
@@ -210,12 +263,19 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
 
       // Create customer if new
       if (!customerId) {
+        console.log('Creating new customer:', {
+          tenant_id: tenantId,
+          name: formData.customer.name,
+          phone: formData.customer.phone,
+          email: formData.customer.email || null,
+        })
         const newCustomer = await CustomerService.create({
           tenant_id: tenantId,
           name: formData.customer.name,
           phone: formData.customer.phone,
           email: formData.customer.email || null,
         })
+        console.log('Customer created successfully:', newCustomer)
         customerId = newCustomer.id
       }
 
@@ -266,7 +326,9 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
       case 1:
         return (customerFound || showQuickCreate) && formData.customer.name && formData.customer.phone
       case 2:
-        return formData.vehicle.make && formData.vehicle.model && formData.vehicle.regNo
+        // Either a vehicle is selected OR all new vehicle fields are filled
+        return (selectedVehicle !== null) || 
+               (formData.vehicle.make && formData.vehicle.model && formData.vehicle.regNo)
       case 3:
         return formData.job.complaints
       default:
@@ -361,9 +423,19 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                         value={phoneSearch}
                         onChange={(e) => setPhoneSearch(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
+                        disabled={searching}
                       />
                     </div>
-                    <Button onClick={handlePhoneSearch}>Search</Button>
+                    <Button onClick={handlePhoneSearch} disabled={searching || !phoneSearch}>
+                      {searching ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Searching...
+                        </>
+                      ) : (
+                        "Search"
+                      )}
+                    </Button>
                   </div>
                 </div>
 
@@ -456,126 +528,202 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
               >
                 <div>
                   <Label className="text-base font-semibold">Vehicle Information</Label>
-                  <p className="text-sm text-muted-foreground mb-4">Enter the vehicle details for this job</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {customerVehicles.length > 0 
+                      ? "Select an existing vehicle or add a new one" 
+                      : "Enter the vehicle details for this job"}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Make *</Label>
-                    <Select
-                      value={formData.vehicle.make}
-                      onValueChange={(value) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, make: value, model: '' },
-                        }))
-                        loadVehicleModels(value)
-                      }}
+                {/* Show existing vehicles if customer has any */}
+                {customerVehicles.length > 0 && !showVehicleCreate && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <div className="grid gap-3">
+                      {customerVehicles.map((vehicle) => (
+                        <Card
+                          key={vehicle.id}
+                          className={cn(
+                            "cursor-pointer transition-all hover:border-primary/50",
+                            selectedVehicle?.id === vehicle.id && "border-primary bg-primary/5",
+                          )}
+                          onClick={() => handleSelectVehicle(vehicle)}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
+                                <Car className="w-6 h-6 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-foreground">
+                                  {vehicle.year || ""} {/* TODO: lookup make/model names */}
+                                </p>
+                                <p className="text-sm font-mono text-muted-foreground">{vehicle.reg_no}</p>
+                                {vehicle.odometer && (
+                                  <p className="text-xs text-muted-foreground">{vehicle.odometer.toLocaleString()} km</p>
+                                )}
+                              </div>
+                            </div>
+                            {selectedVehicle?.id === vehicle.id && (
+                              <Check className="w-5 h-5 text-primary" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={handleAddNewVehicle}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select make" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicleMakes.map((make) => (
-                          <SelectItem key={make.id} value={make.id}>
-                            {make.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Model *</Label>
-                    <Select
-                      value={formData.vehicle.model}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, model: value },
-                        }))
-                      }
-                      disabled={!formData.vehicle.make}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicleModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                      <Plus className="w-4 h-4" />
+                      Add New Vehicle
+                    </Button>
+                  </motion.div>
+                )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Year</Label>
-                    <Select
-                      value={formData.vehicle.year}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, year: value },
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 15 }, (_, i) => 2024 - i).map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Color</Label>
-                    <Input
-                      placeholder="e.g., Silver, White"
-                      value={formData.vehicle.color}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, color: e.target.value },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Registration Number *</Label>
-                    <Input
-                      placeholder="e.g., KA 01 AB 1234"
-                      className="uppercase"
-                      value={formData.vehicle.regNo}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, regNo: e.target.value.toUpperCase() },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Odometer (km)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Current reading"
-                      value={formData.vehicle.odometer}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          vehicle: { ...prev.vehicle, odometer: e.target.value },
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                {/* Vehicle form - shown when creating new vehicle or no vehicles exist */}
+                {(showVehicleCreate || customerVehicles.length === 0) && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    {customerVehicles.length > 0 && (
+                      <div className="flex items-center gap-2 text-amber-500 bg-amber-500/10 p-3 rounded-lg mb-4">
+                        <Plus className="w-4 h-4" />
+                        <span className="text-sm font-medium">Adding new vehicle for {formData.customer.name}</span>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Make *</Label>
+                          <Select
+                            value={formData.vehicle.make}
+                            onValueChange={(value) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                vehicle: { ...prev.vehicle, make: value, model: '' },
+                              }))
+                              loadVehicleModels(value)
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select make" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vehicleMakes.map((make) => (
+                                <SelectItem key={make.id} value={make.id}>
+                                  {make.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Model *</Label>
+                          <Select
+                            value={formData.vehicle.model}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                vehicle: { ...prev.vehicle, model: value },
+                              }))
+                            }
+                            disabled={!formData.vehicle.make}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vehicleModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  {model.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Year</Label>
+                          <Select
+                            value={formData.vehicle.year}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                vehicle: { ...prev.vehicle, year: value },
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 15 }, (_, i) => 2024 - i).map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Registration Number *</Label>
+                          <Input
+                            placeholder="e.g., KA 01 AB 1234"
+                            className="uppercase"
+                            value={formData.vehicle.regNo}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                vehicle: { ...prev.vehicle, regNo: e.target.value.toUpperCase() },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Odometer (km)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Current reading"
+                            value={formData.vehicle.odometer}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                vehicle: { ...prev.vehicle, odometer: e.target.value },
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      
+                      {customerVehicles.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => {
+                            setShowVehicleCreate(false)
+                            setFormData((prev) => ({
+                              ...prev,
+                              vehicle: {
+                                id: "",
+                                make: "",
+                                model: "",
+                                year: "",
+                                regNo: "",
+                                color: "",
+                                odometer: "",
+                              },
+                            }))
+                          }}
+                        >
+                          Cancel - Back to Vehicle List
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             )}
 
@@ -638,40 +786,47 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                   <div>
                     <Label>Assign Mechanic</Label>
                     <div className="grid grid-cols-2 gap-3 mt-2">
-                      {mechanics.map((mechanic) => (
-                        <Card
-                          key={mechanic.id}
-                          className={cn(
-                            "cursor-pointer transition-all hover:border-primary/50",
-                            formData.job.mechanic === mechanic.id && "border-primary bg-primary/5",
-                          )}
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              job: { ...prev.job, mechanic: mechanic.id },
-                            }))
-                          }
-                        >
-                          <CardContent className="p-3 flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={mechanic.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>
-                                {mechanic.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{mechanic.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">{mechanic.specialty}</p>
-                            </div>
-                            {formData.job.mechanic === mechanic.id && (
-                              <Check className="w-4 h-4 text-primary shrink-0" />
+                      {mechanics.length === 0 ? (
+                        <p className="col-span-2 text-sm text-muted-foreground text-center py-4">
+                          No mechanics available. Job can be assigned later.
+                        </p>
+                      ) : (
+                        mechanics.map((mechanic) => (
+                          <Card
+                            key={mechanic.id}
+                            className={cn(
+                              "cursor-pointer transition-all hover:border-primary/50",
+                              formData.job.mechanic === mechanic.id && "border-primary bg-primary/5",
                             )}
-                          </CardContent>
-                        </Card>
-                      ))}
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                job: { ...prev.job, mechanic: mechanic.id },
+                              }))
+                            }
+                          >
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {mechanic.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{mechanic.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {mechanic.phone || "No phone"}
+                                </p>
+                              </div>
+                              {formData.job.mechanic === mechanic.id && (
+                                <Check className="w-4 h-4 text-primary shrink-0" />
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

@@ -31,17 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       
-      // Load tenant from localStorage if available
-      const savedTenantId = localStorage.getItem('tenantId')
-      if (savedTenantId && session) {
-        setTenantContext(savedTenantId)
-        setTenantId(savedTenantId)
-        
-        // Fetch user role from database
-        fetchUserRole(session.user.id, savedTenantId)
+      if (session?.user) {
+        // Check user role on initial load
+        checkUserRole(session.user.id)
+      } else {
+        setLoading(false)
       }
-      
-      setLoading(false)
     })
 
     // Listen for auth changes
@@ -55,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTenantId(null)
         setUserRole(null)
         localStorage.removeItem('tenantId')
+      } else if (session.user) {
+        checkUserRole(session.user.id)
       }
     })
 
@@ -110,6 +107,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AUTH] User has no access')
       setUserRole('no_access')
       throw new Error('You do not have access to this system. Please contact an administrator.')
+    }
+  }
+
+  const checkUserRole = async (userId: string) => {
+    try {
+      console.log('[AUTH] Checking user role for:', userId)
+      
+      // Step 1: Check if user is a platform admin (may not exist in local dev)
+      try {
+        const { data: platformAdmin, error: platformAdminError } = await supabase
+          .from('platform_admins')
+          .select('id, is_active, role')
+          .eq('auth_user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle() // Use maybeSingle to avoid 406 errors
+
+        if (!platformAdminError && platformAdmin) {
+          console.log('[AUTH] User is platform admin')
+          setUserRole('platform_admin')
+          setLoading(false)
+          return
+        }
+      } catch (err) {
+        // Platform admins table might not exist in local dev, continue to tenant check
+        console.log('[AUTH] Platform admins table not accessible, checking tenant users')
+      }
+
+      // Step 2: Check if user exists in tenant.users
+      const { data: userData, error: userError } = await supabase
+        .schema('tenant')
+        .from('users')
+        .select('tenant_id, role')
+        .eq('auth_user_id', userId)
+        .eq('is_active', true)
+        .single()
+      
+      if (!userError && userData) {
+        console.log('[AUTH] User found in tenant.users with role:', userData.role)
+        await setActiveTenant(userData.tenant_id)
+        setUserRole(userData.role)
+        setLoading(false)
+        return
+      }
+
+      // Step 3: No access found
+      console.log('[AUTH] User has no access')
+      setUserRole('no_access')
+      setLoading(false)
+    } catch (error) {
+      console.error('[AUTH] Error checking user role:', error)
+      setUserRole('no_access')
+      setLoading(false)
     }
   }
 

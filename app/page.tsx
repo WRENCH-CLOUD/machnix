@@ -15,13 +15,14 @@ import { JobService } from "@/lib/supabase/services"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
 import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
+import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
 
 function AppContent() {
   const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
-  const [selectedJob, setSelectedJob] = useState<JobcardWithRelations | null>(null)
-  const [jobs, setJobs] = useState<JobcardWithRelations[]>([])
+  const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
+  const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -61,7 +62,9 @@ function AppContent() {
       }
       
       const data = await JobService.getJobs()
-      setJobs(data)
+      // Transform database jobs to UI format
+      const transformedJobs = data.map(transformDatabaseJobToUI)
+      setJobs(transformedJobs)
     } catch (err: unknown) {
       // Better error logging
       const errorMessage = err instanceof Error 
@@ -139,10 +142,11 @@ function AppContent() {
   }
 
   // Default frontdesk/tenant view handlers
-  const handleJobClick = async (job: JobcardWithRelations) => {
+  const handleJobClick = async (job: UIJob) => {
     try {
       const fullJob = await JobService.getJobById(job.id)
-      setSelectedJob(fullJob)
+      const transformedJob = transformDatabaseJobToUI(fullJob)
+      setSelectedJob(transformedJob)
     } catch (err) {
       console.error('Error loading job details:', err)
       setSelectedJob(job)
@@ -168,7 +172,8 @@ function AppContent() {
 
       if (selectedJob?.id === jobId) {
         const updatedJob = await JobService.getJobById(jobId)
-        setSelectedJob(updatedJob)
+        const transformedJob = transformDatabaseJobToUI(updatedJob)
+        setSelectedJob(transformedJob)
       }
     } catch (err) {
       console.error('Error updating status:', err)
@@ -183,7 +188,8 @@ function AppContent() {
 
       if (selectedJob?.id === jobId) {
         const updatedJob = await JobService.getJobById(jobId)
-        setSelectedJob(updatedJob)
+        const transformedJob = transformDatabaseJobToUI(updatedJob)
+        setSelectedJob(transformedJob)
       }
     } catch (err) {
       console.error('Error assigning mechanic:', err)
@@ -223,6 +229,7 @@ function AppContent() {
               <JobBoard
                 jobs={jobs}
                 loading={loading}
+                isMechanicMode={false}
                 onJobClick={handleJobClick}
                 onStatusChange={handleStatusChange}
                 onMechanicChange={handleMechanicChange}
@@ -231,7 +238,6 @@ function AppContent() {
             {activeView === "jobs" && (
               <AllJobsView
                 jobs={jobs}
-                loading={loading}
                 onJobClick={handleJobClick}
               />
             )}
@@ -246,6 +252,7 @@ function AppContent() {
       {selectedJob && (
         <JobDetails
           job={selectedJob}
+          isMechanicMode={false}
           onClose={() => setSelectedJob(null)}
           onStatusChange={handleStatusChange}
         />
