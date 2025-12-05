@@ -13,7 +13,7 @@ import { VehiclesView } from "@/components/mechanix/vehicles-view"
 import { ReportsView } from "@/components/mechanix/reports-view"
 import { LoginPage } from "@/components/mechanix/login-page"
 import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
-// import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard" // MECHANIC FEATURES DISABLED
+import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
 import { useAuth } from "@/lib/auth-provider"
 import { JobService, MechanicService } from "@/lib/supabase/services"
 import type { JobWithRelations } from "@/lib/supabase/services/job.service"
@@ -21,7 +21,7 @@ import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function AppContent() {
-  const { user, session, tenantId, loading: authLoading } = useAuth()
+  const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
   const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null)
@@ -77,15 +77,58 @@ function AppContent() {
     return <LoginPage />
   }
 
-  // TODO: Implement role-based views
-  // if (user?.role === "mechanic") {
-  //   return <MechanicDashboard />
-  // }
+  // Show loading if user role is still being determined
+  if (!userRole && !authLoading) {
+    console.log('[PAGE] User role is null, showing loading...')
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Skeleton className="h-12 w-64 mx-auto" />
+          <Skeleton className="h-4 w-48 mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading user profile...</p>
+        </div>
+      </div>
+    )
+  }
 
-  // if (user?.role === "admin") {
-  //   return <AdminDashboard />
-  // }
+  console.log('[PAGE] User role:', userRole)
 
+  // Role-based routing
+  if (userRole === "platform_admin") {
+    return <AdminDashboard />
+  }
+
+  if (userRole === "mechanic") {
+    return <MechanicDashboard />
+  }
+
+  if (userRole === "tenant") {
+    return <AdminDashboard />
+  }
+
+  if (userRole === "no_access") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md p-8">
+          <h1 className="text-2xl font-bold text-destructive">No Access</h1>
+          <p className="text-muted-foreground">
+            You do not have access to this system. Please contact an administrator.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.clear()
+              window.location.reload()
+            }}
+            className="text-primary hover:underline"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Default frontdesk view
   const handleJobClick = async (job: JobWithRelations) => {
     // Fetch full job details
     try {

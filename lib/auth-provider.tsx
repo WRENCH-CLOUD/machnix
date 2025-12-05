@@ -8,9 +8,10 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   tenantId: string | null
+  userRole: string | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, name: string) => Promise<void>
+  signUp: (email: string, password: string, name: string, role?: string) => Promise<void>
   signOut: () => Promise<void>
   setActiveTenant: (tenantId: string) => Promise<void>
 }
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [tenantId, setTenantId] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -34,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (savedTenantId && session) {
         setTenantContext(savedTenantId)
         setTenantId(savedTenantId)
+        
+        // Fetch user role from database
+        fetchUserRole(session.user.id, savedTenantId)
       }
       
       setLoading(false)
@@ -48,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!session) {
         setTenantId(null)
+        setUserRole(null)
         localStorage.removeItem('tenantId')
       }
     })
@@ -56,15 +62,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
     
     if (error) throw error
+    
+    // Step 1: Check if user is a platform admin
+    if (data.user) {
+      console.log('[AUTH] Checking platform admin for user:', data.user.id)
+      const { data: platformAdmin, error: platformAdminError } = await supabase
+        .from('platform_admins')
+        .select('id, is_active, role')
+        .eq('auth_user_id', data.user.id)
+        .eq('is_active', true)
+        .single()
+
+      console.log('[AUTH] Platform admin query result:', { platformAdmin, platformAdminError })
+
+      if (!platformAdminError && platformAdmin) {
+        console.log('[AUTH] User is platform admin, setting role to platform_admin')
+        setUserRole('platform_admin')
+        return
+      }
+
+      // Step 2: Check if user exists in tenant.users
+      console.log('[AUTH] Checking tenant.users for user:', data.user.id)
+      const { data: userData, error: userError } = await supabase
+        .schema('tenant')
+        .from('users')
+        .select('tenant_id, role')
+        .eq('auth_user_id', data.user.id)
+        .eq('is_active', true)
+        .single()
+      
+      console.log('[AUTH] Tenant user query result:', { userData, userError })
+
+      if (!userError && userData) {
+        console.log('[AUTH] User found in tenant.users with role:', userData.role)
+        await setActiveTenant(userData.tenant_id)
+        setUserRole(userData.role)
+        return
+      }
+
+      // Step 3: No access found
+      console.log('[AUTH] User has no access')
+      setUserRole('no_access')
+      throw new Error('You do not have access to this system. Please contact an administrator.')
+    }
   }
 
-  const signUp = async (email: string, password: string, name: string) => {    // Step 1: Create the auth user
+  const fetchUserRole = async (userId: string, tenantId: string) => {
+    const { data } = await supabase
+      .schema('tenant')
+      .from('users')
+      .select('role')
+      .eq('auth_user_id', userId)
+      .eq('tenant_id', tenantId)
+      .single()
+    
+    if (data) {
+      setUserRole(data.role)
+    }
+  }
+
+  const signUp = async (email: string, password: string, name: string, role: string = 'tenant') => {    // Step 1: Create the auth user
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -90,14 +153,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('User created in auth, now creating tenant and user record...')
       
       try {
-        // Determine role based on email
-        const adminEmails = ['khanarohithif@gmail.com', 'sagunverma24@gmail.com']
-        const userRole = adminEmails.includes(email.toLowerCase()) ? 'admin' : 'frontdesk'
+        // Use the provided role instead of determining from email
+        const userRole = role
         
         let tenantData;
         
-        // For admin emails, try to use the Main Garage tenant if it exists
-        if (userRole === 'admin') {
+        // For tenant role, try to use the Main Garage tenant if it exists
+        if (userRole === 'tenant') {
           const { data: existingTenant } = await supabase
             .schema('tenant')
             .from('tenants')
@@ -106,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
           
           if (existingTenant) {
-            console.log('Using existing Main Garage tenant for admin')
+            console.log('Using existing Main Garage tenant for tenant user')
             tenantData = existingTenant
           }
         }
@@ -155,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Set the active tenant
         await setActiveTenant(tenantData.id)
+        setUserRole(userRole)
         console.log('Signup completed successfully')
         
       } catch (err) {
@@ -171,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
     
     setTenantId(null)
+    setUserRole(null)
     localStorage.removeItem('tenantId')
   }
 
@@ -186,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         tenantId,
+        userRole,
         loading,
         signIn,
         signUp,
