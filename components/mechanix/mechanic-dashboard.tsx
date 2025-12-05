@@ -52,7 +52,7 @@ const dviStatusConfig = {
 const statusFlow: JobStatus[] = ["received", "assigned", "working", "ready", "completed"]
 
 export function MechanicDashboard() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null)
   const [activeTab, setActiveTab] = useState<"status" | "dvi" | "info">("status")
 
@@ -81,7 +81,7 @@ export function MechanicDashboard() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={logout}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={signOut}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
