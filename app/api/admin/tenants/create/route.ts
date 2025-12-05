@@ -104,14 +104,19 @@ export async function POST(request: NextRequest) {
     console.log(`[TENANT_CREATE] Tenant created successfully: ${newTenant.id}`)
 
     // STEP 4: Create auth user via Supabase Admin API
-    // Using email confirmation with magic link - SECURE METHOD
+    // For local development: auto-confirm email and set temporary password
+    // For production: use email_confirm: false and send magic link
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const temporaryPassword = isDevelopment ? 'Welcome123!' : undefined
+    
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: body.adminEmail,
-      email_confirm: false, // They must confirm email first
+      email_confirm: isDevelopment ? true : false, // Auto-confirm in development
+      password: temporaryPassword, // Set temporary password in development
       user_metadata: {
         name: body.adminName,
         phone: body.adminPhone || null,
-        role: 'tenant_admin',
+        role: 'tenant', // Changed from 'tenant_admin' to match enum
         tenant_id: newTenant.id,
         tenant_name: body.tenantName,
       },
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
         name: body.adminName,
         email: body.adminEmail,
         phone: body.adminPhone || null,
-        role: 'tenant_admin',
+        role: 'tenant', // Changed from 'tenant_admin' to match enum (tenant.user_role)
         is_active: true,
       })
 
@@ -162,22 +167,29 @@ export async function POST(request: NextRequest) {
 
     console.log(`[TENANT_CREATE] User mapping created successfully`)
 
-    // STEP 6: Generate magic link for password setup
-    const { data: magicLink, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: body.adminEmail,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+    // STEP 6: Generate magic link for password setup (production only)
+    let magicLink = null
+    
+    if (!isDevelopment) {
+      const { data: link, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: body.adminEmail,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+        }
+      })
+
+      if (magicLinkError || !link) {
+        console.error('[TENANT_CREATE] Failed to generate magic link:', magicLinkError)
+        // Don't rollback here - tenant and user are created successfully
+        // We can resend the invite later
+      } else {
+        magicLink = link
+        console.log(`[TENANT_CREATE] Magic link generated successfully`)
       }
-    })
-
-    if (magicLinkError || !magicLink) {
-      console.error('[TENANT_CREATE] Failed to generate magic link:', magicLinkError)
-      // Don't rollback here - tenant and user are created successfully
-      // We can resend the invite later
+    } else {
+      console.log(`[TENANT_CREATE] Development mode - skipping magic link generation, using temporary password instead`)
     }
-
-    console.log(`[TENANT_CREATE] Magic link generated successfully`)
 
     // STEP 7: Send invitation email (in production, use a proper email service)
     // For now, we'll return the magic link in the response
@@ -211,14 +223,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Tenant created successfully. Invitation email sent.',
+      message: isDevelopment 
+        ? 'Tenant created successfully with temporary password.' 
+        : 'Tenant created successfully. Invitation email sent.',
       tenant: {
         id: newTenant.id,
         name: newTenant.name,
         slug: newTenant.slug,
       },
+      // Development only - include credentials
+      ...(isDevelopment && {
+        credentials: {
+          email: body.adminEmail,
+          temporaryPassword: temporaryPassword,
+          note: 'Use these credentials to login immediately. Change password after first login.'
+        }
+      }),
       // In production, don't return this - send via email only
-      inviteLink: magicLink?.properties?.action_link || null,
+      inviteLink: !isDevelopment ? magicLink?.properties?.action_link : null,
     })
 
   } catch (error) {

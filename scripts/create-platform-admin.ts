@@ -1,0 +1,188 @@
+/**
+ * DISPOSABLE SCRIPT - Create Platform Admin
+ * 
+ * This script creates a platform admin user with an entry in both:
+ * - auth.users (Supabase authentication)
+ * - public.platform_admins (platform admin table)
+ * 
+ * Usage:
+ * 1. Set your environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+ * 2. Run: npx tsx scripts/create-platform-admin.ts
+ * 3. Delete this script after use
+ */
+
+import { createClient } from '@supabase/supabase-js'
+import * as dotenv from 'dotenv'
+import * as path from 'path'
+import * as fs from 'fs'
+
+// Load .env.local file
+const envPath = path.join(process.cwd(), '.env.local')
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+  console.log('✅ Loaded .env.local\n')
+} else {
+  console.warn('⚠️  .env.local not found, using system environment variables\n')
+}
+
+// Configuration - UPDATE THESE VALUES
+const ADMIN_EMAIL = 'admin@mechanix.com'
+const ADMIN_PASSWORD = 'admin123' 
+const ADMIN_NAME = 'Super Admin'
+const ADMIN_PHONE = '' // Optional
+
+// Supabase configuration
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Missing environment variables:')
+  console.error('   NEXT_PUBLIC_SUPABASE_URL:', SUPABASE_URL ? '✓' : '✗')
+  console.error('   SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗')
+  process.exit(1)
+}
+
+// Create admin client (bypasses RLS)
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
+
+async function createPlatformAdmin() {
+  console.log('🚀 Creating platform admin...\n')
+
+  try {
+    // Step 1: Create auth.users entry
+    console.log('📝 Step 1: Creating auth user...')
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+      email_confirm: true,
+      user_metadata: {
+        name: ADMIN_NAME,
+        phone: ADMIN_PHONE
+      }
+    })
+
+    if (authError) {
+      console.error('❌ Error creating auth user:', authError.message)
+      
+      // Check if user already exists
+      if (authError.message.includes('already registered')) {
+        console.log('⚠️  User already exists. Attempting to retrieve user ID...')
+        
+        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
+        if (listError) {
+          console.error('❌ Error listing users:', listError.message)
+          process.exit(1)
+        }
+        
+        const existingUser = users.find(u => u.email === ADMIN_EMAIL)
+        if (!existingUser) {
+          console.error('❌ Could not find existing user')
+          process.exit(1)
+        }
+        
+        console.log('✅ Found existing user:', existingUser.id)
+        
+        // Step 2: Create platform_admins entry
+        console.log('\n📝 Step 2: Creating platform_admins entry...')
+        const { data: adminData, error: adminError } = await supabase
+          .from('platform_admins')
+          .insert({
+            auth_user_id: existingUser.id,
+            name: ADMIN_NAME,
+            email: ADMIN_EMAIL,
+            role: 'admin', // Uses platform_admin_role enum
+            phone: ADMIN_PHONE,
+            is_active: true,
+            metadata: {
+              created_via: 'disposable_script',
+              created_at: new Date().toISOString(),
+              initial_admin: true
+            }
+          })
+          .select()
+          .single()
+
+        if (adminError) {
+          console.error('❌ Error creating platform_admins entry:', adminError.message)
+          process.exit(1)
+        }
+
+        console.log('✅ Platform admin entry created:', adminData.id)
+        printSuccessMessage(existingUser.id, adminData.id)
+        return
+      }
+      
+      process.exit(1)
+    }
+
+    if (!authData.user) {
+      console.error('❌ No user data returned')
+      process.exit(1)
+    }
+
+    console.log('✅ Auth user created:', authData.user.id)
+    console.log('   Email:', authData.user.email)
+
+    // Step 2: Create platform_admins entry
+    console.log('\n📝 Step 2: Creating platform_admins entry...')
+    const { data: adminData, error: adminError } = await supabase
+      .from('platform_admins')
+      .insert({
+        auth_user_id: authData.user.id,
+        name: ADMIN_NAME,
+        email: ADMIN_EMAIL,
+        role: 'admin', // Uses platform_admin_role enum
+        phone: ADMIN_PHONE,
+        is_active: true,
+        metadata: {
+          created_via: 'disposable_script',
+          created_at: new Date().toISOString(),
+          initial_admin: true
+        }
+      })
+      .select()
+      .single()
+
+    if (adminError) {
+      console.error('❌ Error creating platform_admins entry:', adminError.message)
+      console.log('\n⚠️  Auth user was created but platform_admins entry failed.')
+      console.log('   You may need to manually create the platform_admins entry.')
+      console.log('   Auth User ID:', authData.user.id)
+      process.exit(1)
+    }
+
+    console.log('✅ Platform admin entry created:', adminData.id)
+
+    // Success!
+    printSuccessMessage(authData.user.id, adminData.id)
+
+  } catch (error) {
+    console.error('❌ Unexpected error:', error)
+    process.exit(1)
+  }
+}
+
+function printSuccessMessage(authUserId: string, platformAdminId: string) {
+  console.log('\n' + '='.repeat(60))
+  console.log('🎉 PLATFORM ADMIN CREATED SUCCESSFULLY!')
+  console.log('='.repeat(60))
+  console.log('\nCredentials:')
+  console.log('  Email:   ', ADMIN_EMAIL)
+  console.log('  Password:', ADMIN_PASSWORD)
+  console.log('\nIDs:')
+  console.log('  Auth User ID:       ', authUserId)
+  console.log('  Platform Admin ID:  ', platformAdminId)
+  console.log('\n⚠️  IMPORTANT:')
+  console.log('  1. Change the password after first login')
+  console.log('  2. Delete this script: scripts/create-platform-admin.ts')
+  console.log('  3. Do NOT commit credentials to version control')
+  console.log('='.repeat(60) + '\n')
+}
+
+// Run the script
+createPlatformAdmin()

@@ -34,11 +34,7 @@ export class JobService {
       .select(`
         *,
         customer:customers(*),
-        vehicle:vehicles(
-          *,
-          make:vehicle_make(*),
-          model:vehicle_model(*)
-        ),
+        vehicle:vehicles(*),
         mechanic:mechanics(*),
         part_usages:part_usages(*)
       `)
@@ -61,11 +57,7 @@ export class JobService {
       .select(`
         *,
         customer:customers(*),
-        vehicle:vehicles(
-          *,
-          make:vehicle_make(*),
-          model:vehicle_model(*)
-        ),
+        vehicle:vehicles(*),
         mechanic:mechanics(*),
         part_usages:part_usages(*)
       `)

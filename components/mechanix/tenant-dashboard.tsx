@@ -1,0 +1,176 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { AnimatePresence } from "framer-motion"
+import { AppSidebar } from "@/components/mechanix/app-sidebar"
+import { TopHeader } from "@/components/mechanix/top-header"
+import { JobBoard } from "@/components/mechanix/job-board"
+import { CreateJobWizard } from "@/components/mechanix/create-job-wizard"
+import { JobDetails } from "@/components/mechanix/job-details"
+import { AllJobsView } from "@/components/mechanix/all-jobs-view"
+import { CustomersView } from "@/components/mechanix/customers-view"
+import { VehiclesView } from "@/components/mechanix/vehicles-view"
+import { ReportsView } from "@/components/mechanix/reports-view"
+import { useAuth } from "@/lib/auth-provider"
+import { JobService } from "@/lib/supabase/services"
+import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
+import { type JobStatus } from "@/lib/mock-data"
+
+export function TenantDashboard() {
+  const { user, session, tenantId } = useAuth()
+  const [activeView, setActiveView] = useState("dashboard")
+  const [showCreateJob, setShowCreateJob] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<JobcardWithRelations | null>(null)
+  const [jobs, setJobs] = useState<JobcardWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch jobs when tenant is set
+  useEffect(() => {
+    if (tenantId && session) {
+      loadJobs()
+      
+      // Subscribe to real-time job changes
+      const subscription = JobService.subscribeToJobs((payload) => {
+        console.log('Job update:', payload)
+        loadJobs() // Reload jobs on any change
+      })
+
+      return () => {
+        subscription.unsubscribe()
+      }
+    }
+  }, [tenantId, session])
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await JobService.getJobs()
+      setJobs(data)
+    } catch (err) {
+      console.error('Error loading jobs:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load jobs')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleJobClick = async (job: JobcardWithRelations) => {
+    // Fetch full job details
+    try {
+      const fullJob = await JobService.getJobById(job.id)
+      setSelectedJob(fullJob)
+    } catch (err) {
+      console.error('Error loading job details:', err)
+      setSelectedJob(job) // Fallback to the job we have
+    }
+  }
+
+  const handleCreateJob = async (data: unknown) => {
+    console.log("Creating job:", data)
+    // TODO: Implement job creation
+    await loadJobs()
+  }
+
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
+    console.log('Status change requested:', jobId, newStatus)
+    // TODO: Implement status update when method is available
+    alert('Status update feature coming soon')
+  }
+
+  const handleMechanicChange = async (jobId: string, mechanicId: string) => {
+    console.log('Mechanic assignment requested:', jobId, mechanicId)
+    // TODO: Implement mechanic assignment when method is available
+    alert('Mechanic assignment feature coming soon')
+  }
+
+  // Show error state
+  if (error && !loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">{error}</p>
+          <button
+            onClick={loadJobs}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Tenant dashboard view
+  return (
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar */}
+      <AppSidebar activeView={activeView} onViewChange={setActiveView} />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopHeader tenantName="Mechanix Garage" onCreateJob={() => setShowCreateJob(true)} />
+
+        <main className="flex-1 overflow-hidden">
+          {activeView === "dashboard" && (
+            <JobBoard
+              jobs={jobs as any} // TODO: Fix type mismatch
+              onJobClick={handleJobClick as any}
+              isMechanicMode={false}
+              onStatusChange={handleStatusChange}
+              onMechanicChange={handleMechanicChange}
+              loading={loading}
+            />
+          )}
+
+          {activeView === "jobs" && <AllJobsView jobs={jobs as any} onJobClick={handleJobClick as any} />}
+
+          {activeView === "customers" && <CustomersView />}
+
+          {activeView === "vehicles" && <VehiclesView />}
+
+          {activeView === "reports" && <ReportsView />}
+
+          {activeView === "invoices" && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold mb-4">Invoices</h1>
+              <p className="text-muted-foreground">Invoice management coming soon...</p>
+            </div>
+          )}
+
+          {activeView === "settings" && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold mb-4">Settings</h1>
+              <p className="text-muted-foreground">System settings coming soon...</p>
+            </div>
+          )}
+
+          {activeView === "help" && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold mb-4">Help & Support</h1>
+              <p className="text-muted-foreground">Documentation and support coming soon...</p>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showCreateJob && <CreateJobWizard onClose={() => setShowCreateJob(false)} onSubmit={handleCreateJob} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedJob && (
+          <JobDetails
+            job={selectedJob as any} // TODO: Fix type mismatch
+            onClose={() => setSelectedJob(null)}
+            isMechanicMode={false}
+            onStatusChange={handleStatusChange}
+            onMechanicChange={handleMechanicChange}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
