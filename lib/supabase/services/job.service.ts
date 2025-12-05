@@ -8,15 +8,10 @@ type PartUsage = Database['tenant']['Tables']['part_usages']['Row']
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Mechanic = Database['tenant']['Tables']['mechanics']['Row']
-type VehicleMake = Database['public']['Tables']['vehicle_make']['Row']
-type VehicleModel = Database['public']['Tables']['vehicle_model']['Row']
 
 export interface JobcardWithRelations extends Jobcard {
-  customer?: Customer
-  vehicle?: Vehicle & {
-    make?: VehicleMake
-    model?: VehicleModel
-  }
+  customer?: Customer | null
+  vehicle?: Vehicle | null
   mechanic?: Mechanic | null
   part_usages?: PartUsage[]
 }
@@ -99,6 +94,50 @@ export class JobService {
       .schema('tenant')
       .from('jobcards')
       .update(updates)
+      .eq('id', jobId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Update job status
+   */
+  static async updateStatus(jobId: string, status: string, userId?: string): Promise<Jobcard> {
+    const tenantId = ensureTenantContext()
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('jobcards')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Assign a mechanic to a job
+   */
+  static async assignMechanic(jobId: string, mechanicId: string, userId?: string): Promise<Jobcard> {
+    const tenantId = ensureTenantContext()
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('jobcards')
+      .update({ 
+        assigned_mechanic_id: mechanicId,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', jobId)
       .eq('tenant_id', tenantId)
       .select()

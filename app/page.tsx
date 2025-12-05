@@ -1,26 +1,84 @@
 "use client"
 
-import { LoginPage } from "@/components/mechanix/login-page"
-import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
-import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
-import { TenantDashboard } from "@/components/mechanix/tenant-dashboard"
-import { useAuth } from "@/lib/auth-provider"
+import { useState, useEffect } from "react"
+import { AnimatePresence } from "framer-motion"
+import { AppSidebar, TopHeader } from "@/components/common"
+import { JobBoard, CreateJobWizard, JobDetails, AllJobsView } from "@/components/features/jobs"
+import { CustomersView } from "@/components/features/customers"
+import { VehiclesView } from "@/components/features/vehicles"
+import { ReportsView } from "@/components/features/reports"
+import { LoginPage } from "@/components/features/auth"
+import { AdminDashboard } from "@/components/features/admin"
+import { MechanicDashboard } from "@/components/features/mechanic"
+import { useAuth } from "@/providers"
+import { JobService } from "@/lib/supabase/services"
+import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
+import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function AppContent() {
-  const { user, userRole, loading: authLoading, session } = useAuth()
+  const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
+  const [activeView, setActiveView] = useState("dashboard")
+  const [showCreateJob, setShowCreateJob] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<JobcardWithRelations | null>(null)
+  const [jobs, setJobs] = useState<JobcardWithRelations[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  console.log('[PAGE] 🎬 Render - State:', { 
-    hasUser: !!user, 
-    userEmail: user?.email,
-    hasSession: !!session, 
-    userRole, 
-    authLoading 
-  })
+  // Fetch jobs when tenant is set
+  useEffect(() => {
+    if (tenantId && session) {
+      loadJobs()
+      
+      // Subscribe to real-time job changes
+      let subscription: { unsubscribe: () => void } | null = null
+      
+      try {
+        subscription = JobService.subscribeToJobs((payload) => {
+          console.log('[Jobs] Real-time update:', payload)
+          loadJobs() // Reload jobs on any change
+        })
+      } catch (err) {
+        console.warn('[Jobs] Failed to subscribe to job updates:', err)
+      }
+
+      return () => {
+        subscription?.unsubscribe()
+      }
+    }
+  }, [tenantId, session])
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Ensure tenant context is set before fetching
+      if (!tenantId) {
+        console.warn('[loadJobs] No tenant ID available, skipping job load')
+        setJobs([])
+        return
+      }
+      
+      const data = await JobService.getJobs()
+      setJobs(data)
+    } catch (err: unknown) {
+      // Better error logging
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as { message: unknown }).message)
+          : 'Failed to load jobs'
+      
+      console.error('[loadJobs] Error:', errorMessage, err)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Show loading state while auth is initializing
   if (authLoading) {
-    console.log('[PAGE] ⏳ Showing loading state (auth initializing)')
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -33,13 +91,11 @@ function AppContent() {
 
   // Show login page if not authenticated
   if (!session || !user) {
-    console.log('[PAGE] 🔐 No session/user - showing LoginPage')
     return <LoginPage />
   }
 
   // Show loading if user role is still being determined
   if (!userRole && !authLoading) {
-    console.log('[PAGE] ⏳ User role is null - showing loading...')
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -51,26 +107,16 @@ function AppContent() {
     )
   }
 
-  console.log('[PAGE] 🎯 User role:', userRole)
-
   // Role-based routing
   if (userRole === "platform_admin") {
-    console.log('[PAGE] ✅ Routing to AdminDashboard (platform_admin)')
     return <AdminDashboard />
   }
 
   if (userRole === "mechanic") {
-    console.log('[PAGE] ✅ Routing to MechanicDashboard')
     return <MechanicDashboard />
   }
 
-  if (userRole === "tenant") {
-    console.log('[PAGE] ✅ Routing to TenantDashboard')
-    return <TenantDashboard />
-  }
-
   if (userRole === "no_access") {
-    console.log('[PAGE] ❌ User has no_access role')
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-md p-8">
@@ -92,25 +138,126 @@ function AppContent() {
     )
   }
 
-  // Fallback for unknown roles
-  console.log('[PAGE] ⚠️ Unknown role, showing fallback error:', userRole)
-  return (
-    <div className="flex h-screen items-center justify-center bg-background">
-      <div className="text-center space-y-4 max-w-md p-8">
-        <h1 className="text-2xl font-bold text-destructive">Unknown Role</h1>
-        <p className="text-muted-foreground">
-          Your account has an unrecognized role: {userRole}
-        </p>
-        <button
-          onClick={() => {
-            localStorage.clear()
-            window.location.reload()
-          }}
-          className="text-primary hover:underline"
-        >
-          Sign out
-        </button>
+  // Default frontdesk/tenant view handlers
+  const handleJobClick = async (job: JobcardWithRelations) => {
+    try {
+      const fullJob = await JobService.getJobById(job.id)
+      setSelectedJob(fullJob)
+    } catch (err) {
+      console.error('Error loading job details:', err)
+      setSelectedJob(job)
+    }
+  }
+
+  const handleCreateJob = async (data: unknown) => {
+    console.log("Creating job:", data)
+    await loadJobs()
+  }
+
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
+    try {
+      await JobService.updateStatus(jobId, newStatus, user?.id)
+      
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === jobId
+            ? { ...job, status: newStatus, updated_at: new Date().toISOString() }
+            : job
+        )
+      )
+
+      if (selectedJob?.id === jobId) {
+        const updatedJob = await JobService.getJobById(jobId)
+        setSelectedJob(updatedJob)
+      }
+    } catch (err) {
+      console.error('Error updating status:', err)
+      alert('Failed to update status')
+    }
+  }
+
+  const handleMechanicChange = async (jobId: string, mechanicId: string) => {
+    try {
+      await JobService.assignMechanic(jobId, mechanicId, user?.id)
+      await loadJobs()
+
+      if (selectedJob?.id === jobId) {
+        const updatedJob = await JobService.getJobById(jobId)
+        setSelectedJob(updatedJob)
+      }
+    } catch (err) {
+      console.error('Error assigning mechanic:', err)
+      alert('Failed to assign mechanic')
+    }
+  }
+
+  // Show error state
+  if (error && !loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">{error}</p>
+          <button
+            onClick={loadJobs}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          >
+            Retry
+          </button>
+        </div>
       </div>
+    )
+  }
+
+  // Frontdesk/Tenant view (default)
+  return (
+    <div className="flex h-screen bg-background">
+      <AppSidebar activeView={activeView} onViewChange={setActiveView} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopHeader
+          tenantName="Mechanix Garage"
+          onCreateJob={() => setShowCreateJob(true)}
+        />
+        <main className="flex-1 overflow-auto p-6">
+          <AnimatePresence mode="wait">
+            {activeView === "dashboard" && (
+              <JobBoard
+                jobs={jobs}
+                loading={loading}
+                onJobClick={handleJobClick}
+                onStatusChange={handleStatusChange}
+                onMechanicChange={handleMechanicChange}
+              />
+            )}
+            {activeView === "jobs" && (
+              <AllJobsView
+                jobs={jobs}
+                loading={loading}
+                onJobClick={handleJobClick}
+              />
+            )}
+            {activeView === "customers" && <CustomersView />}
+            {activeView === "vehicles" && <VehiclesView />}
+            {activeView === "reports" && <ReportsView />}
+          </AnimatePresence>
+        </main>
+      </div>
+
+      {/* Job Details Drawer */}
+      {selectedJob && (
+        <JobDetails
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+
+      {/* Create Job Wizard */}
+      {showCreateJob && (
+        <CreateJobWizard
+          onClose={() => setShowCreateJob(false)}
+          onSubmit={handleCreateJob}
+        />
+      )}
     </div>
   )
 }
