@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-provider"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
@@ -20,6 +21,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [role, setRole] = useState<"admin" | "mechanic" | "frontdesk">("frontdesk")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,7 +37,7 @@ export function LoginPage() {
           setError("Name is required")
           return
         }
-        await signUp(email, password, name)
+        await signUp(email, password, name, role)
       } else {
         const identifier = loginMethod === "email" ? email : phone
         await signIn(identifier, password)
@@ -132,6 +134,46 @@ export function LoginPage() {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Select Role</Label>
+                    <RadioGroup value={role} onValueChange={(value) => setRole(value as "admin" | "mechanic" | "frontdesk")}>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-3 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setRole("admin")}>
+                          <RadioGroupItem value="admin" id="role-admin" />
+                          <Label htmlFor="role-admin" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <Shield className="w-4 h-4 text-primary" />
+                            <div>
+                              <div className="font-medium">Admin</div>
+                              <div className="text-xs text-muted-foreground">Full system access</div>
+                            </div>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setRole("mechanic")}>
+                          <RadioGroupItem value="mechanic" id="role-mechanic" />
+                          <Label htmlFor="role-mechanic" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <HardHat className="w-4 h-4 text-primary" />
+                            <div>
+                              <div className="font-medium">Mechanic</div>
+                              <div className="text-xs text-muted-foreground">Work on assigned jobs</div>
+                            </div>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setRole("frontdesk")}>
+                          <RadioGroupItem value="frontdesk" id="role-frontdesk" />
+                          <Label htmlFor="role-frontdesk" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <User className="w-4 h-4 text-primary" />
+                            <div>
+                              <div className="font-medium">Front Desk</div>
+                              <div className="text-xs text-muted-foreground">Manage jobs and customers</div>
+                            </div>
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
               )}

@@ -14,13 +14,27 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Get or create tenant for the user
-      const { data: tenantData, error: tenantError } = await supabase
-        .rpc('get_or_create_user_tenant', { user_id: data.user.id })
+      // Get user's tenant and role
+      const { data: userData, error: userError } = await supabase
+        .schema('tenant')
+        .from('users')
+        .select('tenant_id, role')
+        .eq('auth_user_id', data.user.id)
+        .single()
 
-      if (!tenantError && tenantData) {
-        // Redirect to home with tenant context
-        return NextResponse.redirect(new URL('/', requestUrl.origin))
+      if (!userError && userData) {
+        // Redirect based on role
+        let redirectPath = '/'
+        
+        if (userData.role === 'admin') {
+          redirectPath = '/?view=admin'
+        } else if (userData.role === 'mechanic') {
+          redirectPath = '/?view=mechanic'
+        } else {
+          redirectPath = '/?view=frontdesk'
+        }
+        
+        return NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
       }
     }
   }

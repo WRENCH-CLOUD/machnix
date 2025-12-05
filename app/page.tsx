@@ -13,7 +13,7 @@ import { VehiclesView } from "@/components/mechanix/vehicles-view"
 import { ReportsView } from "@/components/mechanix/reports-view"
 import { LoginPage } from "@/components/mechanix/login-page"
 import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
-// import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard" // MECHANIC FEATURES DISABLED
+import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
 import { useAuth } from "@/lib/auth-provider"
 import { JobService, MechanicService } from "@/lib/supabase/services"
 import type { JobWithRelations } from "@/lib/supabase/services/job.service"
@@ -21,7 +21,7 @@ import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function AppContent() {
-  const { user, session, tenantId, loading: authLoading } = useAuth()
+  const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
   const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null)
@@ -77,15 +77,16 @@ function AppContent() {
     return <LoginPage />
   }
 
-  // TODO: Implement role-based views
-  // if (user?.role === "mechanic") {
-  //   return <MechanicDashboard />
-  // }
+  // Role-based routing
+  if (userRole === "mechanic") {
+    return <MechanicDashboard />
+  }
 
-  // if (user?.role === "admin") {
-  //   return <AdminDashboard />
-  // }
+  if (userRole === "admin") {
+    return <AdminDashboard />
+  }
 
+  // Default frontdesk view
   const handleJobClick = async (job: JobWithRelations) => {
     // Fetch full job details
     try {
