@@ -77,13 +77,55 @@ function AppContent() {
     return <LoginPage />
   }
 
+  // Show loading if user role is still being determined
+  if (!userRole && !authLoading) {
+    console.log('[PAGE] User role is null, showing loading...')
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Skeleton className="h-12 w-64 mx-auto" />
+          <Skeleton className="h-4 w-48 mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading user profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  console.log('[PAGE] User role:', userRole)
+
   // Role-based routing
+  if (userRole === "platform_admin") {
+    return <AdminDashboard />
+  }
+
   if (userRole === "mechanic") {
     return <MechanicDashboard />
   }
 
-  if (userRole === "admin") {
+  if (userRole === "tenant") {
     return <AdminDashboard />
+  }
+
+  if (userRole === "no_access") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md p-8">
+          <h1 className="text-2xl font-bold text-destructive">No Access</h1>
+          <p className="text-muted-foreground">
+            You do not have access to this system. Please contact an administrator.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.clear()
+              window.location.reload()
+            }}
+            className="text-primary hover:underline"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Default frontdesk view

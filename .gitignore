@@ -51,4 +51,6 @@ Thumbs.db
 *.pem
 
 # supabase
-supabase/
+supabase/.branches
+supabase/.temp
+

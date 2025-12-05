@@ -14,28 +14,39 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Get user's tenant and role
+      // Step 1: Check if user is a platform admin
+      const { data: platformAdmin, error: platformAdminError } = await supabase
+        .from('platform_admins')
+        .select('id, is_active')
+        .eq('auth_user_id', data.user.id)
+        .eq('is_active', true)
+        .single()
+
+      if (!platformAdminError && platformAdmin) {
+        // Redirect to home page (which will show AdminDashboard for platform admins)
+        return NextResponse.redirect(new URL('/', requestUrl.origin))
+      }
+
+      // Step 2: Check if user exists in tenant.users
       const { data: userData, error: userError } = await supabase
         .schema('tenant')
         .from('users')
-        .select('tenant_id, role')
+        .select('tenant_id, role, tenants:tenant_id(slug)')
         .eq('auth_user_id', data.user.id)
+        .eq('is_active', true)
         .single()
 
       if (!userError && userData) {
-        // Redirect based on role
-        let redirectPath = '/'
+        const tenant = Array.isArray(userData.tenants) ? userData.tenants[0] : userData.tenants
+        const tenantSlug = tenant?.slug || 'default'
         
-        if (userData.role === 'admin') {
-          redirectPath = '/?view=admin'
-        } else if (userData.role === 'mechanic') {
-          redirectPath = '/?view=mechanic'
-        } else {
-          redirectPath = '/?view=frontdesk'
-        }
-        
-        return NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
+        // Redirect based on role - all tenant users go to home page
+        // The page.tsx will handle routing to appropriate dashboard
+        return NextResponse.redirect(new URL('/', requestUrl.origin))
       }
+
+      // Step 3: No access found
+      return NextResponse.redirect(new URL('/auth/no-access', requestUrl.origin))
     }
   }
 
