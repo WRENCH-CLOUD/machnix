@@ -4,14 +4,16 @@ import { useState, useEffect } from "react"
 import { AnimatePresence } from "framer-motion"
 import { AppSidebar, TopHeader } from "@/components/common"
 import { JobBoard, CreateJobWizard, JobDetails, AllJobsView } from "@/components/features/jobs"
+import { UnpaidWarningModal } from "@/components/features/jobs/unpaid-warning-modal"
 import { CustomersView } from "@/components/features/customers"
 import { VehiclesView } from "@/components/features/vehicles"
 import { ReportsView } from "@/components/features/reports"
 import { LoginPage } from "@/components/features/auth"
 import { AdminDashboard } from "@/components/features/admin"
 import { MechanicDashboard } from "@/components/features/mechanic"
+import { TenantDashboard } from "@/components/features/dashboard"
 import { useAuth } from "@/providers"
-import { JobService, InvoiceService } from "@/lib/supabase/services"
+import { JobService, InvoiceService, EstimateService, PaymentService } from "@/lib/supabase/services"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
 import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -26,6 +28,13 @@ function AppContent() {
   const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showUnpaidWarning, setShowUnpaidWarning] = useState(false)
+  const [pendingCompletion, setPendingCompletion] = useState<{
+    jobId: string
+    invoiceId: string
+    balance: number
+    jobNumber?: string
+  } | null>(null)
 
   // Fetch jobs when tenant is set
   useEffect(() => {
@@ -166,14 +175,40 @@ function AppContent() {
       const oldJob = jobs.find(job => job.id === jobId)
       const oldStatus = oldJob?.status
       
+      // Epic 4: Completion Guardrail - Check for unpaid invoices before completing
+      if (newStatus === 'completed' && oldStatus !== 'completed') {
+        // Check if there's an invoice for this job
+        const invoice = await InvoiceService.getInvoiceByJobId(jobId)
+        
+        if (invoice && invoice.balance && invoice.balance > 0) {
+          // Show unpaid warning modal
+          setPendingCompletion({
+            jobId,
+            invoiceId: invoice.id,
+            balance: invoice.balance,
+            jobNumber: oldJob?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return // Don't proceed with status change
+        }
+      }
+      
       // Update job status in database
       await JobService.updateStatus(jobId, newStatus, user?.id)
       
       // Auto-generate invoice when status changes to "ready" (Ready for Payment)
       if (newStatus === 'ready' && oldStatus !== 'ready') {
-        // Fire and forget - don't block UI
-        InvoiceService.createInvoiceFromJob(jobId)
-          .then(() => console.log('Invoice automatically generated for job:', jobId))
+        // Get estimate for this job
+        EstimateService.getEstimateByJobcard(jobId)
+          .then(async (estimate) => {
+            if (estimate) {
+              // Generate invoice from estimate
+              await InvoiceService.generateInvoiceFromEstimate(jobId, estimate.id)
+              console.log('Invoice automatically generated from estimate for job:', jobId)
+            } else {
+              console.warn('No estimate found for job:', jobId)
+            }
+          })
           .catch((invoiceError) => console.error('Failed to auto-generate invoice:', invoiceError))
       }
       
@@ -198,6 +233,50 @@ function AppContent() {
       await loadJobs()
       throw err // Re-throw to allow caller to handle
     }
+  }
+
+  const handleMarkPaidAndComplete = async (paymentMethod: string, referenceId?: string) => {
+    if (!pendingCompletion) return
+
+    try {
+      // Epic 4.4: Mark Paid & Complete in single atomic operation
+      await PaymentService.markPaidAndComplete(
+        pendingCompletion.invoiceId,
+        pendingCompletion.jobId,
+        paymentMethod as any,
+        referenceId
+      )
+
+      // Update local state
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === pendingCompletion.jobId
+            ? { ...job, status: 'completed', updated_at: new Date().toISOString() }
+            : job
+        )
+      )
+
+      // Update selected job if it's the one being changed
+      if (selectedJob?.id === pendingCompletion.jobId) {
+        const updatedJob = await JobService.getJobById(pendingCompletion.jobId)
+        const transformedJob = await transformDatabaseJobToUI(updatedJob)
+        setSelectedJob(transformedJob)
+      }
+
+      // Clear pending completion
+      setPendingCompletion(null)
+      setShowUnpaidWarning(false)
+      
+      console.log('Job marked as paid and completed successfully')
+    } catch (error) {
+      console.error('Error marking paid and complete:', error)
+      throw error
+    }
+  }
+
+  const handleCancelCompletion = () => {
+    setPendingCompletion(null)
+    setShowUnpaidWarning(false)
   }
 
   const handleMechanicChange = async (jobId: string, mechanicId: string) => {
@@ -245,6 +324,9 @@ function AppContent() {
         <main className="flex-1 overflow-auto p-6">
           <AnimatePresence mode="wait">
             {activeView === "dashboard" && (
+              <TenantDashboard />
+            )}
+            {activeView === "jobs" && (
               <JobBoard
                 jobs={jobs}
                 loading={loading}
@@ -252,12 +334,6 @@ function AppContent() {
                 onJobClick={handleJobClick}
                 onStatusChange={handleStatusChange}
                 onMechanicChange={handleMechanicChange}
-              />
-            )}
-            {activeView === "jobs" && (
-              <AllJobsView
-                jobs={jobs}
-                onJobClick={handleJobClick}
               />
             )}
             {activeView === "customers" && <CustomersView />}
@@ -282,6 +358,19 @@ function AppContent() {
         <CreateJobWizard
           onClose={() => setShowCreateJob(false)}
           onSubmit={handleCreateJob}
+        />
+      )}
+
+      {/* Unpaid Warning Modal */}
+      {showUnpaidWarning && pendingCompletion && (
+        <UnpaidWarningModal
+          isOpen={showUnpaidWarning}
+          onClose={() => setShowUnpaidWarning(false)}
+          jobNumber={pendingCompletion.jobNumber}
+          outstandingBalance={pendingCompletion.balance}
+          invoiceId={pendingCompletion.invoiceId}
+          onCancel={handleCancelCompletion}
+          onMarkPaidAndComplete={handleMarkPaidAndComplete}
         />
       )}
     </div>

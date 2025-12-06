@@ -124,6 +124,32 @@ export class EstimateService {
   }
 
   /**
+   * Get estimate by jobcard ID
+   */
+  static async getEstimateByJobcard(jobcardId: string): Promise<EstimateWithRelations | null> {
+    const tenantId = ensureTenantContext()
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('estimates')
+      .select(`
+        *,
+        customer:customers(*),
+        vehicle:vehicles(*),
+        estimate_items:estimate_items(*)
+      `)
+      .eq('jobcard_id', jobcardId)
+      .eq('tenant_id', tenantId)
+      .single()
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null // No estimate found
+      throw error
+    }
+    return data as EstimateWithRelations
+  }
+
+  /**
    * Add items to an estimate
    */
   static async addEstimateItems(
@@ -138,6 +164,101 @@ export class EstimateService {
     
     if (error) throw error
     return data
+  }
+
+  /**
+   * Add a single estimate item
+   */
+  static async addEstimateItem(
+    estimateId: string,
+    item: {
+      custom_name: string
+      custom_part_number?: string
+      description?: string
+      qty: number
+      unit_price: number
+      labor_cost?: number
+    }
+  ): Promise<EstimateItem> {
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .insert({
+        estimate_id: estimateId,
+        part_id: null,
+        custom_name: item.custom_name,
+        custom_part_number: item.custom_part_number || null,
+        description: item.description || null,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        labor_cost: item.labor_cost || 0,
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
+    
+    // Update estimate totals
+    await this.recalculateEstimateTotals(estimateId)
+    
+    return data
+  }
+
+  /**
+   * Delete an estimate item
+   */
+  static async deleteEstimateItem(itemId: string): Promise<void> {
+    const { data: item, error: fetchError } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .select('estimate_id')
+      .eq('id', itemId)
+      .single()
+    
+    if (fetchError) throw fetchError
+    
+    const { error } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .delete()
+      .eq('id', itemId)
+    
+    if (error) throw error
+    
+    // Update estimate totals
+    if (item?.estimate_id) {
+      await this.recalculateEstimateTotals(item.estimate_id)
+    }
+  }
+
+  /**
+   * Recalculate estimate totals from items
+   */
+  static async recalculateEstimateTotals(estimateId: string): Promise<void> {
+    const { data: items } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .select('qty, unit_price, labor_cost')
+      .eq('estimate_id', estimateId)
+    
+    if (!items) return
+    
+    const parts_total = items.reduce((sum, item) => sum + (item.qty * item.unit_price), 0)
+    const labor_total = items.reduce((sum, item) => sum + (item.labor_cost || 0), 0)
+    const subtotal = parts_total + labor_total
+    const tax_amount = subtotal * 0.18 // 18% GST
+    const total_amount = subtotal + tax_amount
+    
+    await supabase
+      .schema('tenant')
+      .from('estimates')
+      .update({
+        parts_total,
+        labor_total,
+        tax_amount,
+        total_amount,
+      })
+      .eq('id', estimateId)
   }
 
   /**

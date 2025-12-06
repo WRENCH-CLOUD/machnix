@@ -137,16 +137,16 @@ export class PaymentService {
   }
 
   /**
-   * Get payment transactions for a payment
+   * Get payment transactions for an invoice
    */
-  static async getPaymentTransactions(paymentId: string): Promise<PaymentTransaction[]> {
+  static async getPaymentTransactionsByInvoice(invoiceId: string): Promise<PaymentTransaction[]> {
     const tenantId = ensureTenantContext()
     
     const { data, error } = await supabase
       .schema('tenant')
       .from('payment_transactions')
       .select('*')
-      .eq('payment_id', paymentId)
+      .eq('invoice_id', invoiceId)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
     
@@ -157,12 +157,13 @@ export class PaymentService {
   /**
    * Initiate Razorpay payment
    */
-  static async initiateRazorpayPayment(paymentId: string, razorpayOrderId: string): Promise<PaymentTransaction> {
+  static async initiateRazorpayPayment(invoiceId: string, amount: number, razorpayOrderId: string): Promise<PaymentTransaction> {
     return this.addPaymentTransaction({
-      payment_id: paymentId,
-      gateway: 'razorpay',
-      transaction_id: razorpayOrderId,
-      status: 'pending',
+      invoice_id: invoiceId,
+      mode: 'razorpay',
+      amount: amount,
+      razorpay_order_id: razorpayOrderId,
+      status: 'initiated',
     })
   }
 
@@ -170,10 +171,10 @@ export class PaymentService {
    * Complete Razorpay payment
    */
   static async completeRazorpayPayment(
-    transactionId: string,
+    razorpayOrderId: string,
     razorpayPaymentId: string,
-    status: 'success' | 'failed',
-    response?: any
+    razorpaySignature: string,
+    status: 'success' | 'failed'
   ): Promise<PaymentTransaction> {
     const tenantId = ensureTenantContext()
     
@@ -183,9 +184,10 @@ export class PaymentService {
       .update({
         status,
         razorpay_payment_id: razorpayPaymentId,
-        gateway_response: response,
+        razorpay_signature: razorpaySignature,
+        paid_at: status === 'success' ? new Date().toISOString() : null,
       })
-      .eq('transaction_id', transactionId)
+      .eq('razorpay_order_id', razorpayOrderId)
       .eq('tenant_id', tenantId)
       .select()
       .single()

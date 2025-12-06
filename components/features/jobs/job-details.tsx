@@ -45,10 +45,14 @@ import { Separator } from "@/components/ui/separator"
 import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
 import type { UIJob } from "@/lib/job-transforms"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
-import { InvoiceService } from "@/lib/supabase/services"
+import { InvoiceService, EstimateService } from "@/lib/supabase/services"
 import type { InvoiceWithRelations } from "@/lib/supabase/services/invoice.service"
+import type { EstimateWithRelations } from "@/lib/supabase/services/estimate.service"
+import type { Database } from "@/lib/supabase/types"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
+
+type EstimateItem = Database['tenant']['Tables']['estimate_items']['Row']
 
 interface JobDetailsProps {
   job: UIJob
@@ -72,18 +76,35 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const enrichedJob = enrichJobWithDummyData(job)
   
   const [dviItems, setDviItems] = useState<DVIItem[]>(enrichedJob.dviItems || [])
-  const [parts, setParts] = useState<Part[]>(enrichedJob.parts || [])
+  const [parts, setParts] = useState<Part[]>([]) // Temporary parts before adding to estimate
+  const [estimateItems, setEstimateItems] = useState<EstimateItem[]>([]) // Parts in estimate
+  const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null)
   const [newNote, setNewNote] = useState("")
   const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
+  const [loadingEstimate, setLoadingEstimate] = useState(false)
   
-  // Update DVI items when job changes
+  // Load estimate and items when job changes
   useEffect(() => {
     const enrichedJob = enrichJobWithDummyData(job)
     setDviItems(enrichedJob.dviItems || [])
-    setParts(enrichedJob.parts || [])
+    
+    const loadEstimate = async () => {
+      setLoadingEstimate(true)
+      try {
+        const estimateData = await EstimateService.getEstimateByJobcard(job.id)
+        setEstimate(estimateData)
+        setEstimateItems(estimateData?.estimate_items || [])
+      } catch (error) {
+        console.error('Error fetching estimate:', error)
+      } finally {
+        setLoadingEstimate(false)
+      }
+    }
+    
+    loadEstimate()
   }, [job.id])
 
   // Fetch invoice when status is ready or completed
@@ -146,8 +167,38 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
     setParts((prev) => prev.map((part) => (part.id === partId ? { ...part, [field]: value } : part)))
   }
 
-  const partsSubtotal = parts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0)
-  const laborSubtotal = parts.reduce((sum, p) => sum + p.laborCost, 0)
+  const addPartToEstimate = async (part: Part) => {
+    if (!estimate) return
+    
+    try {
+      const newItem = await EstimateService.addEstimateItem(estimate.id, {
+        custom_name: part.name,
+        custom_part_number: part.partNumber,
+        qty: part.quantity,
+        unit_price: part.unitPrice,
+        labor_cost: part.laborCost,
+      })
+      
+      setEstimateItems((prev) => [...prev, newItem])
+      // Remove from temporary parts
+      removePart(part.id)
+    } catch (error) {
+      console.error('Error adding part to estimate:', error)
+    }
+  }
+
+  const removeEstimateItem = async (itemId: string) => {
+    try {
+      await EstimateService.deleteEstimateItem(itemId)
+      setEstimateItems((prev) => prev.filter((item) => item.id !== itemId))
+    } catch (error) {
+      console.error('Error removing estimate item:', error)
+    }
+  }
+
+  // Calculate totals from estimate items
+  const partsSubtotal = estimateItems.reduce((sum, item) => sum + (item.qty * item.unit_price), 0)
+  const laborSubtotal = estimateItems.reduce((sum, item) => sum + (item.labor_cost || 0), 0)
   const subtotal = partsSubtotal + laborSubtotal
   const tax = subtotal * 0.18
   const total = subtotal + tax
@@ -640,15 +691,72 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
             )}
           </TabsContent>
 
-          {/* Parts & Estimate Tab */}
+                  {/* Parts & Estimate Tab */}
           {!isMechanicMode && (
             <TabsContent value="parts" className="m-0">
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="p-6 space-y-6">
-                  {/* Parts Table */}
+                  
+                  {/* Estimate Items (Parts already in estimate) */}
+                  {estimateItems.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          Estimate Items
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {/* Header */}
+                          <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+                            <div className="col-span-4">Item</div>
+                            <div className="col-span-2">Part No.</div>
+                            <div className="col-span-1">Qty</div>
+                            <div className="col-span-2">Unit Price</div>
+                            <div className="col-span-2">Labor</div>
+                            <div className="col-span-1"></div>
+                          </div>
+
+                          {/* Estimate Items List */}
+                          {estimateItems.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 gap-3 items-center bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
+                              <div className="col-span-4">
+                                <div className="text-sm font-medium">{item.custom_name}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm text-muted-foreground">{item.custom_part_number || '-'}</div>
+                              </div>
+                              <div className="col-span-1">
+                                <div className="text-sm">{item.qty}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm">₹{item.unit_price.toLocaleString()}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm">₹{(item.labor_cost || 0).toLocaleString()}</div>
+                              </div>
+                              <div className="col-span-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive h-8 w-8"
+                                  onClick={() => removeEstimateItem(item.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Temporary Parts (Not yet added to estimate) */}
                   <Card>
                     <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                      <CardTitle className="text-sm font-semibold">Parts & Labor</CardTitle>
+                      <CardTitle className="text-sm font-semibold">Add New Items</CardTitle>
                       <Button size="sm" onClick={addPart} className="gap-1">
                         <Plus className="w-4 h-4" />
                         Add Item
@@ -658,22 +766,23 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                       <div className="space-y-3">
                         {/* Header */}
                         <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
-                          <div className="col-span-4">Item</div>
+                          <div className="col-span-3">Item</div>
                           <div className="col-span-2">Part No.</div>
                           <div className="col-span-1">Qty</div>
                           <div className="col-span-2">Unit Price</div>
                           <div className="col-span-2">Labor</div>
-                          <div className="col-span-1"></div>
+                          <div className="col-span-2"></div>
                         </div>
 
-                        {/* Parts List */}
+                        {/* Temporary Parts List */}
                         {parts.map((part) => (
-                          <div key={part.id} className="grid grid-cols-12 gap-3 items-center">
-                            <div className="col-span-4">
+                          <div key={part.id} className="grid grid-cols-12 gap-3 items-center border border-dashed border-border rounded-lg p-2">
+                            <div className="col-span-3">
                               <Input
                                 placeholder="Part name"
                                 value={part.name}
                                 onChange={(e) => updatePart(part.id, "name", e.target.value)}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-2">
@@ -681,6 +790,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 placeholder="Part #"
                                 value={part.partNumber}
                                 onChange={(e) => updatePart(part.id, "partNumber", e.target.value)}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-1">
@@ -689,16 +799,17 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 min="1"
                                 value={part.quantity}
                                 onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value))}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-2">
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                                   ₹
                                 </span>
                                 <Input
                                   type="number"
-                                  className="pl-7"
+                                  className="pl-7 h-9"
                                   value={part.unitPrice}
                                   onChange={(e) => updatePart(part.id, "unitPrice", Number.parseFloat(e.target.value))}
                                 />
@@ -706,32 +817,44 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                             </div>
                             <div className="col-span-2">
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                                   ₹
                                 </span>
                                 <Input
                                   type="number"
-                                  className="pl-7"
+                                  className="pl-7 h-9"
                                   value={part.laborCost}
                                   onChange={(e) => updatePart(part.id, "laborCost", Number.parseFloat(e.target.value))}
                                 />
                               </div>
                             </div>
-                            <div className="col-span-1">
+                            <div className="col-span-2 flex gap-1">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="flex-1 h-9"
+                                onClick={() => addPartToEstimate(part)}
+                                disabled={!part.name || part.quantity <= 0}
+                              >
+                                <Check className="w-3 h-3 mr-1" />
+                                Add to Estimate
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive h-9 w-9"
                                 onClick={() => removePart(part.id)}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
                           </div>
                         ))}
 
                         {parts.length === 0 && (
-                          <div className="text-center py-8 text-muted-foreground">No parts added yet</div>
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            Click "Add Item" to add parts to this job
+                          </div>
                         )}
                       </div>
                     </CardContent>
