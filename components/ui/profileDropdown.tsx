@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Settings, CreditCard, FileText, LogOut, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import Avatar from "boring-avatars";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,17 +39,20 @@ const SAMPLE_PROFILE_DATA: Profile = {
     model: "Gemini 2.0 Flash",
 };
 
-interface ProfileDropdownProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ProfileDropdownProps {
     data?: Profile;
-    showTopbar?: boolean;
+    onSignOut?: () => void;
+    className?: string;
 }
 
 export default function ProfileDropdown({
     data = SAMPLE_PROFILE_DATA,
+    onSignOut,
     className,
-    ...props
 }: ProfileDropdownProps) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const [imageError, setImageError] = React.useState(false);
+    
     const menuItems: MenuItem[] = [
         {
             label: "Profile",
@@ -75,13 +79,13 @@ export default function ProfileDropdown({
     ];
 
     return (
-        <div className={cn("relative", className)} {...props}>
+        <div className={cn("relative", className)}>
             <DropdownMenu onOpenChange={setIsOpen}>
                 <div className="group relative">
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="flex items-center gap-16 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 hover:shadow-sm transition-all duration-200 focus:outline-none"
+                            className="flex items-center gap-14 p-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 hover:shadow-sm transition-all duration-200 focus:outline-none"
                         >
                             <div className="text-left flex-1">
                                 <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
@@ -94,13 +98,25 @@ export default function ProfileDropdown({
                             <div className="relative">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-0.5">
                                     <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-zinc-900">
-                                        <Image
-                                            src={data.avatar}
-                                            alt={data.name}
-                                            width={36}
-                                            height={36}
-                                            className="w-full h-full object-cover rounded-full"
-                                        />
+                                        {!imageError && data.avatar ? (
+                                            <Image
+                                                src={data.avatar}
+                                                alt={data.name}
+                                                width={36}
+                                                height={36}
+                                                className="w-full h-full object-cover rounded-full"
+                                                onError={() => setImageError(true)}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Avatar
+                                                    size={36}
+                                                    name={data.email || data.name}
+                                                    variant="bauhaus"
+                                                    //colors={["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"]}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -182,6 +198,7 @@ export default function ProfileDropdown({
                         <DropdownMenuItem asChild>
                             <button
                                 type="button"
+                                onClick={onSignOut}
                                 className="w-full flex items-center gap-3 p-3 duration-200 bg-red-500/10 rounded-xl hover:bg-red-500/20 cursor-pointer border border-transparent hover:border-red-500/30 hover:shadow-sm transition-all group"
                             >
                                 <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-600" />
