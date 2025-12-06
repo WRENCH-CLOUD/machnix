@@ -11,7 +11,7 @@ import { LoginPage } from "@/components/features/auth"
 import { AdminDashboard } from "@/components/features/admin"
 import { MechanicDashboard } from "@/components/features/mechanic"
 import { useAuth } from "@/providers"
-import { JobService } from "@/lib/supabase/services"
+import { JobService, InvoiceService } from "@/lib/supabase/services"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
 import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -160,10 +160,24 @@ function AppContent() {
     await loadJobs()
   }
 
-  const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
     try {
+      // Get old status before update
+      const oldJob = jobs.find(job => job.id === jobId)
+      const oldStatus = oldJob?.status
+      
+      // Update job status in database
       await JobService.updateStatus(jobId, newStatus, user?.id)
       
+      // Auto-generate invoice when status changes to "ready" (Ready for Payment)
+      if (newStatus === 'ready' && oldStatus !== 'ready') {
+        // Fire and forget - don't block UI
+        InvoiceService.createInvoiceFromJob(jobId)
+          .then(() => console.log('Invoice automatically generated for job:', jobId))
+          .catch((invoiceError) => console.error('Failed to auto-generate invoice:', invoiceError))
+      }
+      
+      // Update local state
       setJobs((prevJobs) =>
         prevJobs.map((job) =>
           job.id === jobId
@@ -172,6 +186,7 @@ function AppContent() {
         )
       )
 
+      // Update selected job if it's the one being changed
       if (selectedJob?.id === jobId) {
         const updatedJob = await JobService.getJobById(jobId)
         const transformedJob = await transformDatabaseJobToUI(updatedJob)
@@ -179,7 +194,9 @@ function AppContent() {
       }
     } catch (err) {
       console.error('Error updating status:', err)
-      alert('Failed to update status')
+      // Reload jobs to sync state on error
+      await loadJobs()
+      throw err // Re-throw to allow caller to handle
     }
   }
 
