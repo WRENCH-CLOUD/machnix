@@ -35,13 +35,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { type JobCard, type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
+import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
+import type { UIJob } from "@/lib/job-transforms"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
 
 interface JobDetailsProps {
-  job: JobCard
+  job: UIJob
   onClose: () => void
   isMechanicMode: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void

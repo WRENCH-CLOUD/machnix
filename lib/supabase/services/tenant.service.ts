@@ -131,11 +131,26 @@ export async function getTenantWithStats(tenantId: string): Promise<TenantWithSt
 /**
  * Create a new tenant
  */
-export async function createTenant(tenant: TenantInsert): Promise<Tenant> {
+export async function createTenant(tenant: Omit<TenantInsert, 'id' | 'created_at'>): Promise<Tenant> {
+  // Generate slug if not provided
+  let slug = tenant.slug
+  if (!slug && tenant.name) {
+    slug = generateSlug(tenant.name)
+    
+    // Ensure slug is unique
+    let counter = 1
+    let finalSlug = slug
+    while (!(await isSlugAvailable(finalSlug))) {
+      finalSlug = `${slug}-${counter}`
+      counter++
+    }
+    slug = finalSlug
+  }
+
   const { data, error } = await supabase
     .schema('tenant')
     .from('tenants')
-    .insert(tenant)
+    .insert({ ...tenant, slug })
     .select()
     .single()
 
@@ -181,6 +196,60 @@ export async function deleteTenant(tenantId: string): Promise<void> {
     console.error('Error deleting tenant:', error)
     throw error
   }
+}
+
+/**
+ * Get tenant by slug (for subdomain routing)
+ */
+export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
+  const { data, error } = await supabase
+    .schema('tenant')
+    .from('tenants')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle()
+  
+  if (error) {
+    console.error('Error fetching tenant by slug:', error)
+    return null
+  }
+  return data
+}
+
+/**
+ * Check if slug is available
+ */
+export async function isSlugAvailable(slug: string, excludeTenantId?: string): Promise<boolean> {
+  let query = supabase
+    .schema('tenant')
+    .from('tenants')
+    .select('id')
+    .eq('slug', slug)
+
+  if (excludeTenantId) {
+    query = query.neq('id', excludeTenantId)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error checking slug availability:', error)
+    return false
+  }
+
+  return data.length === 0
+}
+
+/**
+ * Generate a URL-friendly slug from a string
+ */
+export function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-')  // Replace spaces, underscores with hyphens
+    .replace(/^-+|-+$/g, '')   // Remove leading/trailing hyphens
 }
 
 /**

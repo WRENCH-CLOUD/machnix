@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { JobCard } from "./job-card"
-import { type JobCard as JobCardType, type JobStatus, statusConfig } from "@/lib/mock-data"
+import { type JobStatus, statusConfig } from "@/lib/mock-data"
+import type { UIJob } from "@/lib/job-transforms"
 import { cn } from "@/lib/utils"
 
 interface JobBoardProps {
-  jobs: JobCardType[]
-  onJobClick: (job: JobCardType) => void
+  jobs: UIJob[]
+  onJobClick: (job: UIJob) => void
   isMechanicMode: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void
   onMechanicChange?: (jobId: string, mechanicId: string) => void

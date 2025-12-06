@@ -26,10 +26,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Check for tenant from cookie (set by middleware for subdomain routing)
+    const getTenantFromCookie = () => {
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';')
+        const tenantCookie = cookies.find(c => c.trim().startsWith('tenant-id='))
+        if (tenantCookie) {
+          return tenantCookie.split('=')[1]
+        }
+      }
+      return null
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      
+      // Check for tenant from cookie first (subdomain routing)
+      const cookieTenantId = getTenantFromCookie()
+      if (cookieTenantId && cookieTenantId !== tenantId) {
+        //console.log('[AUTH] Setting tenant from cookie:', cookieTenantId)
+        setTenantContext(cookieTenantId)
+        setTenantId(cookieTenantId)
+      }
       
       if (session?.user) {
         // Check user role on initial load
@@ -68,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Step 1: Check if user is a platform admin
     if (data.user) {
-      console.log('[AUTH] Checking platform admin for user:', data.user.id)
+      //console.log('[AUTH] Checking platform admin for user:', data.user.id)
       const { data: platformAdmin, error: platformAdminError } = await supabase
         .from('platform_admins')
         .select('id, is_active, role')
@@ -76,16 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('is_active', true)
         .single()
 
-      console.log('[AUTH] Platform admin query result:', { platformAdmin, platformAdminError })
+      //console.log('[AUTH] Platform admin query result:', { platformAdmin, platformAdminError })
 
       if (!platformAdminError && platformAdmin) {
-        console.log('[AUTH] User is platform admin, setting role to platform_admin')
+        //console.log('[AUTH] User is platform admin, setting role to platform_admin')
         setUserRole('platform_admin')
         return
       }
 
       // Step 2: Check if user exists in tenant.users
-      console.log('[AUTH] Checking tenant.users for user:', data.user.id)
+      //console.log('[AUTH] Checking tenant.users for user:', data.user.id)
       const { data: userData, error: userError } = await supabase
         .schema('tenant')
         .from('users')
@@ -94,17 +114,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('is_active', true)
         .single()
       
-      console.log('[AUTH] Tenant user query result:', { userData, userError })
+      //console.log('[AUTH] Tenant user query result:', { userData, userError })
 
       if (!userError && userData) {
-        console.log('[AUTH] User found in tenant.users with role:', userData.role)
+        //console.log('[AUTH] User found in tenant.users with role:', userData.role)
         await setActiveTenant(userData.tenant_id)
         setUserRole(userData.role)
         return
       }
 
       // Step 3: No access found
-      console.log('[AUTH] User has no access')
+      //console.log('[AUTH] User has no access')
       setUserRole('no_access')
       throw new Error('You do not have access to this system. Please contact an administrator.')
     }
@@ -112,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkUserRole = async (userId: string) => {
     try {
-      console.log('[AUTH] Checking user role for:', userId)
+      //console.log('[AUTH] Checking user role for:', userId)
       
       // Step 1: Check if user is a platform admin (may not exist in local dev)
       try {
@@ -124,14 +144,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle() // Use maybeSingle to avoid 406 errors
 
         if (!platformAdminError && platformAdmin) {
-          console.log('[AUTH] User is platform admin')
+          //console.log('[AUTH] User is platform admin')
           setUserRole('platform_admin')
           setLoading(false)
           return
         }
       } catch (err) {
         // Platform admins table might not exist in local dev, continue to tenant check
-        console.log('[AUTH] Platform admins table not accessible, checking tenant users')
+        //console.log('[AUTH] Platform admins table not accessible, checking tenant users')
       }
 
       // Step 2: Check if user exists in tenant.users
@@ -144,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
       
       if (!userError && userData) {
-        console.log('[AUTH] User found in tenant.users with role:', userData.role)
+        //console.log('[AUTH] User found in tenant.users with role:', userData.role)
         await setActiveTenant(userData.tenant_id)
         setUserRole(userData.role)
         setLoading(false)
@@ -152,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Step 3: No access found
-      console.log('[AUTH] User has no access')
+      //console.log('[AUTH] User has no access')
       setUserRole('no_access')
       setLoading(false)
     } catch (error) {
@@ -199,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Step 2: Create tenant and user record manually (trigger is disabled)
     if (data.user && data.session) {
-      console.log('User created in auth, now creating tenant and user record...')
+      //console.log('User created in auth, now creating tenant and user record...')
       
       try {
         // Use the provided role instead of determining from email
@@ -217,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
           
           if (existingTenant) {
-            console.log('Using existing Main Garage tenant for tenant user')
+            //console.log('Using existing Main Garage tenant for tenant user')
             tenantData = existingTenant
           }
         }
@@ -243,7 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           tenantData = newTenant
         }
         
-        console.log('Tenant ID:', tenantData.id)
+        //console.log('Tenant ID:', tenantData.id)
         
         // Create user record in tenant.users
         const { error: userError } = await supabase
@@ -262,12 +282,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error(`Failed to create user record: ${userError.message}`)
         }
         
-        console.log('User record created with role:', userRole)
+        //console.log('User record created with role:', userRole)
         
         // Set the active tenant
         await setActiveTenant(tenantData.id)
         setUserRole(userRole)
-        console.log('Signup completed successfully')
+        //console.log('Signup completed successfully')
         
       } catch (err) {
         console.error('Error in post-signup setup:', err)

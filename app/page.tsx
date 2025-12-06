@@ -36,7 +36,7 @@ function AppContent() {
       
       try {
         subscription = JobService.subscribeToJobs((payload) => {
-          console.log('[Jobs] Real-time update:', payload)
+          ////console.log('[Jobs] Real-time update:', payload)
           loadJobs() // Reload jobs on any change
         })
       } catch (err) {
@@ -62,8 +62,8 @@ function AppContent() {
       }
       
       const data = await JobService.getJobs()
-      // Transform database jobs to UI format
-      const transformedJobs = data.map(transformDatabaseJobToUI)
+      // Transform database jobs to UI format (now async)
+      const transformedJobs = await Promise.all(data.map(transformDatabaseJobToUI))
       setJobs(transformedJobs)
     } catch (err: unknown) {
       // Better error logging
@@ -145,7 +145,7 @@ function AppContent() {
   const handleJobClick = async (job: UIJob) => {
     try {
       const fullJob = await JobService.getJobById(job.id)
-      const transformedJob = transformDatabaseJobToUI(fullJob)
+      const transformedJob = await transformDatabaseJobToUI(fullJob)
       setSelectedJob(transformedJob)
     } catch (err) {
       console.error('Error loading job details:', err)
@@ -154,7 +154,7 @@ function AppContent() {
   }
 
   const handleCreateJob = async (data: unknown) => {
-    console.log("Creating job:", data)
+    ////console.log("Creating job:", data)
     await loadJobs()
   }
 
@@ -172,7 +172,7 @@ function AppContent() {
 
       if (selectedJob?.id === jobId) {
         const updatedJob = await JobService.getJobById(jobId)
-        const transformedJob = transformDatabaseJobToUI(updatedJob)
+        const transformedJob = await transformDatabaseJobToUI(updatedJob)
         setSelectedJob(transformedJob)
       }
     } catch (err) {
@@ -188,7 +188,7 @@ function AppContent() {
 
       if (selectedJob?.id === jobId) {
         const updatedJob = await JobService.getJobById(jobId)
-        const transformedJob = transformDatabaseJobToUI(updatedJob)
+        const transformedJob = await transformDatabaseJobToUI(updatedJob)
         setSelectedJob(transformedJob)
       }
     } catch (err) {

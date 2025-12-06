@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { type JobCard as JobCardType, type JobStatus, statusConfig, mechanics } from "@/lib/mock-data"
+import { type JobStatus, statusConfig, mechanics } from "@/lib/mock-data"
+import type { UIJob } from "@/lib/job-transforms"
 import { cn } from "@/lib/utils"
 
 interface JobCardProps {
-  job: JobCardType
+  job: UIJob
   onClick: () => void
   isMechanicMode?: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void
@@ -83,7 +84,7 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
           <div className={cn("flex items-center gap-2 mb-3", isMechanicMode ? "text-base" : "text-sm")}>
             <User className="w-4 h-4 text-muted-foreground" />
             <span className="text-foreground">{job.customer.name}</span>
-            {!isMechanicMode && (
+            {!isMechanicMode && job.customer.phone && (
               <a
                 href={`tel:${job.customer.phone}`}
                 onClick={(e) => e.stopPropagation()}

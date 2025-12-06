@@ -30,7 +30,6 @@ const navItems = [
   { id: "customers", label: "Customers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: Car },
   { id: "reports", label: "Reports", icon: BarChart3 },
-  { id: "invoices", label: "Invoices", icon: FileText },
 ]
 
 const bottomNavItems = [

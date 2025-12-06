@@ -153,18 +153,18 @@ export async function testSupabaseAuth(): Promise<ConnectionTestResult> {
  * Run all tests and log results to console
  */
 export async function runAllTests() {
-  console.log('🔍 Testing Supabase Configuration...\n')
+  //console.log('🔍 Testing Supabase Configuration...\n')
 
   // Test 1: Connection
   const connectionResult = await testSupabaseConnection()
-  console.log(connectionResult.message)
+  //console.log(connectionResult.message)
   if (connectionResult.details) {
-    console.log('  URL:', connectionResult.details.url)
+    //console.log('  URL:', connectionResult.details.url)
     if (connectionResult.details.error) {
-      console.log('  Error:', connectionResult.details.error)
+      //console.log('  Error:', connectionResult.details.error)
     }
   }
-  console.log('')
+  //console.log('')
 
   if (!connectionResult.success) {
     return connectionResult
@@ -172,11 +172,11 @@ export async function runAllTests() {
 
   // Test 2: Auth
   const authResult = await testSupabaseAuth()
-  console.log(authResult.message)
+  //console.log(authResult.message)
   if (authResult.details?.error) {
-    console.log('  Error:', authResult.details.error)
+    //console.log('  Error:', authResult.details.error)
   }
-  console.log('')
+  //console.log('')
 
   return {
     connection: connectionResult,

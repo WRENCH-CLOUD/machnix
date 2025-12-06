@@ -43,6 +43,40 @@ export class VehicleService {
   }
 
   /**
+   * Get a single vehicle make by ID from public schema
+   */
+  static async getMakeById(makeId: string): Promise<VehicleMake | null> {
+    const { data, error } = await supabase
+      .from('vehicle_make')
+      .select('*')
+      .eq('id', makeId)
+      .single()
+    
+    if (error) {
+      console.warn('Error fetching make:', error)
+      return null
+    }
+    return data
+  }
+
+  /**
+   * Get a single vehicle model by ID from public schema
+   */
+  static async getModelById(modelId: string): Promise<VehicleModel | null> {
+    const { data, error } = await supabase
+      .from('vehicle_model')
+      .select('*')
+      .eq('id', modelId)
+      .single()
+    
+    if (error) {
+      console.warn('Error fetching model:', error)
+      return null
+    }
+    return data
+  }
+
+  /**
    * Get all vehicles for the current tenant
    */
   static async getVehicles(): Promise<Vehicle[]> {

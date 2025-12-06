@@ -5,6 +5,7 @@
 
 import { enrichJobWithDummyData } from './dvi-dummy-data'
 import type { JobcardWithRelations } from './supabase/services/job.service'
+import { VehicleService } from './supabase/services'
 
 export interface UIJob {
   id: string
@@ -51,12 +52,25 @@ export interface UIJob {
 
 /**
  * Transform database jobcard to UI format
+ * Now async to support make/model lookups
  */
-export function transformDatabaseJobToUI(dbJob: JobcardWithRelations): UIJob {
+export async function transformDatabaseJobToUI(dbJob: JobcardWithRelations): Promise<UIJob> {
   // Extract vehicle data and handle make/model lookup
   const vehicle = dbJob.vehicle
-  const vehicleMake = vehicle?.make_id || 'Unknown Make' // TODO: lookup make name
-  const vehicleModel = vehicle?.model_id || 'Unknown Model' // TODO: lookup model name
+  
+  // Look up actual make and model names from public schema
+  let vehicleMake = 'Unknown Make'
+  let vehicleModel = 'Unknown Model'
+  
+  if (vehicle?.make_id) {
+    const make = await VehicleService.getMakeById(vehicle.make_id)
+    if (make) vehicleMake = make.name
+  }
+  
+  if (vehicle?.model_id) {
+    const model = await VehicleService.getModelById(vehicle.model_id)
+    if (model) vehicleModel = model.name
+  }
   
   // Transform to UI format
   const uiJob: any = {

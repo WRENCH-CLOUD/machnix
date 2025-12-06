@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Search, Plus, Car, Calendar, Gauge, MoreHorizontal, User, Wrench, AlertTriangle } from "lucide-react"
+import { Search, Plus, Car, Calendar, Gauge, MoreHorizontal, User, Wrench, AlertTriangle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -18,123 +18,118 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockJobs } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { VehicleService, CustomerService, JobService } from "@/lib/supabase/services"
+import { useAuth } from "@/providers"
+import type { Database } from "@/lib/supabase/database.types"
 
-interface VehicleRecord {
-  id: string
-  make: string
-  model: string
-  year: number
-  regNo: string
-  color: string
-  ownerName: string
-  ownerPhone: string
+type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
+type Customer = Database['tenant']['Tables']['customers']['Row']
+type VehicleMake = Database['public']['Tables']['vehicle_make']['Row']
+
+interface VehicleWithStats extends Vehicle {
+  makeName: string | null
+  modelName: string | null
+  ownerName: string | null
+  ownerPhone: string | null
   totalJobs: number
-  lastService: Date
-  odometer: number
-  pendingIssues: number
+  lastService: Date | null
 }
-
-// Generate vehicle data from jobs
-const generateVehicles = (): VehicleRecord[] => {
-  const vehicleMap = new Map<string, VehicleRecord>()
-
-  mockJobs.forEach((job) => {
-    const existing = vehicleMap.get(job.vehicle.id)
-    const pendingDVI = job.dviItems.filter((item) => item.status === "urgent" || item.status === "attention").length
-
-    if (existing) {
-      existing.totalJobs += 1
-      if (job.createdAt > existing.lastService) {
-        existing.lastService = job.createdAt
-      }
-      existing.pendingIssues = Math.max(existing.pendingIssues, pendingDVI)
-    } else {
-      vehicleMap.set(job.vehicle.id, {
-        ...job.vehicle,
-        ownerName: job.customer.name,
-        ownerPhone: job.customer.phone,
-        totalJobs: 1,
-        lastService: job.createdAt,
-        odometer: Math.floor(Math.random() * 80000) + 15000,
-        pendingIssues: pendingDVI,
-      })
-    }
-  })
-
-  // Add some additional mock vehicles
-  const additionalVehicles: VehicleRecord[] = [
-    {
-      id: "v10",
-      make: "BMW",
-      model: "3 Series",
-      year: 2022,
-      regNo: "KA 01 XY 9999",
-      color: "Black",
-      ownerName: "Arun Mehta",
-      ownerPhone: "+91 99001 12233",
-      totalJobs: 4,
-      lastService: new Date("2024-01-10"),
-      odometer: 28500,
-      pendingIssues: 0,
-    },
-    {
-      id: "v11",
-      make: "Mercedes",
-      model: "C-Class",
-      year: 2021,
-      regNo: "KA 02 AB 1111",
-      color: "White",
-      ownerName: "Sneha Kapoor",
-      ownerPhone: "+91 88776 55443",
-      totalJobs: 3,
-      lastService: new Date("2024-01-08"),
-      odometer: 42000,
-      pendingIssues: 2,
-    },
-    {
-      id: "v12",
-      make: "Audi",
-      model: "Q5",
-      year: 2023,
-      regNo: "KA 03 CD 2222",
-      color: "Gray",
-      ownerName: "Rahul Joshi",
-      ownerPhone: "+91 77665 44332",
-      totalJobs: 1,
-      lastService: new Date("2024-01-05"),
-      odometer: 12000,
-      pendingIssues: 0,
-    },
-  ]
-
-  additionalVehicles.forEach((v) => vehicleMap.set(v.id, v))
-
-  return Array.from(vehicleMap.values())
-}
-
-const carMakes = ["Toyota", "Honda", "Maruti", "Hyundai", "Tata", "Mahindra", "BMW", "Mercedes", "Audi", "Volkswagen"]
 
 export function VehiclesView() {
+  const { tenantId } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const vehicles = useMemo(() => generateVehicles(), [])
+  const [vehicles, setVehicles] = useState<VehicleWithStats[]>([])
+  const [makes, setMakes] = useState<VehicleMake[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (tenantId) {
+      loadVehicles()
+      loadMakes()
+    }
+  }, [tenantId])
+
+  const loadMakes = async () => {
+    try {
+      const makesData = await VehicleService.getMakes()
+      setMakes(makesData)
+    } catch (err) {
+      console.error('Error loading makes:', err)
+    }
+  }
+
+  const loadVehicles = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch vehicles with customer data
+      const vehiclesData = await VehicleService.getVehiclesWithRelations()
+      
+      // Fetch all jobs to calculate stats
+      const jobsData = await JobService.getJobs()
+      
+      // Build vehicle stats
+      const vehiclesWithStats: VehicleWithStats[] = await Promise.all(
+        vehiclesData.map(async (vehicle) => {
+          let makeName = null
+          let modelName = null
+          
+          // Look up make and model names
+          if (vehicle.make_id) {
+            const make = await VehicleService.getMakeById(vehicle.make_id)
+            makeName = make?.name || null
+          }
+          
+          if (vehicle.model_id) {
+            const model = await VehicleService.getModelById(vehicle.model_id)
+            modelName = model?.name || null
+          }
+          
+          const vehicleJobs = jobsData.filter(job => job.vehicle_id === vehicle.id)
+          const lastJob = vehicleJobs.length > 0 
+            ? new Date(Math.max(...vehicleJobs.map(j => new Date(j.created_at).getTime())))
+            : null
+
+          return {
+            ...vehicle,
+            makeName,
+            modelName,
+            ownerName: vehicle.customer?.name || null,
+            ownerPhone: vehicle.customer?.phone || null,
+            totalJobs: vehicleJobs.length,
+            lastService: lastJob,
+          }
+        })
+      )
+
+      setVehicles(vehiclesWithStats)
+    } catch (err) {
+      console.error('Error loading vehicles:', err)
+      setError('Failed to load vehicles')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(
       (vehicle) =>
-        vehicle.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vehicle.regNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vehicle.ownerName.toLowerCase().includes(searchQuery.toLowerCase()),
+        (vehicle.makeName && vehicle.makeName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.modelName && vehicle.modelName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        vehicle.reg_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (vehicle.ownerName && vehicle.ownerName.toLowerCase().includes(searchQuery.toLowerCase())),
     )
   }, [vehicles, searchQuery])
 
   const stats = useMemo(
     () => ({
       total: vehicles.length,
-      withIssues: vehicles.filter((v) => v.pendingIssues > 0).length,
       servicedThisMonth: vehicles.filter((v) => {
+        if (!v.lastService) return false
         const now = new Date()
         return v.lastService.getMonth() === now.getMonth() && v.lastService.getFullYear() === now.getFullYear()
       }).length,
@@ -171,9 +166,9 @@ export function VehiclesView() {
                       <SelectValue placeholder="Select make" />
                     </SelectTrigger>
                     <SelectContent>
-                      {carMakes.map((make) => (
-                        <SelectItem key={make} value={make.toLowerCase()}>
-                          {make}
+                      {makes.map((make) => (
+                        <SelectItem key={make.id} value={make.id}>
+                          {make.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -217,7 +212,7 @@ export function VehiclesView() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -237,22 +232,6 @@ export function VehiclesView() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card border border-border rounded-xl p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{stats.withIssues}</div>
-              <div className="text-sm text-muted-foreground">With Pending Issues</div>
-            </div>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
           className="bg-card border border-border rounded-xl p-4"
         >
           <div className="flex items-center gap-3">
@@ -278,8 +257,47 @@ export function VehiclesView() {
         />
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-24 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={loadVehicles} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredVehicles.length === 0 && (
+        <div className="text-center py-12">
+          <Car className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">
+            {searchQuery ? 'No vehicles found matching your search' : 'No vehicles yet. Add your first vehicle to get started.'}
+          </p>
+        </div>
+      )}
+
       {/* Vehicle Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {!loading && !error && filteredVehicles.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredVehicles.map((vehicle, index) => (
           <motion.div
             key={vehicle.id}
@@ -296,9 +314,9 @@ export function VehiclesView() {
                     </div>
                     <div>
                       <CardTitle className="text-base">
-                        {vehicle.make} {vehicle.model}
+                        {vehicle.makeName || 'Unknown'} {vehicle.modelName || 'Unknown'}
                       </CardTitle>
-                      <CardDescription className="font-mono">{vehicle.regNo}</CardDescription>
+                      <CardDescription className="font-mono">{vehicle.reg_no}</CardDescription>
                     </div>
                   </div>
                   <DropdownMenu>
@@ -317,30 +335,24 @@ export function VehiclesView() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-4 text-sm">
-                  <Badge
-                    variant="secondary"
-                    style={{ backgroundColor: vehicle.color.toLowerCase() === "white" ? "#f1f5f9" : undefined }}
-                  >
-                    {vehicle.color}
-                  </Badge>
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {vehicle.year}
-                  </span>
+                  {vehicle.year && (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {vehicle.year}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Gauge className="w-3.5 h-3.5" />
-                  <span>{vehicle.odometer.toLocaleString("en-IN")} km</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>{vehicle.ownerName}</span>
-                </div>
-                {vehicle.pendingIssues > 0 && (
-                  <Badge variant="destructive" className="gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    {vehicle.pendingIssues} Pending Issues
-                  </Badge>
+                {vehicle.odometer && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Gauge className="w-3.5 h-3.5" />
+                    <span>{vehicle.odometer.toLocaleString("en-IN")} km</span>
+                  </div>
+                )}
+                {vehicle.ownerName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>{vehicle.ownerName}</span>
+                  </div>
                 )}
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="text-center">
@@ -349,11 +361,13 @@ export function VehiclesView() {
                   </div>
                   <div className="text-center">
                     <div className="text-sm font-medium">
-                      {vehicle.lastService.toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {vehicle.lastService
+                        ? vehicle.lastService.toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : 'N/A'}
                     </div>
                     <div className="text-xs text-muted-foreground">Last Service</div>
                   </div>
@@ -362,7 +376,8 @@ export function VehiclesView() {
             </Card>
           </motion.div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
