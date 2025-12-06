@@ -57,7 +57,9 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
           comparison = a.jobNumber.localeCompare(b.jobNumber)
           break
         case "createdAt":
-          comparison = a.createdAt.getTime() - b.createdAt.getTime()
+          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
+          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)
+          comparison = dateA.getTime() - dateB.getTime()
           break
         case "customer":
           comparison = a.customer.name.localeCompare(b.customer.name)
@@ -244,7 +246,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground text-sm">
                       <Calendar className="w-3 h-3" />
-                      {job.createdAt.toLocaleDateString("en-IN", {
+                      {(job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt)).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                       })}
