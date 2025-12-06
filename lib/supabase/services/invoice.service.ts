@@ -199,4 +199,91 @@ export class InvoiceService {
     if (error) throw error
     return data as InvoiceWithRelations[]
   }
+
+  /**
+   * Get invoice by jobcard ID
+   */
+  static async getInvoiceByJobId(jobcardId: string): Promise<InvoiceWithRelations | null> {
+    const tenantId = ensureTenantContext()
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('invoices')
+      .select(`
+        *,
+        customer:customers(*),
+        jobcard:jobcards(*),
+        payments:payments(*)
+      `)
+      .eq('jobcard_id', jobcardId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    
+    if (error) throw error
+    return data as InvoiceWithRelations | null
+  }
+
+  /**
+   * Create an invoice from a jobcard
+   * Calculates totals from parts and labor
+   */
+  static async createInvoiceFromJob(jobcardId: string): Promise<Invoice> {
+    const tenantId = ensureTenantContext()
+    
+    // First check if invoice already exists
+    const existingInvoice = await this.getInvoiceByJobId(jobcardId)
+    if (existingInvoice) {
+      return existingInvoice
+    }
+    
+    // Get jobcard with parts
+    const { data: jobcard, error: jobError } = await supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select(`
+        *,
+        part_usages:part_usages(*)
+      `)
+      .eq('id', jobcardId)
+      .eq('tenant_id', tenantId)
+      .single()
+    
+    if (jobError) throw jobError
+    
+    // Calculate subtotal from parts
+    const partsSubtotal = (jobcard.part_usages || []).reduce((sum: number, part: any) => {
+      return sum + (part.unit_price * part.quantity)
+    }, 0)
+    
+    // Add labor charges
+    const laborCharges = jobcard.labor_charges || 0
+    const subtotal = partsSubtotal + laborCharges
+    
+    // Calculate tax (18% GST)
+    const taxAmount = subtotal * 0.18
+    const totalAmount = subtotal + taxAmount
+    
+    // Create invoice
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('invoices')
+      .insert({
+        tenant_id: tenantId,
+        jobcard_id: jobcardId,
+        customer_id: jobcard.customer_id,
+        invoice_date: new Date().toISOString(),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        subtotal,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        paid_amount: 0,
+        status: 'pending',
+        notes: `Invoice for job ${jobcard.job_number || jobcardId}`,
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
 }

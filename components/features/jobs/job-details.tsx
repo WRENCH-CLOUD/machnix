@@ -25,6 +25,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Circle,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,10 +35,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
 import type { UIJob } from "@/lib/job-transforms"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
+import { InvoiceService } from "@/lib/supabase/services"
+import type { InvoiceWithRelations } from "@/lib/supabase/services/invoice.service"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
 
@@ -67,6 +76,8 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const [newNote, setNewNote] = useState("")
   const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
+  const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
+  const [loadingInvoice, setLoadingInvoice] = useState(false)
   
   // Update DVI items when job changes
   useEffect(() => {
@@ -74,6 +85,25 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
     setDviItems(enrichedJob.dviItems || [])
     setParts(enrichedJob.parts || [])
   }, [job.id])
+
+  // Fetch invoice when status is ready or completed
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (job.status === 'ready' || job.status === 'completed') {
+        setLoadingInvoice(true)
+        try {
+          const invoiceData = await InvoiceService.getInvoiceByJobId(job.id)
+          setInvoice(invoiceData)
+        } catch (error) {
+          console.error('Error fetching invoice:', error)
+        } finally {
+          setLoadingInvoice(false)
+        }
+      }
+    }
+    
+    fetchInvoice()
+  }, [job.id, job.status])
 
   const statusInfo = statusConfig[currentStatus]
   const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
@@ -147,7 +177,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
           "w-full bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4",
           isMechanicMode ? "max-w-lg" : "max-w-5xl",
         )}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
@@ -155,26 +185,39 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
             <div className="flex items-center gap-3 mb-2">
               <h2 className="text-xl font-bold text-foreground">{job.jobNumber}</h2>
               {!isMechanicMode && onStatusChange ? (
-                <div className="flex flex-wrap gap-1">
-                  {statusOptions.map((status) => {
-                    const config = statusConfig[status]
-                    return (
-                      <Button
-                        key={status}
-                        size="sm"
-                        variant={currentStatus === status ? "default" : "outline"}
-                        className={cn(
-                          "h-7 px-3 text-xs transition-all",
-                          currentStatus === status && cn(config.bgColor, config.color, "border-0"),
-                          currentStatus !== status && "hover:scale-105"
-                        )}
-                        onClick={() => handleStatusChange(status)}
-                      >
-                        {config.label}
-                      </Button>
-                    )
-                  })}
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Badge 
+                      className={cn(
+                        "text-xs cursor-pointer gap-1.5 transition-all hover:opacity-80 px-3 py-1", 
+                        statusInfo.bgColor, 
+                        statusInfo.color, 
+                        "border-0"
+                      )}
+                    >
+                      {statusInfo.label}
+                      <ChevronDown className="w-3 h-3" />
+                    </Badge>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {statusOptions.map((status) => {
+                      const config = statusConfig[status]
+                      return (
+                        <DropdownMenuItem
+                          key={status}
+                          onClick={() => handleStatusChange(status)}
+                          className={cn(
+                            "cursor-pointer",
+                            currentStatus === status && "bg-accent"
+                          )}
+                        >
+                          <div className={cn("w-2 h-2 rounded-full mr-2", config.bgColor)} />
+                          {config.label}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Badge className={cn("text-xs", statusInfo.bgColor, statusInfo.color, "border-0")}>
                   {statusInfo.label}
@@ -239,10 +282,14 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                   </TabsTrigger>
                   <TabsTrigger
                     value="invoice"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    disabled={job.status !== 'ready' && job.status !== 'completed'}
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     Invoice
+                    {job.status !== 'ready' && job.status !== 'completed' && (
+                      <span className="ml-2 text-xs text-muted-foreground">(Available when Ready for Payment)</span>
+                    )}
                   </TabsTrigger>
                 </>
               )}
@@ -741,123 +788,159 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
             <TabsContent value="invoice" className="m-0">
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="p-6 space-y-6">
-                  {/* Invoice Preview */}
-                  <Card className="bg-white text-black">
-                    <CardContent className="p-8">
-                      {/* Invoice Header */}
-                      <div className="flex justify-between items-start mb-8">
-                        <div>
-                          <h2 className="text-2xl font-bold text-gray-900">INVOICE</h2>
-                          <p className="text-gray-600">{job.jobNumber}</p>
-                        </div>
-                        <div className="text-right">
-                          <h3 className="font-bold text-gray-900">Garage A</h3>
-                          <p className="text-sm text-gray-600">123 Auto Street, Bangalore</p>
-                          <p className="text-sm text-gray-600">GSTIN: 29XXXXX1234X1Z5</p>
-                        </div>
+                  {loadingInvoice ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center space-y-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-sm text-muted-foreground">Loading invoice...</p>
                       </div>
-
-                      {/* Bill To */}
-                      <div className="grid grid-cols-2 gap-8 mb-8">
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-500 mb-2">BILL TO</h4>
-                          <p className="font-semibold text-gray-900">{job.customer.name}</p>
-                          <p className="text-sm text-gray-600">{job.customer.phone}</p>
-                          <p className="text-sm text-gray-600">{job.customer.email}</p>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-500 mb-2">VEHICLE</h4>
-                          <p className="font-semibold text-gray-900">
-                            {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
-                          </p>
-                          <p className="text-sm text-gray-600 font-mono">{job.vehicle.regNo}</p>
-                        </div>
+                    </div>
+                  ) : !invoice ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center space-y-2">
+                        <CreditCard className="w-12 h-12 text-muted-foreground mx-auto" />
+                        <p className="text-sm text-muted-foreground">
+                          Invoice will be generated when job status is "Ready for Payment"
+                        </p>
                       </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Invoice Preview */}
+                      <Card className="bg-white text-black">
+                        <CardContent className="p-8">
+                          {/* Invoice Header */}
+                          <div className="flex justify-between items-start mb-8">
+                            <div>
+                              <h2 className="text-2xl font-bold text-gray-900">INVOICE</h2>
+                              <p className="text-gray-600">{invoice.invoice_number || job.jobNumber}</p>
+                              <p className="text-sm text-gray-500">
+                                Date: {new Date(invoice.invoice_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <h3 className="font-bold text-gray-900">Garage A</h3>
+                              <p className="text-sm text-gray-600">123 Auto Street, Bangalore</p>
+                              <p className="text-sm text-gray-600">GSTIN: 29XXXXX1234X1Z5</p>
+                            </div>
+                          </div>
 
-                      {/* Line Items */}
-                      <table className="w-full mb-8">
-                        <thead>
-                          <tr className="border-b-2 border-gray-200">
-                            <th className="text-left py-2 text-sm font-semibold text-gray-500">Description</th>
-                            <th className="text-right py-2 text-sm font-semibold text-gray-500">Qty</th>
-                            <th className="text-right py-2 text-sm font-semibold text-gray-500">Rate</th>
-                            <th className="text-right py-2 text-sm font-semibold text-gray-500">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {parts.map((part) => (
-                            <tr key={part.id} className="border-b border-gray-100">
-                              <td className="py-3">
-                                <p className="font-medium text-gray-900">{part.name}</p>
-                                <p className="text-xs text-gray-500">{part.partNumber}</p>
-                              </td>
-                              <td className="text-right py-3 text-gray-600">{part.quantity}</td>
-                              <td className="text-right py-3 text-gray-600">₹{part.unitPrice.toLocaleString()}</td>
-                              <td className="text-right py-3 font-medium text-gray-900">
-                                ₹{(part.unitPrice * part.quantity).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                          {laborSubtotal > 0 && (
-                            <tr className="border-b border-gray-100">
-                              <td className="py-3">
-                                <p className="font-medium text-gray-900">Labor Charges</p>
-                              </td>
-                              <td className="text-right py-3 text-gray-600">-</td>
-                              <td className="text-right py-3 text-gray-600">-</td>
-                              <td className="text-right py-3 font-medium text-gray-900">
-                                ₹{laborSubtotal.toLocaleString()}
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          {/* Bill To */}
+                          <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-500 mb-2">BILL TO</h4>
+                              <p className="font-semibold text-gray-900">{job.customer.name}</p>
+                              <p className="text-sm text-gray-600">{job.customer.phone}</p>
+                              <p className="text-sm text-gray-600">{job.customer.email}</p>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-500 mb-2">VEHICLE</h4>
+                              <p className="font-semibold text-gray-900">
+                                {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+                              </p>
+                              <p className="text-sm text-gray-600 font-mono">{job.vehicle.regNo}</p>
+                            </div>
+                          </div>
 
-                      {/* Totals */}
-                      <div className="flex justify-end">
-                        <div className="w-64 space-y-2">
-                          <div className="flex justify-between text-gray-600">
-                            <span>Subtotal</span>
-                            <span>₹{subtotal.toLocaleString()}</span>
+                          {/* Line Items */}
+                          <table className="w-full mb-8">
+                            <thead>
+                              <tr className="border-b-2 border-gray-200">
+                                <th className="text-left py-2 text-sm font-semibold text-gray-500">Description</th>
+                                <th className="text-right py-2 text-sm font-semibold text-gray-500">Qty</th>
+                                <th className="text-right py-2 text-sm font-semibold text-gray-500">Rate</th>
+                                <th className="text-right py-2 text-sm font-semibold text-gray-500">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {parts.map((part) => (
+                                <tr key={part.id} className="border-b border-gray-100">
+                                  <td className="py-3">
+                                    <p className="font-medium text-gray-900">{part.name}</p>
+                                    <p className="text-xs text-gray-500">{part.partNumber}</p>
+                                  </td>
+                                  <td className="text-right py-3 text-gray-600">{part.quantity}</td>
+                                  <td className="text-right py-3 text-gray-600">₹{part.unitPrice.toLocaleString()}</td>
+                                  <td className="text-right py-3 font-medium text-gray-900">
+                                    ₹{(part.unitPrice * part.quantity).toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                              {laborSubtotal > 0 && (
+                                <tr className="border-b border-gray-100">
+                                  <td className="py-3">
+                                    <p className="font-medium text-gray-900">Labor Charges</p>
+                                  </td>
+                                  <td className="text-right py-3 text-gray-600">-</td>
+                                  <td className="text-right py-3 text-gray-600">-</td>
+                                  <td className="text-right py-3 font-medium text-gray-900">
+                                    ₹{laborSubtotal.toLocaleString()}
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+
+                          {/* Totals */}
+                          <div className="flex justify-end">
+                            <div className="w-64 space-y-2">
+                              <div className="flex justify-between text-gray-600">
+                                <span>Subtotal</span>
+                                <span>₹{Number(invoice.subtotal || 0).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between text-gray-600">
+                                <span>GST (18%)</span>
+                                <span>₹{Number(invoice.tax_amount || 0).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
+                                <span>Total</span>
+                                <span>₹{Number(invoice.total_amount || 0).toLocaleString()}</span>
+                              </div>
+                              {invoice.paid_amount > 0 && (
+                                <>
+                                  <div className="flex justify-between text-emerald-600">
+                                    <span>Paid</span>
+                                    <span>₹{Number(invoice.paid_amount).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between text-lg font-bold text-amber-600 pt-2 border-t border-gray-200">
+                                    <span>Balance Due</span>
+                                    <span>₹{Number(invoice.balance || 0).toLocaleString()}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex justify-between text-gray-600">
-                            <span>GST (18%)</span>
-                            <span>₹{tax.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
-                            <span>Total</span>
-                            <span>₹{total.toLocaleString()}</span>
-                          </div>
-                        </div>
+
+                        </CardContent>
+                      </Card>
+
+                      {/* Payment Actions */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" className="gap-2 bg-transparent">
+                          <Download className="w-4 h-4" />
+                          Generate PDF
+                        </Button>
+                        {/* <Button variant="outline" className="gap-2 bg-transparent">
+                          <ExternalLink className="w-4 h-4" />
+                          Share Payment Link
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            Razorpay
+                          </Badge>
+                        </Button> */} 
+                        <Button 
+                          className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => {
+                            if (onStatusChange) {
+                              handleStatusChange("completed")
+                            }
+                          }}
+                        >
+                          <Check className="w-4 h-4" />
+                          Mark Paid (Cash)
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Payment Actions */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="gap-2 bg-transparent">
-                      <Download className="w-4 h-4" />
-                      Generate PDF
-                    </Button>
-                    {/* <Button variant="outline" className="gap-2 bg-transparent">
-                      <ExternalLink className="w-4 h-4" />
-                      Share Payment Link
-                      <Badge variant="secondary" className="ml-1 text-xs">
-                        Razorpay
-                      </Badge>
-                    </Button> */} 
-                    <Button 
-                      className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => {
-                        if (onStatusChange) {
-                          handleStatusChange("completed")
-                        }
-                      }}
-                    >
-                      <Check className="w-4 h-4" />
-                      Mark Paid (Cash)
-                    </Button>
-                  </div>
+                    </>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
