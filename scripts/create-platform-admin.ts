@@ -20,7 +20,6 @@ import * as fs from 'fs'
 const envPath = path.join(process.cwd(), '.env.local')
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath })
-  console.log('✅ Loaded .env.local\n')
 } else {
   console.warn('⚠️  .env.local not found, using system environment variables\n')
 }
@@ -51,11 +50,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 })
 
 async function createPlatformAdmin() {
-  console.log('🚀 Creating platform admin...\n')
+
 
   try {
     // Step 1: Create auth.users entry
-    console.log('📝 Step 1: Creating auth user...')
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
@@ -150,13 +148,8 @@ async function createPlatformAdmin() {
 
     if (adminError) {
       console.error('❌ Error creating platform_admins entry:', adminError.message)
-      console.log('\n⚠️  Auth user was created but platform_admins entry failed.')
-      console.log('   You may need to manually create the platform_admins entry.')
-      console.log('   Auth User ID:', authData.user.id)
       process.exit(1)
     }
-
-    console.log('✅ Platform admin entry created:', adminData.id)
 
     // Success!
     printSuccessMessage(authData.user.id, adminData.id)
@@ -168,20 +161,7 @@ async function createPlatformAdmin() {
 }
 
 function printSuccessMessage(authUserId: string, platformAdminId: string) {
-  console.log('\n' + '='.repeat(60))
-  console.log('🎉 PLATFORM ADMIN CREATED SUCCESSFULLY!')
-  console.log('='.repeat(60))
-  console.log('\nCredentials:')
-  console.log('  Email:   ', ADMIN_EMAIL)
-  console.log('  Password:', ADMIN_PASSWORD)
-  console.log('\nIDs:')
-  console.log('  Auth User ID:       ', authUserId)
-  console.log('  Platform Admin ID:  ', platformAdminId)
-  console.log('\n⚠️  IMPORTANT:')
-  console.log('  1. Change the password after first login')
-  console.log('  2. Delete this script: scripts/create-platform-admin.ts')
-  console.log('  3. Do NOT commit credentials to version control')
-  console.log('='.repeat(60) + '\n')
+  console.log('\n🎉 Platform admin created successfully!')
 }
 
 // Run the script

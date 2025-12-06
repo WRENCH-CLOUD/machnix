@@ -1,18 +1,11 @@
 "use client"
 
-import { Bell, Search, Plus, LogOut } from "lucide-react"
+import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers"
 
 interface TopHeaderProps {
@@ -21,7 +14,15 @@ interface TopHeaderProps {
 }
 
 export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, userRole } = useAuth()
+
+  const profileData = {
+    name: user?.email?.split('@')[0] || "User",
+    email: user?.email || "user@example.com",
+    avatar: user?.user_metadata?.avatar_url,
+    role: userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1).replace('_', ' ') : 'User',
+    tenantName: tenantName,
+  }
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
@@ -55,34 +56,11 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
           </span>
         </Button> */}
 
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.avatar || "/placeholder.svg"} />
-                <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden md:inline">{user?.name || "User"}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col">
-                <span>{user?.name}</span>
-                <span className="text-xs text-muted-foreground font-normal capitalize">{user?.role}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
+        {/* User Profile Dropdown */}
+        <ProfileDropdown data={profileData} onSignOut={signOut} />
       </div>
     </header>
   )

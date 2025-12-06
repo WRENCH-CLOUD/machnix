@@ -15,6 +15,7 @@ import { JobService } from "@/lib/supabase/services"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
 import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
+import Loader from "@/components/ui/loading"
 import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
 
 function AppContent() {
@@ -84,10 +85,11 @@ function AppContent() {
   if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-64 mx-auto" />
-          <Skeleton className="h-4 w-48 mx-auto" />
-        </div>
+        <Loader 
+          title="Initializing..."
+          subtitle="Setting up your workspace"
+          size="lg"
+        />
       </div>
     )
   }
@@ -101,11 +103,11 @@ function AppContent() {
   if (!userRole && !authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-64 mx-auto" />
-          <Skeleton className="h-4 w-48 mx-auto" />
-          <p className="text-sm text-muted-foreground">Loading user profile...</p>
-        </div>
+        <Loader 
+          title="Loading profile..."
+          subtitle="Getting your account ready"
+          size="lg"
+        />
       </div>
     )
   }
