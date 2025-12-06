@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { VehicleService, CustomerService, JobService } from "@/lib/supabase/services"
 import { useAuth } from "@/providers"
-import type { Database } from "@/lib/supabase/database.types"
+import type { Database } from "@/lib/supabase/types"
 
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Customer = Database['tenant']['Tables']['customers']['Row']

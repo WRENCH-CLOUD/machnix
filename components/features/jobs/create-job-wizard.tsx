@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { CustomerService, VehicleService, MechanicService, JobService, DVIService } from "@/lib/supabase/services"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/providers"
-import type { Database } from "@/lib/supabase/database.types"
+import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
 

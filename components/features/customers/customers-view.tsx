@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CustomerService, VehicleService, JobService } from "@/lib/supabase/services"
 import { useAuth } from "@/providers"
-import type { Database } from "@/lib/supabase/database.types"
+import type { Database } from "@/lib/supabase/types"
 
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']

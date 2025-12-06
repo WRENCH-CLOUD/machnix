@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DVIService } from "@/lib/supabase/services"
 import { useAuth } from "@/providers"
-import type { Database } from "@/lib/supabase/database.types"
+import type { Database } from "@/lib/supabase/types"
 
 type DVITemplate = Database['tenant']['Tables']['dvi_templates']['Row']
 type DVICategory = Database['tenant']['Tables']['dvi_categories']['Row']
