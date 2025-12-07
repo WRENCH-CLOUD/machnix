@@ -10,9 +10,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { CustomerService, VehicleService, MechanicService, JobService, DVIService } from "@/lib/supabase/services"
+import { CustomerService } from "@/lib/supabase/services/customer.service"
+import { VehicleService } from "@/lib/supabase/services/vehicle.service"
+import { MechanicService } from "@/lib/supabase/services/mechanic.service"
+import { JobService } from "@/lib/supabase/services/job.service"
+import { DVIService } from "@/lib/supabase/services/dvi.service"
 import { supabase } from "@/lib/supabase/client"
-import { useAuth } from "@/providers"
+import { useAuth } from "@/providers/auth-provider"
 import type { Database } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 
@@ -759,7 +763,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                     />
                   </div>
 
-                  <div>
+                  {/* <div>
                     <Label>DVI Template</Label>
                     <Select
                       value={formData.job.dviTemplate}
@@ -781,7 +785,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
 
                   <div>
                     <Label>Assign Mechanic</Label>

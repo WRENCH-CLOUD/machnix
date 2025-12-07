@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { getTenantWithStats, type TenantWithStats } from "@/lib/supabase/services"
+import { getTenantWithStats, type TenantWithStats } from "@/lib/supabase/services/tenant.service"
 import {
   Building2,
   Users,

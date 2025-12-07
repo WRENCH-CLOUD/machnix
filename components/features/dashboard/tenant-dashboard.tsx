@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AnalyticsService, type TenantAnalytics } from "@/lib/supabase/services"
+import { AnalyticsService, type TenantAnalytics } from "@/lib/supabase/services/analytics.service"
 
 export function TenantDashboard() {
   const [analytics, setAnalytics] = useState<TenantAnalytics | null>(null)

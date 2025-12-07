@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { DVIService } from "@/lib/supabase/services"
-import { useAuth } from "@/providers"
+import { DVIService } from "@/lib/supabase/services/dvi.service"
+import { useAuth } from "@/providers/auth-provider"
 import type { Database } from "@/lib/supabase/database.types"
 
 type DVITemplate = Database['tenant']['Tables']['dvi_templates']['Row']

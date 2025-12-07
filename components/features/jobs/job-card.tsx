@@ -62,7 +62,7 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
         <CardContent className={cn("p-4", isMechanicMode && "p-5")}>
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-muted-foreground">{job.jobNumber}</span>
               {job.dviPending && (
                 <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs gap-1">
@@ -70,7 +70,7 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
                   DVI
                 </Badge>
               )}
-            </div>
+            </div> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Badge 
