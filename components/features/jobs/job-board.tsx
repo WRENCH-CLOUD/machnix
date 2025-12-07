@@ -194,6 +194,15 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
     }
 
     if (targetStatus && draggedJob.status !== targetStatus) {
+      // Lifecycle Guardrail: Validate transition before optimistic update
+      const isValidTransition = validateStatusTransition(draggedJob.status, targetStatus)
+      
+      if (!isValidTransition) {
+        // Don't allow invalid transitions - show brief feedback
+        console.warn(`Invalid status transition: ${draggedJob.status} -> ${targetStatus}`)
+        return
+      }
+
       // Optimistic update - update UI immediately
       setIsUpdating(true)
       setOptimisticJobs((prevJobs) =>
@@ -204,7 +213,7 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
         )
       )
 
-      // Actual update
+      // Actual update (will check payment for completion in handleStatusChange)
       if (onStatusChange) {
         try {
           await onStatusChange(activeId, targetStatus)
@@ -218,6 +227,20 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
         }
       }
     }
+  }
+
+  // Validate status transitions based on job lifecycle
+  const validateStatusTransition = (fromStatus: string, toStatus: string): boolean => {
+    // Status progression: received <-> working <-> ready -> completed
+    // Allow moving backward except from completed
+    const validTransitions: Record<string, string[]> = {
+      'received': ['received', 'working'],
+      'working': ['received', 'working', 'ready'],
+      'ready': ['working', 'ready', 'completed'],
+      'completed': ['completed'], // Cannot change from completed
+    }
+
+    return validTransitions[fromStatus]?.includes(toStatus) ?? false
   }
 
   const handleContextMenu = (e: React.MouseEvent, status: JobStatus) => {

@@ -22,7 +22,7 @@ import { InvoiceService } from "@/lib/supabase/services/invoice.service"
 import { EstimateService } from "@/lib/supabase/services/estimate.service"
 import { PaymentService } from "@/lib/supabase/services/payment.service"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
-import { type JobStatus } from "@/lib/mock-data"
+import { type JobStatus, statusConfig } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
 import Loader from "@/components/ui/loading"
 import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
@@ -35,6 +35,7 @@ function AppContent() {
   const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unpaidJobsCount, setUnpaidJobsCount] = useState(0)
   const [showUnpaidWarning, setShowUnpaidWarning] = useState(false)
   const [pendingCompletion, setPendingCompletion] = useState<{
     jobId: string
@@ -42,6 +43,20 @@ function AppContent() {
     balance: number
     jobNumber?: string
   } | null>(null)
+
+  // Validate status transitions based on job lifecycle
+  const validateStatusTransition = (fromStatus: string, toStatus: string): boolean => {
+    // Status progression: received <-> working <-> ready -> completed
+    // Allow moving backward except from completed
+    const validTransitions: Record<string, string[]> = {
+      'received': ['received', 'working'],
+      'working': ['received', 'working', 'ready'],
+      'ready': ['working', 'ready', 'completed'],
+      'completed': ['completed'], // Cannot change from completed
+    }
+
+    return validTransitions[fromStatus]?.includes(toStatus) ?? false
+  }
 
   // Fetch jobs when tenant is set
   useEffect(() => {
@@ -182,7 +197,25 @@ function AppContent() {
       const oldJob = jobs.find(job => job.id === jobId)
       const oldStatus = oldJob?.status
       
-      // Epic 4: Completion Guardrail - Check for unpaid invoices before completing
+      if (!oldStatus) {
+        console.error('Job not found:', jobId)
+        return
+      }
+
+      // Lifecycle Guardrails: Validate status transitions
+      const isValidTransition = validateStatusTransition(oldStatus, newStatus)
+      if (!isValidTransition) {
+        alert(`Cannot change status from ${statusConfig[oldStatus as JobStatus]?.label} to ${statusConfig[newStatus]?.label}`)
+        return
+      }
+
+      // Lifecycle Guardrail: Cannot change from completed
+      if (oldStatus === 'completed') {
+        alert('Cannot change status of a completed job')
+        return
+      }
+      
+      // Lifecycle Guardrail: Check for unpaid invoices before completing
       if (newStatus === 'completed' && oldStatus !== 'completed') {
         // Check if there's an invoice for this job
         const invoice = await InvoiceService.getInvoiceByJobId(jobId)
@@ -198,6 +231,11 @@ function AppContent() {
           setShowUnpaidWarning(true)
           return // Don't proceed with status change
         }
+        
+        if (!invoice) {
+          alert('Cannot complete job: No invoice found. Please ensure the job is in "Ready for Payment" status first.')
+          return
+        }
       }
       
       // Update job status in database
@@ -205,18 +243,24 @@ function AppContent() {
       
       // Auto-generate invoice when status changes to "ready" (Ready for Payment)
       if (newStatus === 'ready' && oldStatus !== 'ready') {
-        // Get estimate for this job
-        EstimateService.getEstimateByJobcard(jobId)
-          .then(async (estimate) => {
-            if (estimate) {
-              // Generate invoice from estimate
-              await InvoiceService.generateInvoiceFromEstimate(jobId, estimate.id)
-              console.log('Invoice automatically generated from estimate for job:', jobId)
-            } else {
-              console.warn('No estimate found for job:', jobId)
-            }
-          })
-          .catch((invoiceError) => console.error('Failed to auto-generate invoice:', invoiceError))
+        try {
+          console.log('[handleStatusChange] Job moved to ready status, generating invoice...', jobId)
+          // Get estimate for this job
+          const estimate = await EstimateService.getEstimateByJobcard(jobId)
+          if (estimate) {
+            // Generate invoice from estimate
+            console.log('[handleStatusChange] Estimate found, generating invoice from estimate:', estimate.id)
+            const invoice = await InvoiceService.generateInvoiceFromEstimate(jobId, estimate.id)
+            console.log('[handleStatusChange] Invoice generated successfully:', invoice?.id)
+            alert(`Invoice ${invoice.invoice_number || 'generated'} created successfully!`)
+          } else {
+            console.warn('[handleStatusChange] No estimate found for job:', jobId)
+            alert('Warning: No estimate found for this job. Please create an estimate first.')
+          }
+        } catch (err) {
+          console.error('[handleStatusChange] Error generating invoice:', err)
+          alert('Failed to generate invoice. Please check the console for details.')
+        }
       }
       
       // Update local state
@@ -240,7 +284,7 @@ function AppContent() {
       await loadJobs()
       throw err // Re-throw to allow caller to handle
     }
-  }
+  };
 
   const handleMarkPaidAndComplete = async (paymentMethod: string, referenceId?: string) => {
     if (!pendingCompletion) return
@@ -341,6 +385,12 @@ function AppContent() {
                 onJobClick={handleJobClick}
                 onStatusChange={handleStatusChange}
                 onMechanicChange={handleMechanicChange}
+              />
+            )}
+            {activeView === "all-jobs" && (
+              <AllJobsView
+                jobs={jobs}
+                onJobClick={handleJobClick}
               />
             )}
             {activeView === "customers" && <CustomersView />}

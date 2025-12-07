@@ -15,7 +15,7 @@ import { useAuth } from "@/providers/auth-provider"
 import type { Database } from "@/lib/supabase/database.types"
 
 type DVITemplate = Database['tenant']['Tables']['dvi_templates']['Row']
-type DVICategory = Database['tenant']['Tables']['dvi_categories']['Row']
+type DVICategory = Database['tenant']['Tables']['dvi_checkpoint_categories']['Row']
 type DVICheckpoint = Database['tenant']['Tables']['dvi_checkpoints']['Row']
 
 interface TemplateWithDetails extends DVITemplate {
@@ -43,7 +43,7 @@ export function DVITemplateManager() {
     
     setLoading(true)
     try {
-      const data = await DVIService.getTemplates(tenantId)
+      const data = await DVIService.getTemplates()
       setTemplates(data)
     } catch (error) {
       console.error('Error loading templates:', error)
@@ -55,7 +55,9 @@ export function DVITemplateManager() {
   const loadTemplateDetails = async (templateId: string) => {
     try {
       const data = await DVIService.getTemplateWithDetails(templateId)
-      setSelectedTemplate(data as TemplateWithDetails)
+      if (data) {
+        setSelectedTemplate(data as TemplateWithDetails)
+      }
     } catch (error) {
       console.error('Error loading template details:', error)
     }
@@ -276,8 +278,8 @@ function TemplateEditor({
       
       // Load checkpoints for each category
       const catsWithCheckpoints = await Promise.all(
-        cats.map(async (cat) => {
-          const checkpoints = await DVIService.getCheckpoints(cat.id)
+        cats.map(async (cat: DVICategory) => {
+          const checkpoints = await DVIService.getCheckpoints(cat.id, template.id)
           return { ...cat, checkpoints }
         })
       )
@@ -296,9 +298,8 @@ function TemplateEditor({
 
     try {
       await DVIService.createCategory({
-        template_id: template.id,
         name,
-        sort_order: categories.length,
+        display_order: categories.length,
       })
       await loadCategories()
     } catch (error) {
@@ -318,7 +319,8 @@ function TemplateEditor({
       await DVIService.createCheckpoint({
         category_id: categoryId,
         name,
-        sort_order: category.checkpoints?.length || 0,
+        template_id: template.id,
+        display_order: category.checkpoints?.length || 0,
       })
       await loadCategories()
     } catch (error) {
@@ -392,7 +394,7 @@ function TemplateEditor({
               <CardContent>
                 {category.checkpoints && category.checkpoints.length > 0 ? (
                   <ul className="space-y-2">
-                    {category.checkpoints.map((checkpoint) => (
+                    {category.checkpoints.map((checkpoint: DVICheckpoint) => (
                       <li key={checkpoint.id} className="flex items-center justify-between p-2 rounded hover:bg-muted">
                         <div className="flex items-center gap-2">
                           <GripVertical className="w-4 h-4 text-muted-foreground" />

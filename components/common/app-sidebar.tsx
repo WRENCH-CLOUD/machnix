@@ -14,6 +14,7 @@ import {
   FileText,
   BarChart3,
   HelpCircle,
+  List,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,9 +28,10 @@ interface AppSidebarProps {
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "jobs", label: "Job Board", icon: ClipboardList },
+  { id: "all-jobs", label: "All Jobs", icon: List },
   { id: "customers", label: "Customers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: Car },
-  { id: "reports", label: "Reports", icon: BarChart3 },
+//  { id: "reports", label: "Reports", icon: BarChart3 },
 ]
 
 const bottomNavItems = [

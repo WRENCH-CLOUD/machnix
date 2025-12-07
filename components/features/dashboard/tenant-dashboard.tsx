@@ -10,21 +10,25 @@ import {
   CreditCard,
   Receipt,
   Calendar,
+  Users,
+  Car,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Legend } from "recharts"
 import { AnalyticsService, type TenantAnalytics } from "@/lib/supabase/services/analytics.service"
+import { CustomerService } from "@/lib/supabase/services/customer.service"
+import { VehicleService } from "@/lib/supabase/services/vehicle.service"
 
 export function TenantDashboard() {
   const [analytics, setAnalytics] = useState<TenantAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadAnalytics()
-  }, [])
+  const [customerCount, setCustomerCount] = useState(0)
+  const [vehicleCount, setVehicleCount] = useState(0)
 
   const loadAnalytics = async () => {
     try {
@@ -39,6 +43,24 @@ export function TenantDashboard() {
       setLoading(false)
     }
   }
+
+  const loadCustomerAndVehicleData = async () => {
+    try {
+      const [customers, vehicles] = await Promise.all([
+        CustomerService.getCustomers(),
+        VehicleService.getVehicles(),
+      ])
+      setCustomerCount(customers.length)
+      setVehicleCount(vehicles.length)
+    } catch (err) {
+      console.error('Failed to load customer/vehicle data:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadAnalytics()
+    loadCustomerAndVehicleData()
+  }, [])
 
   if (loading) {
     return (
@@ -98,10 +120,10 @@ export function TenantDashboard() {
                 </Badge>
               </div>
               <div className="mt-4">
-                <div className="text-3xl font-bold">₹{(revenue.totalRevenue / 100000).toFixed(2)}L</div>
+                <div className="text-3xl font-bold">₹{revenue.totalRevenue.toLocaleString('en-IN')}</div>
                 <div className="text-sm text-muted-foreground">Total Revenue</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  ₹{(revenue.paidAmount / 100000).toFixed(2)}L collected
+                  ₹{revenue.paidAmount.toLocaleString('en-IN')} collected
                 </div>
               </div>
             </CardContent>
@@ -124,10 +146,10 @@ export function TenantDashboard() {
                 </Badge>
               </div>
               <div className="mt-4">
-                <div className="text-3xl font-bold">₹{(revenue.pendingAmount / 100000).toFixed(2)}L</div>
+                <div className="text-3xl font-bold">₹{revenue.pendingAmount.toLocaleString('en-IN')}</div>
                 <div className="text-sm text-muted-foreground">Pending Amount</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {((revenue.pendingAmount / revenue.totalRevenue) * 100).toFixed(1)}% of total
+                  {(((revenue.pendingAmount / revenue.totalRevenue) * 100) || 0).toFixed(1)}% of total
                 </div>
               </div>
             </CardContent>
@@ -150,10 +172,10 @@ export function TenantDashboard() {
                 </Badge>
               </div>
               <div className="mt-4">
-                <div className="text-3xl font-bold">₹{(dailyRevenue / 1000).toFixed(1)}K</div>
+                <div className="text-3xl font-bold">₹{dailyRevenue.toLocaleString('en-IN')}</div>
                 <div className="text-sm text-muted-foreground">Daily Revenue</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  ₹{(monthlyRevenue / 100000).toFixed(2)}L this month
+                  ₹{monthlyRevenue.toLocaleString('en-IN')} this month
                 </div>
               </div>
             </CardContent>
@@ -179,7 +201,7 @@ export function TenantDashboard() {
                 <div className="text-3xl font-bold">{collectionEfficiency.toFixed(1)}%</div>
                 <div className="text-sm text-muted-foreground">Collection Rate</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Avg: ₹{(revenue.averagePaymentValue / 1000).toFixed(1)}K
+                  Avg: ₹{revenue.averagePaymentValue.toLocaleString('en-IN')}
                 </div>
               </div>
             </CardContent>
@@ -227,7 +249,7 @@ export function TenantDashboard() {
                           {percentage.toFixed(1)}%
                         </span>
                         <span className="font-semibold text-emerald-500">
-                          ₹{(amount / 100000).toFixed(2)}L
+                          ₹{amount.toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>
@@ -281,7 +303,7 @@ export function TenantDashboard() {
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-emerald-500">
-                        ₹{((payment.amount || 0) / 1000).toFixed(1)}K
+                        ₹{((payment.amount || 0)).toLocaleString('en-IN')}
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
@@ -299,32 +321,104 @@ export function TenantDashboard() {
         </Card>
       </div>
 
-      {/* Collection Efficiency */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Collection Efficiency</CardTitle>
-          <CardDescription>Revenue collection status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Collected</span>
-              <span className="text-sm text-emerald-500 font-semibold">
-                ₹{(revenue.paidAmount / 100000).toFixed(2)}L
-              </span>
+      {/* Customer & Vehicle Analytics */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> */}
+        {/* Customer Growth */}
+        {/* <Card>
+          <CardHeader>
+            <CardTitle>Customer Overview</CardTitle>
+            <CardDescription>Total registered customers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Users className="w-8 h-8 text-blue-500" />
+                </div>
+                <div>
+                  <div className="text-4xl font-bold">{customerCount}</div>
+                  <div className="text-sm text-muted-foreground">Total Customers</div>
+                </div>
+              </div>
             </div>
-            <Progress value={collectionEfficiency} className="h-3" />
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                {collectionEfficiency.toFixed(1)}% of ₹{(revenue.totalRevenue / 100000).toFixed(2)}L total revenue
-              </span>
-              <span className="text-amber-500 font-medium">
-                ₹{(revenue.pendingAmount / 100000).toFixed(2)}L pending
-              </span>
+            <div className="h-[200px]">
+              <ChartContainer
+                config={{
+                  customers: {
+                    label: "Customers",
+                    color: "hsl(var(--chart-1))",
+                  },
+                  active: {
+                    label: "Active",
+                    color: "hsl(var(--chart-2))",
+                  },
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Customers', count: customerCount },
+                    { name: 'Active', count: Math.floor(customerCount * 0.7) },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card> */}
+
+        {/* Vehicle Fleet */}
+        {/* <Card>
+          <CardHeader>
+            <CardTitle>Vehicle Fleet</CardTitle>
+            <CardDescription>Total registered vehicles</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <Car className="w-8 h-8 text-purple-500" />
+                </div>
+                <div>
+                  <div className="text-4xl font-bold">{vehicleCount}</div>
+                  <div className="text-sm text-muted-foreground">Total Vehicles</div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[200px]">
+              <ChartContainer
+                config={{
+                  vehicles: {
+                    label: "Vehicles",
+                    color: "hsl(var(--chart-3))",
+                  },
+                  inService: {
+                    label: "In Service",
+                    color: "hsl(var(--chart-4))",
+                  },
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Vehicles', count: vehicleCount },
+                    { name: 'In Service', count: Math.floor(vehicleCount * 0.3) },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="hsl(var(--chart-3))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div> */}
     </div>
   )
 }

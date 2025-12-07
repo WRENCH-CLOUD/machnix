@@ -134,19 +134,25 @@ export class EstimateService {
       .from('estimates')
       .select(`
         *,
-        customer:customers(*),
-        vehicle:vehicles(*),
-        estimate_items:estimate_items(*)
+        estimate_items(*)
       `)
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
     
     if (error) {
-      if (error.code === 'PGRST116') return null // No estimate found
+      console.error('[EstimateService.getEstimateByJobcard] Error:', error)
+      // Don't throw on 404/406 - just return null
+      if (error.code === 'PGRST116' || error.status === 406 || error.status === 404) {
+        return null
+      }
       throw error
     }
-    return data as EstimateWithRelations
+    
+    console.log('[EstimateService.getEstimateByJobcard] Data:', data)
+    return data as EstimateWithRelations | null
   }
 
   /**
@@ -200,6 +206,49 @@ export class EstimateService {
     
     // Update estimate totals
     await this.recalculateEstimateTotals(estimateId)
+    
+    return data
+  }
+
+  /**
+   * Update an estimate item
+   */
+  static async updateEstimateItem(
+    itemId: string,
+    updates: {
+      custom_name?: string
+      custom_part_number?: string
+      description?: string
+      qty?: number
+      unit_price?: number
+      labor_cost?: number
+    }
+  ): Promise<EstimateItem> {
+    // Get the estimate_id first
+    const { data: item, error: fetchError } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .select('estimate_id')
+      .eq('id', itemId)
+      .single()
+    
+    if (fetchError) throw fetchError
+    
+    // Update the item
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('estimate_items')
+      .update(updates)
+      .eq('id', itemId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    
+    // Recalculate estimate totals
+    if (item?.estimate_id) {
+      await this.recalculateEstimateTotals(item.estimate_id)
+    }
     
     return data
   }

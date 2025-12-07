@@ -20,11 +20,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { type JobCard, statusConfig, type JobStatus } from "@/lib/mock-data"
+import { type UIJob } from "@/lib/job-transforms"
+import { type JobStatus, statusConfig } from "@/lib/mock-data"
 
 interface AllJobsViewProps {
-  jobs: JobCard[]
-  onJobClick: (job: JobCard) => void
+  jobs: UIJob[]
+  onJobClick: (job: UIJob) => void
 }
 
 type SortField = "jobNumber" | "createdAt" | "customer" | "vehicle" | "status"

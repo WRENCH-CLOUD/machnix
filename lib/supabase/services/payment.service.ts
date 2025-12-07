@@ -195,4 +195,146 @@ export class PaymentService {
     if (error) throw error
     return data
   }
+
+  /**
+   * Mark invoice as paid and complete the job in a single atomic operation
+   */
+  static async markPaidAndComplete(
+    invoiceId: string,
+    jobId: string,
+    paymentMethod: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'other',
+    referenceId?: string
+  ): Promise<{ payment: Payment; invoice: Invoice }> {
+    const tenantId = ensureTenantContext()
+    
+    try {
+      // Get invoice with estimate to get current totals
+      const { data: invoice, error: invoiceError } = await supabase
+        .schema('tenant')
+        .from('invoices')
+        .select(`
+          *,
+          estimate:estimate_id (
+            parts_total,
+            labor_total,
+            tax_amount,
+            total_amount
+          )
+        `)
+        .eq('id', invoiceId)
+        .eq('tenant_id', tenantId)
+        .single()
+      
+      if (invoiceError) {
+        console.error('[markPaidAndComplete] Invoice fetch error:', invoiceError)
+        throw invoiceError
+      }
+      if (!invoice) {
+        console.error('[markPaidAndComplete] Invoice not found:', invoiceId)
+        throw new Error('Invoice not found')
+      }
+      
+      console.log('[markPaidAndComplete] Invoice found:', invoice)
+      
+      // Sync invoice totals with current estimate totals
+      const estimate = invoice.estimate as any
+      if (estimate) {
+        const currentSubtotal = estimate.parts_total + estimate.labor_total
+        const currentTotal = estimate.total_amount
+        
+        // Update invoice with current estimate totals
+        await supabase
+          .schema('tenant')
+          .from('invoices')
+          .update({
+            subtotal: currentSubtotal,
+            tax_amount: estimate.tax_amount,
+            total_amount: currentTotal,
+            balance: currentTotal - (invoice.paid_amount || 0),
+          })
+          .eq('id', invoiceId)
+          .eq('tenant_id', tenantId)
+        
+        console.log('[markPaidAndComplete] Invoice synced with estimate totals')
+      }
+      
+      // Calculate payment amount - use current balance or total
+      const paymentAmount = estimate 
+        ? estimate.total_amount - (invoice.paid_amount || 0)
+        : invoice.balance || invoice.total_amount || 0
+      console.log('[markPaidAndComplete] Payment amount:', paymentAmount)
+      
+      // Create payment record
+      const { data: payment, error: paymentError } = await supabase
+        .schema('tenant')
+        .from('payments')
+        .insert({
+          tenant_id: tenantId,
+          invoice_id: invoiceId,
+          amount: paymentAmount,
+          payment_method: paymentMethod,
+          reference_number: referenceId || null,
+          payment_date: new Date().toISOString(),
+          status: 'completed',
+          paid_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+      
+      if (paymentError) {
+        console.error('[markPaidAndComplete] Payment creation error:', paymentError)
+        throw paymentError
+      }
+      
+      console.log('[markPaidAndComplete] Payment created:', payment)
+      
+      // Get final total from estimate for invoice update
+      const finalTotal = estimate ? estimate.total_amount : invoice.total_amount
+      
+      // Update invoice to mark as paid (balance = 0, paid_amount = total)
+      const { data: updatedInvoice, error: updateInvoiceError } = await supabase
+        .schema('tenant')
+        .from('invoices')
+        .update({
+          balance: 0,
+          paid_amount: finalTotal,
+          status: 'paid',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single()
+      
+      if (updateInvoiceError) {
+        console.error('[markPaidAndComplete] Invoice update error:', updateInvoiceError)
+        throw updateInvoiceError
+      }
+      
+      console.log('[markPaidAndComplete] Invoice updated:', updatedInvoice)
+      
+      // Update job status to completed
+      const { error: jobUpdateError } = await supabase
+        .schema('tenant')
+        .from('jobcards')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
+        .eq('tenant_id', tenantId)
+      
+      if (jobUpdateError) {
+        console.error('[markPaidAndComplete] Job update error:', jobUpdateError)
+        throw jobUpdateError
+      }
+      
+      console.log('[markPaidAndComplete] Job completed successfully')
+      
+      return { payment, invoice: updatedInvoice }
+    } catch (error) {
+      console.error('[markPaidAndComplete] Unexpected error:', error)
+      throw error
+    }
+  }
 }

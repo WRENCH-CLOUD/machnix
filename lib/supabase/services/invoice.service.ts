@@ -355,7 +355,7 @@ export class InvoiceService {
     
     if (invoiceError) throw invoiceError
     
-    // Note: invoice_items table removed; line items remain in estimate_items
+    // Note: invoice_items table removed; line items are now stored in estimate_items
     // Invoice totals are calculated from estimate totals
     
     // Fetch and return complete invoice with relations

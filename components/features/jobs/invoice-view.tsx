@@ -84,7 +84,7 @@ export function InvoiceView({ invoiceId, onClose, readonly = false }: InvoiceVie
               <h2 className="text-2xl font-bold text-foreground">
                 {invoice.invoice_number || 'Invoice'}
               </h2>
-              <Badge className={cn("border", statusColors[invoice.status as keyof typeof statusColors] || statusColors.pending)}>
+              <Badge className={statusColors[invoice.status as keyof typeof statusColors] || statusColors.pending}>
                 {invoice.status?.toUpperCase()}
               </Badge>
             </div>
