@@ -4,29 +4,18 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   X,
-  Edit2,
-  Save,
-  Plus,
-  Trash2,
   FileText,
   Download,
   Send,
-  Check,
   Calendar,
-  DollarSign,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { InvoiceService } from "@/lib/supabase/services/invoice.service"
 import type { InvoiceWithRelations } from "@/lib/supabase/services/invoice.service"
-import type { Database } from "@/lib/supabase/types"
-import { cn } from "@/lib/utils"
-
-type InvoiceItem = Database['tenant']['Tables']['invoice_items']['Row']
 
 interface InvoiceViewProps {
   invoiceId: string
@@ -36,10 +25,7 @@ interface InvoiceViewProps {
 
 export function InvoiceView({ invoiceId, onClose, readonly = false }: InvoiceViewProps) {
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
-  const [items, setItems] = useState<InvoiceItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<Partial<InvoiceItem>>({})
 
   useEffect(() => {
     loadInvoice()
@@ -50,45 +36,10 @@ export function InvoiceView({ invoiceId, onClose, readonly = false }: InvoiceVie
       setLoading(true)
       const data = await InvoiceService.getInvoiceById(invoiceId)
       setInvoice(data)
-      setItems(data.invoice_items || [])
     } catch (error) {
       console.error('Error loading invoice:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const startEditItem = (item: InvoiceItem) => {
-    setEditingItemId(item.id)
-    setEditValues({
-      item_name: item.item_name,
-      item_number: item.item_number || undefined,
-      description: item.description || undefined,
-      qty: item.qty,
-      unit_price: item.unit_price,
-      labor_cost: item.labor_cost || 0,
-    })
-  }
-
-  const saveItem = async (itemId: string) => {
-    try {
-      await InvoiceService.updateInvoiceItem(itemId, editValues)
-      await loadInvoice()
-      setEditingItemId(null)
-      setEditValues({})
-    } catch (error) {
-      console.error('Error updating item:', error)
-    }
-  }
-
-  const deleteItem = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return
-    
-    try {
-      await InvoiceService.deleteInvoiceItem(itemId)
-      await loadInvoice()
-    } catch (error) {
-      console.error('Error deleting item:', error)
     }
   }
 
@@ -181,154 +132,6 @@ export function InvoiceView({ invoiceId, onClose, readonly = false }: InvoiceVie
                 </CardContent>
               </Card>
             )}
-
-            {/* Line Items */}
-            <Card>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm">Line Items</CardTitle>
-                {!readonly && (
-                  <Button size="sm" variant="outline" className="gap-1">
-                    <Plus className="w-3 h-3" />
-                    Add Item
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Header */}
-                  <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
-                    <div className="col-span-4">Item</div>
-                    <div className="col-span-2">Part No.</div>
-                    <div className="col-span-1">Qty</div>
-                    <div className="col-span-2">Unit Price</div>
-                    <div className="col-span-2">Labor</div>
-                    <div className="col-span-1 text-right">Total</div>
-                  </div>
-
-                  {/* Items */}
-                  {items.map((item) => {
-                    const isEditing = editingItemId === item.id
-                    const itemTotal = (item.qty * item.unit_price) + (item.labor_cost || 0)
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={cn(
-                          "grid grid-cols-12 gap-3 items-center p-2 rounded-lg",
-                          isEditing ? "bg-primary/5 border border-primary/20" : "border border-transparent hover:bg-secondary/50"
-                        )}
-                      >
-                        <div className="col-span-4">
-                          {isEditing && !readonly ? (
-                            <Input
-                              value={editValues.item_name || ''}
-                              onChange={(e) => setEditValues({ ...editValues, item_name: e.target.value })}
-                              className="h-8"
-                            />
-                          ) : (
-                            <div>
-                              <div className="font-medium text-sm">{item.item_name}</div>
-                              {item.description && (
-                                <div className="text-xs text-muted-foreground">{item.description}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="col-span-2">
-                          {isEditing && !readonly ? (
-                            <Input
-                              value={editValues.item_number || ''}
-                              onChange={(e) => setEditValues({ ...editValues, item_number: e.target.value })}
-                              className="h-8"
-                            />
-                          ) : (
-                            <div className="text-sm text-muted-foreground">{item.item_number || '-'}</div>
-                          )}
-                        </div>
-                        <div className="col-span-1">
-                          {isEditing && !readonly ? (
-                            <Input
-                              type="number"
-                              value={editValues.qty || 0}
-                              onChange={(e) => setEditValues({ ...editValues, qty: Number(e.target.value) })}
-                              className="h-8"
-                            />
-                          ) : (
-                            <div className="text-sm">{item.qty}</div>
-                          )}
-                        </div>
-                        <div className="col-span-2">
-                          {isEditing && !readonly ? (
-                            <Input
-                              type="number"
-                              value={editValues.unit_price || 0}
-                              onChange={(e) => setEditValues({ ...editValues, unit_price: Number(e.target.value) })}
-                              className="h-8"
-                            />
-                          ) : (
-                            <div className="text-sm">₹{item.unit_price.toLocaleString()}</div>
-                          )}
-                        </div>
-                        <div className="col-span-2">
-                          {isEditing && !readonly ? (
-                            <Input
-                              type="number"
-                              value={editValues.labor_cost || 0}
-                              onChange={(e) => setEditValues({ ...editValues, labor_cost: Number(e.target.value) })}
-                              className="h-8"
-                            />
-                          ) : (
-                            <div className="text-sm">₹{(item.labor_cost || 0).toLocaleString()}</div>
-                          )}
-                        </div>
-                        <div className="col-span-1 flex items-center justify-end gap-1">
-                          <div className="text-sm font-medium">₹{itemTotal.toLocaleString()}</div>
-                          {!readonly && (
-                            <>
-                              {isEditing ? (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => saveItem(item.id)}
-                                >
-                                  <Check className="w-3 h-3" />
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => startEditItem(item)}
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-destructive hover:text-destructive"
-                                    onClick={() => deleteItem(item.id)}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {items.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No items in this invoice
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Totals */}
             <Card>

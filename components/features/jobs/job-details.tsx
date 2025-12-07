@@ -81,7 +81,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const [estimateItems, setEstimateItems] = useState<EstimateItem[]>([]) // Parts in estimate
   const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null)
   const [newNote, setNewNote] = useState("")
-  const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
+  const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status as JobStatus)
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
@@ -118,9 +118,14 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
           setInvoice(invoiceData)
         } catch (error) {
           console.error('Error fetching invoice:', error)
+          // Don't show error to user if invoice doesn't exist yet
+          setInvoice(null)
         } finally {
           setLoadingInvoice(false)
         }
+      } else {
+        // Clear invoice if status is not ready/completed
+        setInvoice(null)
       }
     }
     

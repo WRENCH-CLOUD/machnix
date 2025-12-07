@@ -4,9 +4,6 @@ import type { Database } from '../types'
 type Invoice = Database['tenant']['Tables']['invoices']['Row']
 type InvoiceInsert = Database['tenant']['Tables']['invoices']['Insert']
 type InvoiceUpdate = Database['tenant']['Tables']['invoices']['Update']
-type InvoiceItem = Database['tenant']['Tables']['invoice_items']['Row']
-type InvoiceItemInsert = Database['tenant']['Tables']['invoice_items']['Insert']
-type InvoiceItemUpdate = Database['tenant']['Tables']['invoice_items']['Update']
 type Payment = Database['tenant']['Tables']['payments']['Row']
 type PaymentInsert = Database['tenant']['Tables']['payments']['Insert']
 type Customer = Database['tenant']['Tables']['customers']['Row']
@@ -16,7 +13,6 @@ export interface InvoiceWithRelations extends Invoice {
   customer?: Customer
   jobcard?: Jobcard
   payments?: Payment[]
-  invoice_items?: InvoiceItem[]
 }
 
 export class InvoiceService {
@@ -33,8 +29,7 @@ export class InvoiceService {
         *,
         customer:customers(*),
         jobcard:jobcards(*),
-        payments:payments(*),
-        invoice_items:invoice_items(*)
+        payments:payments(*)
       `)
       .eq('tenant_id', tenantId)
     
@@ -64,8 +59,7 @@ export class InvoiceService {
         *,
         customer:customers(*),
         jobcard:jobcards(*),
-        payments:payments(*),
-        invoice_items:invoice_items(*)
+        payments:payments(*)
       `)
       .eq('id', invoiceId)
       .eq('tenant_id', tenantId)
@@ -201,8 +195,7 @@ export class InvoiceService {
         *,
         customer:customers(*),
         jobcard:jobcards(*),
-        payments:payments(*),
-        invoice_items:invoice_items(*)
+        payments:payments(*)
       `)
       .eq('tenant_id', tenantId)
       .neq('status', 'paid')
@@ -226,19 +219,18 @@ export class InvoiceService {
         *,
         customer:customers(*),
         jobcard:jobcards(*),
-        payments:payments(*),
-        invoice_items:invoice_items(*)
+        payments:payments(*)
       `)
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
       .maybeSingle()
     
-    console.log('[getInvoiceByJobId] Query result:', { data, error })
-    
-    if (error) {
-      console.error('[getInvoiceByJobId] Error:', error)
+    // Only throw on actual errors, not on "no rows" (PGRST116)
+    if (error && error.code !== 'PGRST116') {
+      console.error('[getInvoiceByJobId] Unexpected error:', error)
       throw error
     }
+    
     return data as InvoiceWithRelations | null
   }
 
@@ -363,156 +355,11 @@ export class InvoiceService {
     
     if (invoiceError) throw invoiceError
     
-    // Copy estimate items to invoice items
-    if (estimate.estimate_items && estimate.estimate_items.length > 0) {
-      const invoiceItems = estimate.estimate_items.map((item: any) => ({
-        invoice_id: invoice.id,
-        item_name: item.custom_name,
-        item_number: item.custom_part_number,
-        description: item.description,
-        qty: item.qty,
-        unit_price: item.unit_price,
-        labor_cost: item.labor_cost || 0,
-      }))
-      
-      await supabase
-        .schema('tenant')
-        .from('invoice_items')
-        .insert(invoiceItems)
-    }
+    // Note: invoice_items table removed; line items remain in estimate_items
+    // Invoice totals are calculated from estimate totals
     
     // Fetch and return complete invoice with relations
     return this.getInvoiceById(invoice.id)
   }
 
-  /**
-   * Add a line item to an invoice
-   */
-  static async addInvoiceItem(
-    invoiceId: string,
-    item: {
-      item_name: string
-      item_number?: string
-      description?: string
-      qty: number
-      unit_price: number
-      labor_cost?: number
-    }
-  ): Promise<InvoiceItem> {
-    const { data, error } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .insert({
-        invoice_id: invoiceId,
-        item_name: item.item_name,
-        item_number: item.item_number || null,
-        description: item.description || null,
-        qty: item.qty,
-        unit_price: item.unit_price,
-        labor_cost: item.labor_cost || 0,
-      })
-      .select()
-      .single()
-    
-    if (error) throw error
-    
-    // Recalculate invoice totals
-    await this.recalculateInvoiceTotals(invoiceId)
-    
-    return data
-  }
-
-  /**
-   * Update an invoice line item
-   */
-  static async updateInvoiceItem(
-    itemId: string,
-    updates: {
-      item_name?: string
-      item_number?: string
-      description?: string
-      qty?: number
-      unit_price?: number
-      labor_cost?: number
-    }
-  ): Promise<InvoiceItem> {
-    const { data: item, error: fetchError } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .select('invoice_id')
-      .eq('id', itemId)
-      .single()
-    
-    if (fetchError) throw fetchError
-    
-    const { data, error } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .update(updates)
-      .eq('id', itemId)
-      .select()
-      .single()
-    
-    if (error) throw error
-    
-    // Recalculate invoice totals
-    await this.recalculateInvoiceTotals(item.invoice_id)
-    
-    return data
-  }
-
-  /**
-   * Delete an invoice line item
-   */
-  static async deleteInvoiceItem(itemId: string): Promise<void> {
-    const { data: item, error: fetchError } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .select('invoice_id')
-      .eq('id', itemId)
-      .single()
-    
-    if (fetchError) throw fetchError
-    
-    const { error } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .delete()
-      .eq('id', itemId)
-    
-    if (error) throw error
-    
-    // Recalculate invoice totals
-    await this.recalculateInvoiceTotals(item.invoice_id)
-  }
-
-  /**
-   * Recalculate invoice totals from line items
-   */
-  static async recalculateInvoiceTotals(invoiceId: string): Promise<void> {
-    const { data: items } = await supabase
-      .schema('tenant')
-      .from('invoice_items')
-      .select('qty, unit_price, labor_cost')
-      .eq('invoice_id', invoiceId)
-    
-    if (!items) return
-    
-    const subtotal = items.reduce((sum, item) => {
-      return sum + (item.qty * item.unit_price) + (item.labor_cost || 0)
-    }, 0)
-    
-    const tax_amount = subtotal * 0.18 // 18% GST
-    const total_amount = subtotal + tax_amount
-    
-    await supabase
-      .schema('tenant')
-      .from('invoices')
-      .update({
-        subtotal,
-        tax_amount,
-        total_amount,
-      })
-      .eq('id', invoiceId)
-  }
 }
