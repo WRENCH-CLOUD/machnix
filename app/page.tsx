@@ -118,7 +118,7 @@ function AppContent() {
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader 
           title="Initializing..."
-          subtitle="Setting up your workspace"
+          subtitle="Gearing up the engine"
           size="lg"
         />
       </div>

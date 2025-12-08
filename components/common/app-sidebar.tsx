@@ -36,7 +36,7 @@ const navItems = [
 
 const bottomNavItems = [
   { id: "settings", label: "Settings", icon: Settings },
-  { id: "help", label: "Help & Support", icon: HelpCircle },
+//  { id: "help", label: "Help & Support", icon: HelpCircle },
 ]
 
 export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
