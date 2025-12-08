@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
 import type { UIJob } from "@/lib/job-transforms"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
@@ -87,6 +88,9 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
   const [loadingEstimate, setLoadingEstimate] = useState(false)
+  
+  // Helper to check if estimate is locked (can't be modified)
+  const isEstimateLocked = currentStatus === 'completed'
   
   // Load estimate and items when job changes
   useEffect(() => {
@@ -224,6 +228,12 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
       return
     }
     
+    // Prevent modifications if estimate is locked
+    if (isEstimateLocked) {
+      alert('Cannot modify estimate. The job is completed and the invoice has been generated.')
+      return
+    }
+    
     try {
       console.log('[addPartToEstimate] Adding part:', part)
       const newItem = await EstimateService.addEstimateItem(estimate.id, {
@@ -278,6 +288,12 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   }
 
   const removeEstimateItem = async (itemId: string) => {
+    // Prevent modifications if estimate is locked
+    if (isEstimateLocked) {
+      alert('Cannot modify estimate. The job is completed and the invoice has been generated.')
+      return
+    }
+    
     try {
       console.log('[removeEstimateItem] Deleting item:', itemId)
       
@@ -1109,6 +1125,25 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="p-6 space-y-6">
                   
+                  {/* Estimate Lock Status Alerts */}
+                  {currentStatus === 'completed' && (
+                    <Alert className="border-red-500/50 bg-red-500/10">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <AlertDescription className="text-red-500">
+                        <strong>Estimate Locked:</strong> The job is completed and the invoice has been generated. No further modifications to the estimate are allowed.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {currentStatus === 'ready' && (
+                    <Alert className="border-amber-500/50 bg-amber-500/10">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <AlertDescription className="text-amber-500">
+                        <strong>Final Opportunity:</strong> The job is ready for completion. This is your last chance to modify the estimate before the invoice is generated.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
                   {/* Estimate Items (Parts already in estimate) */}
                   {estimateItems.length > 0 && (
                     <Card>
@@ -1154,6 +1189,8 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                   size="icon"
                                   className="text-destructive hover:text-destructive h-8 w-8"
                                   onClick={() => removeEstimateItem(item.id)}
+                                  disabled={isEstimateLocked}
+                                  title={isEstimateLocked ? "Cannot modify - estimate is locked" : "Remove item"}
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </Button>
@@ -1169,7 +1206,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                   <Card>
                     <CardHeader className="pb-3 flex flex-row items-center justify-between">
                       <CardTitle className="text-sm font-semibold">Add New Items</CardTitle>
-                      <Button size="sm" onClick={addPart} className="gap-1">
+                      <Button size="sm" onClick={addPart} className="gap-1" disabled={isEstimateLocked} title={isEstimateLocked ? "Cannot add items - estimate is locked" : "Add new item"}>
                         <Plus className="w-4 h-4" />
                         Add Item
                       </Button>
@@ -1195,6 +1232,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 value={part.name}
                                 onChange={(e) => updatePart(part.id, "name", e.target.value)}
                                 className="h-9"
+                                disabled={isEstimateLocked}
                               />
                             </div>
                             <div className="col-span-2">
@@ -1203,6 +1241,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 value={part.partNumber}
                                 onChange={(e) => updatePart(part.id, "partNumber", e.target.value)}
                                 className="h-9"
+                                disabled={isEstimateLocked}
                               />
                             </div>
                             <div className="col-span-1">
@@ -1212,6 +1251,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 value={part.quantity || ""}
                                 onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value) || 1)}
                                 className="h-9"
+                                disabled={isEstimateLocked}
                               />
                             </div>
                             <div className="col-span-2">
@@ -1225,6 +1265,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                   value={part.unitPrice === 0 ? "" : part.unitPrice}
                                   onChange={(e) => updatePart(part.id, "unitPrice", Number.parseFloat(e.target.value) || 0)}
                                   placeholder="0.00"
+                                  disabled={isEstimateLocked}
                                 />
                               </div>
                             </div>
@@ -1239,6 +1280,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                   value={part.laborCost === 0 ? "" : part.laborCost}
                                   onChange={(e) => updatePart(part.id, "laborCost", Number.parseFloat(e.target.value) || 0)}
                                   placeholder="0.00"
+                                  disabled={isEstimateLocked}
                                 />
                               </div>
                             </div>
@@ -1248,7 +1290,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 size="sm"
                                 className="flex-1 h-9"
                                 onClick={() => addPartToEstimate(part)}
-                                disabled={!part.name || part.quantity <= 0}
+                                disabled={!part.name || part.quantity <= 0 || isEstimateLocked}
                               >
                                 <Check className="w-3 h-3 mr-1" />
                                 Add to Estimate
@@ -1258,6 +1300,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 size="icon"
                                 className="text-destructive hover:text-destructive h-9 w-9"
                                 onClick={() => removePart(part.id)}
+                                disabled={isEstimateLocked}
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
