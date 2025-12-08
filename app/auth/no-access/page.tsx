@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShieldAlert } from "lucide-react"

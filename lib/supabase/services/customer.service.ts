@@ -71,6 +71,43 @@ export class CustomerService {
   }
 
   /**
+   * Search customer by phone number (exact or partial match)
+   */
+  static async searchByPhone(phone: string): Promise<Customer | null> {
+    const tenantId = ensureTenantContext()
+    
+    // Clean up phone number - remove spaces and special chars for comparison
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('customers')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .or(`phone.eq.${phone},phone.eq.${cleanPhone},phone.ilike.%${cleanPhone}%`)
+      .limit(1)
+      .maybeSingle()
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Create a new customer (alias)
+   */
+  static async create(customer: Omit<CustomerInsert, 'id' | 'created_at' | 'updated_at'>): Promise<Customer> {
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('customers')
+      .insert(customer)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
    * Create a new customer
    */
   static async createCustomer(customer: Omit<CustomerInsert, 'tenant_id' | 'id' | 'created_at' | 'updated_at'>): Promise<Customer> {

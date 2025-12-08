@@ -2,14 +2,14 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
 }
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -48,10 +48,12 @@ export const clearTenantContext = () => {
 }
 
 // Helper to ensure tenant context is set
-export const ensureTenantContext = () => {
+export const ensureTenantContext = (): string => {
   const tenantId = getTenantContext()
   if (!tenantId) {
-    throw new Error('Tenant context not set. Please select a tenant.')
+    const error = new Error('Tenant context not set. Please select a tenant or log in again.')
+    error.name = 'TenantContextError'
+    throw error
   }
   return tenantId
 }

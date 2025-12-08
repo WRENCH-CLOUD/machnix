@@ -1,78 +1,17 @@
-export type JobStatus = "received" | "working" | "ready" | "completed"
+import type {
+  JobStatus,
+  Customer,
+  Vehicle,
+  Mechanic,
+  DVIItem,
+  Part,
+  Activity,
+  JobCard,
+  StatusConfig,
+} from "@/types"
 
-export interface Customer {
-  id: string
-  name: string
-  phone: string
-  email: string
-  address?: string
-}
-
-export interface Vehicle {
-  id: string
-  make: string
-  model: string
-  year: number
-  regNo: string
-  color: string
-  vin?: string
-}
-
-export interface Mechanic {
-  id: string
-  name: string
-  avatar: string
-  specialty: string
-  phone: string
-}
-
-export interface DVIItem {
-  id: string
-  category: string
-  name: string
-  status: "good" | "attention" | "urgent" | "pending"
-  note?: string
-  photos?: string[]
-}
-
-export interface Part {
-  id: string
-  name: string
-  partNumber: string
-  quantity: number
-  unitPrice: number
-  laborCost: number
-}
-
-export interface Activity {
-  id: string
-  timestamp: Date
-  type: "status_change" | "note" | "dvi_update" | "payment" | "estimate_sent"
-  description: string
-  user: string
-}
-
-export interface JobCard {
-  id: string
-  jobNumber: string
-  customer: Customer
-  vehicle: Vehicle
-  mechanic?: Mechanic
-  status: JobStatus
-  dviPending: boolean
-  dviTemplate?: string
-  dviItems: DVIItem[]
-  parts: Part[]
-  activities: Activity[]
-  laborTotal: number
-  partsTotal: number
-  tax: number
-  createdAt: Date
-  updatedAt: Date
-  estimatedCompletion?: Date
-  complaints: string
-  notes?: string
-}
+// Re-export types for backward compatibility
+export type { JobStatus, Customer, Vehicle, Mechanic, DVIItem, Part, Activity, JobCard }
 
 export const mechanics: Mechanic[] = [
   {
@@ -382,7 +321,7 @@ export const mockJobs: JobCard[] = [
   },
 ]
 
-export const statusConfig: Record<JobStatus, { label: string; color: string; bgColor: string }> = {
+export const statusConfig: Record<JobStatus, StatusConfig> = {
   received: { label: "Received", color: "text-blue-400", bgColor: "bg-blue-500/20" },
   working: { label: "Working", color: "text-amber-400", bgColor: "bg-amber-500/20" },
   ready: { label: "Ready for Payment", color: "text-emerald-400", bgColor: "bg-emerald-500/20" },

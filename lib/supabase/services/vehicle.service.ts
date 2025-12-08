@@ -16,19 +16,129 @@ export interface VehicleWithRelations extends Vehicle {
 
 export class VehicleService {
   /**
+   * Get all vehicle makes from public schema
+   */
+  static async getMakes(): Promise<VehicleMake[]> {
+    const { data, error } = await supabase
+      .from('vehicle_make')
+      .select('*')
+      .order('name', { ascending: true })
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Get vehicle models by make ID from public schema
+   */
+  static async getModelsByMakeId(makeId: string): Promise<VehicleModel[]> {
+    const { data, error } = await supabase
+      .from('vehicle_model')
+      .select('*')
+      .eq('make_id', makeId)
+      .order('name', { ascending: true })
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Get a single vehicle make by ID from public schema
+   */
+  static async getMakeById(makeId: string): Promise<VehicleMake | null> {
+    const { data, error } = await supabase
+      .from('vehicle_make')
+      .select('*')
+      .eq('id', makeId)
+      .single()
+    
+    if (error) {
+      console.warn('Error fetching make:', error)
+      return null
+    }
+    return data
+  }
+
+  /**
+   * Get a single vehicle model by ID from public schema
+   */
+  static async getModelById(modelId: string): Promise<VehicleModel | null> {
+    const { data, error } = await supabase
+      .from('vehicle_model')
+      .select('*')
+      .eq('id', modelId)
+      .single()
+    
+    if (error) {
+      console.warn('Error fetching model:', error)
+      return null
+    }
+    return data
+  }
+
+  /**
    * Get all vehicles for the current tenant
    */
-  static async getVehicles(): Promise<VehicleWithRelations[]> {
+  static async getVehicles(): Promise<Vehicle[]> {
     const tenantId = ensureTenantContext()
     
     const { data, error } = await supabase
       .schema('tenant')
       .from('vehicles')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Get vehicles by customer ID
+   */
+  static async getByCustomerId(customerId: string): Promise<Vehicle[]> {
+    const tenantId = ensureTenantContext()
+    
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('vehicles')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Create a new vehicle
+   */
+  static async create(vehicle: Omit<VehicleInsert, 'id' | 'created_at'>): Promise<Vehicle> {
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('vehicles')
+      .insert(vehicle)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Get all vehicles for the current tenant (with relations - legacy)
+   */
+  static async getVehiclesWithRelations(): Promise<VehicleWithRelations[]> {
+    const tenantId = ensureTenantContext()
+    
+    // Note: Cross-schema joins don't work, so we fetch vehicles without make/model relations
+    const { data, error } = await supabase
+      .schema('tenant')
+      .from('vehicles')
       .select(`
         *,
-        customer:customers(*),
-        make:vehicle_make(*),
-        model:vehicle_model(*)
+        customer:customers(*)
       `)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
