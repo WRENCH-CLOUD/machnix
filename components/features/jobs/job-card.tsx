@@ -1,12 +1,17 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Phone, Clock, AlertTriangle, User, ChevronRight } from "lucide-react"
+import { Phone, Clock, AlertTriangle, User, ChevronRight, ChevronDown } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { type JobStatus, statusConfig, mechanics } from "@/lib/mock-data"
 import type { UIJob } from "@/lib/job-transforms"
 import { cn } from "@/lib/utils"
@@ -17,14 +22,32 @@ interface JobCardProps {
   isMechanicMode?: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void
   onMechanicChange?: (jobId: string, mechanicId: string) => void
+  isDragging?: boolean
 }
 
-export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechanicChange }: JobCardProps) {
-  const statusInfo = statusConfig[job.status]
+export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechanicChange, isDragging }: JobCardProps) {
+  const statusInfo = statusConfig[job.status as JobStatus]
   const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
 
-  const handleStatusClick = (e: React.MouseEvent, newStatus: JobStatus) => {
-    e.stopPropagation()
+  // Get valid status transitions based on current status
+  const getValidTransitions = (currentStatus: string): JobStatus[] => {
+    switch (currentStatus) {
+      case 'received':
+        return ['received', 'working']
+      case 'working':
+        return ['received', 'working', 'ready']
+      case 'ready':
+        return ['working', 'ready', 'completed'] // Will be validated for payment
+      case 'completed':
+        return ['completed'] // Cannot change from completed
+      default:
+        return statusOptions
+    }
+  }
+
+  const validStatuses = getValidTransitions(job.status)
+
+  const handleStatusChange = (newStatus: JobStatus) => {
     if (onStatusChange && newStatus !== job.status) {
       onStatusChange(job.id, newStatus)
     }
@@ -42,8 +65,8 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+      whileHover={{ scale: isDragging ? 1 : 1.01 }}
+      whileTap={{ scale: isDragging ? 1 : 0.99 }}
     >
       <Card
         onClick={onClick}
@@ -51,12 +74,13 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
           "cursor-pointer transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
           "bg-card border-border",
           isMechanicMode && "p-1",
+          isDragging && "opacity-50 rotate-2 scale-105 shadow-2xl"
         )}
       >
         <CardContent className={cn("p-4", isMechanicMode && "p-5")}>
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-muted-foreground">{job.jobNumber}</span>
               {job.dviPending && (
                 <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs gap-1">
@@ -64,10 +88,53 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
                   DVI
                 </Badge>
               )}
-            </div>
-            <Badge className={cn("text-xs", statusInfo.bgColor, statusInfo.color, "border-0")}>
-              {statusInfo.label}
-            </Badge>
+            </div> */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Badge 
+                  className={cn(
+                    "text-xs cursor-pointer gap-1 transition-all hover:opacity-80", 
+                    statusInfo.bgColor, 
+                    statusInfo.color, 
+                    "border-0"
+                  )}
+                >
+                  {statusInfo.label}
+                  <ChevronDown className="w-3 h-3" />
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {statusOptions.map((status) => {
+                  const option = statusConfig[status as JobStatus]
+                  const isValid = validStatuses.includes(status)
+                  const isCurrent = job.status === status
+                  
+                  return (
+                    <DropdownMenuItem
+                      key={status}
+                      disabled={!isValid}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isValid) {
+                          handleStatusChange(status as JobStatus)
+                        }
+                      }}
+                      className={cn(
+                        "cursor-pointer",
+                        isCurrent && "bg-accent",
+                        !isValid && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <div className={cn("w-2 h-2 rounded-full mr-2", option.bgColor)} />
+                      {option.label}
+                      {!isValid && !isCurrent && (
+                        <span className="ml-auto text-xs text-muted-foreground">Locked</span>
+                      )}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Vehicle Info */}

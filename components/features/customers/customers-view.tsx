@@ -25,6 +25,8 @@ import type { Database } from "@/lib/supabase/types"
 
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
+type Customer = Database['tenant']['Tables']['customers']['Row']
+type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Jobcard = Database['tenant']['Tables']['jobcards']['Row']
 
 interface CustomerWithStats extends Customer {

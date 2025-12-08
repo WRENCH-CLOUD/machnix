@@ -17,6 +17,10 @@ import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
 
+import type { Database } from "@/lib/supabase/database.types"
+import { cn } from "@/lib/utils"
+
+
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Mechanic = Database['tenant']['Tables']['mechanics']['Row']
@@ -299,6 +303,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
         customer_id: customerId,
         vehicle_id: vehicleId,
         assigned_mechanic_id: formData.job.mechanic || null,
+        details: { complaints: formData.job.complaints },
         status: 'received',
       })
 
@@ -759,7 +764,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                     />
                   </div>
 
-                  <div>
+                  {/* <div>
                     <Label>DVI Template</Label>
                     <Select
                       value={formData.job.dviTemplate}
@@ -781,7 +786,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
 
                   <div>
                     <Label>Assign Mechanic</Label>
