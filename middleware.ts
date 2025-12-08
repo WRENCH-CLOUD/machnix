@@ -100,7 +100,13 @@ export async function middleware(req: NextRequest) {
     }
 
     // Set tenant context in cookie for the application
-    const response = NextResponse.next()
+    const response = NextResponse.next({
+      request: {
+        headers: req.headers,
+      },
+    })
+    
+    // Set tenant-id in both cookie and header for easy access
     response.cookies.set('tenant-id', tenant.id, {
       path: '/',
       sameSite: 'lax',
@@ -111,6 +117,10 @@ export async function middleware(req: NextRequest) {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     })
+    
+    // Also set as header for API routes
+    response.headers.set('x-tenant-id', tenant.id)
+    response.headers.set('x-tenant-slug', tenant.slug)
 
 
 

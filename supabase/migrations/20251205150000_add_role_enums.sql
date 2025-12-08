@@ -16,8 +16,18 @@ CREATE TYPE public.platform_admin_role AS ENUM (
 ALTER TABLE tenant.users 
     ADD COLUMN role_new tenant.user_role;
 
-ALTER TABLE public.platform_admins 
-    ADD COLUMN role public.platform_admin_role DEFAULT 'admin'::public.platform_admin_role;
+-- Only add role column to platform_admins if the table exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'platform_admins'
+    ) THEN
+        ALTER TABLE public.platform_admins 
+            ADD COLUMN IF NOT EXISTS role public.platform_admin_role DEFAULT 'admin'::public.platform_admin_role;
+    END IF;
+END $$;
 
 -- Migrate existing data from TEXT to ENUM for tenant.users
 -- Map old text values to new enum values
@@ -39,10 +49,33 @@ ALTER TABLE tenant.users
 
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_tenant_users_role ON tenant.users(role);
-CREATE INDEX IF NOT EXISTS idx_platform_admins_role ON public.platform_admins(role);
+
+-- Only create index for platform_admins if the table exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'platform_admins'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_platform_admins_role ON public.platform_admins(role);
+    END IF;
+END $$;
 
 -- Add comments for documentation
 COMMENT ON TYPE tenant.user_role IS 'Roles available for tenant users: tenant (garage owner/admin), mechanic (technician)';
 COMMENT ON TYPE public.platform_admin_role IS 'Roles available for platform administrators: admin (full platform access)';
 COMMENT ON COLUMN tenant.users.role IS 'User role within the tenant using enum type for data integrity';
-COMMENT ON COLUMN public.platform_admins.role IS 'Platform admin role using enum type for data integrity';
+
+-- Only add comment for platform_admins.role if the table and column exist
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'platform_admins'
+        AND column_name = 'role'
+    ) THEN
+        COMMENT ON COLUMN public.platform_admins.role IS 'Platform admin role using enum type for data integrity';
+    END IF;
+END $$;

@@ -57,3 +57,62 @@ export const ensureTenantContext = (): string => {
   }
   return tenantId
 }
+
+// Enhanced fetch that automatically includes tenant-id header
+export async function fetchWithTenant(url: string, options: RequestInit = {}): Promise<Response> {
+  const tenantId = getTenantContext()
+  
+  const headers = new Headers(options.headers)
+  
+  // Add tenant-id header if available
+  if (tenantId) {
+    headers.set('x-tenant-id', tenantId)
+  }
+  
+  // Ensure Content-Type is set for POST/PUT/PATCH
+  if (options.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase())) {
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  })
+}
+
+// API helper methods with automatic tenant context
+export const api = {
+  get: (url: string, options?: RequestInit) => 
+    fetchWithTenant(url, { ...options, method: 'GET' }),
+  
+  post: (url: string, body?: any, options?: RequestInit) => 
+    fetchWithTenant(url, { 
+      ...options, 
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  
+  put: (url: string, body?: any, options?: RequestInit) => 
+    fetchWithTenant(url, { 
+      ...options, 
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  
+  patch: (url: string, body?: any, options?: RequestInit) => 
+    fetchWithTenant(url, { 
+      ...options, 
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  
+  delete: (url: string, options?: RequestInit) => 
+    fetchWithTenant(url, { ...options, method: 'DELETE' }),
+}
+
+// Example usage:
+// import { api } from '@/lib/supabase/client'
+// const response = await api.get('/api/invoices/123')
+// const data = await response.json()
