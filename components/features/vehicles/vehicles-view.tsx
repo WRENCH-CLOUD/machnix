@@ -19,12 +19,12 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { VehicleService } from "@/lib/supabase/services/vehicle.service"
-import { CustomerService } from "@/lib/supabase/services/customer.service"
-import { JobService } from "@/lib/supabase/services/job.service"
-import { useAuth } from "@/providers/auth-provider"
-import type { Database } from "@/lib/supabase/database.types"
+import { VehicleService, CustomerService, JobService } from "@/lib/supabase/services"
+import { useAuth } from "@/providers"
+import type { Database } from "@/lib/supabase/types"
 
+type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
+type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type VehicleMake = Database['public']['Tables']['vehicle_make']['Row']

@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { DVIService } from "@/lib/supabase/services/dvi.service"
-import { useAuth } from "@/providers/auth-provider"
-import type { Database } from "@/lib/supabase/database.types"
+import { DVIService } from "@/lib/supabase/services"
+import { useAuth } from "@/providers"
+import type { Database } from "@/lib/supabase/types"
 
 type DVITemplate = Database['tenant']['Tables']['dvi_templates']['Row']
-type DVICategory = Database['tenant']['Tables']['dvi_checkpoint_categories']['Row']
+type DVICategory = Database['tenant']['Tables']['dvi_categories']['Row']
 type DVICheckpoint = Database['tenant']['Tables']['dvi_checkpoints']['Row']
 
 interface TemplateWithDetails extends DVITemplate {

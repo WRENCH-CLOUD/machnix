@@ -19,12 +19,12 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CustomerService } from "@/lib/supabase/services/customer.service"
-import { VehicleService } from "@/lib/supabase/services/vehicle.service"
-import { JobService } from "@/lib/supabase/services/job.service"
-import { useAuth } from "@/providers/auth-provider"
-import type { Database } from "@/lib/supabase/database.types"
+import { CustomerService, VehicleService, JobService } from "@/lib/supabase/services"
+import { useAuth } from "@/providers"
+import type { Database } from "@/lib/supabase/types"
 
+type Customer = Database['tenant']['Tables']['customers']['Row']
+type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Customer = Database['tenant']['Tables']['customers']['Row']
 type Vehicle = Database['tenant']['Tables']['vehicles']['Row']
 type Jobcard = Database['tenant']['Tables']['jobcards']['Row']
