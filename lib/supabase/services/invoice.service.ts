@@ -39,7 +39,10 @@ export class InvoiceService {
     
     const { data, error } = await query.order('created_at', { ascending: false })
     
-    if (error) throw error
+    if (error) {
+      console.error('Error fetching invoices:', error)
+      throw error
+    }
     return data as InvoiceWithRelations[]
   }
 
@@ -62,7 +65,10 @@ export class InvoiceService {
       .eq('tenant_id', tenantId)
       .single()
     
-    if (error) throw error
+    if (error) {
+      console.error('Error fetching invoice by ID:', error)
+      throw error
+    }
     return data as InvoiceWithRelations
   }
 
@@ -219,7 +225,12 @@ export class InvoiceService {
       .eq('tenant_id', tenantId)
       .maybeSingle()
     
-    if (error) throw error
+    // Only throw on actual errors, not on "no rows" (PGRST116)
+    if (error && error.code !== 'PGRST116') {
+      console.error('[getInvoiceByJobId] Unexpected error:', error)
+      throw error
+    }
+    
     return data as InvoiceWithRelations | null
   }
 
@@ -286,4 +297,69 @@ export class InvoiceService {
     if (error) throw error
     return data
   }
+
+  /**
+   * Generate invoice from estimate when job status changes to 'ready'
+   * Copies all estimate items to invoice items
+   */
+  static async generateInvoiceFromEstimate(jobcardId: string, estimateId: string): Promise<InvoiceWithRelations> {
+    const tenantId = ensureTenantContext()
+    
+    console.log('[generateInvoiceFromEstimate] Starting with:', { jobcardId, estimateId, tenantId })
+    
+    // Check if invoice already exists
+    const existingInvoice = await this.getInvoiceByJobId(jobcardId)
+    if (existingInvoice) {
+      console.log('[generateInvoiceFromEstimate] Invoice already exists, returning existing')
+      return existingInvoice
+    }
+    
+    // Get estimate with items
+    const { data: estimate, error: estimateError } = await supabase
+      .schema('tenant')
+      .from('estimates')
+      .select(`
+        *,
+        estimate_items:estimate_items(*)
+      `)
+      .eq('id', estimateId)
+      .eq('tenant_id', tenantId)
+      .single()
+    
+    if (estimateError) throw estimateError
+    
+    // Generate invoice number
+    const invoiceNumber = `INV-${Date.now()}`
+    
+    // Create invoice
+    const { data: invoice, error: invoiceError } = await supabase
+      .schema('tenant')
+      .from('invoices')
+      .insert({
+        tenant_id: tenantId,
+        jobcard_id: jobcardId,
+        estimate_id: estimateId,
+        customer_id: estimate.customer_id,
+        invoice_number: invoiceNumber,
+        invoice_date: new Date().toISOString(),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days
+        subtotal: estimate.parts_total + estimate.labor_total,
+        tax_amount: estimate.tax_amount,
+        total_amount: estimate.total_amount,
+        paid_amount: 0,
+        status: 'pending',
+        notes: `Generated from estimate ${estimate.estimate_number}`,
+      })
+      .select()
+      .single()
+    
+    if (invoiceError) throw invoiceError
+    
+    // Note: invoice_items table removed; line items are now stored in estimate_items
+    // Invoice totals are calculated from estimate totals
+    
+    // Fetch and return complete invoice with relations
+    return this.getInvoiceById(invoice.id)
+  }
+
 }

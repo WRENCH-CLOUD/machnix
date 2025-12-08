@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import ProfileDropdown from "@/components/ui/profileDropdown"
-import { useAuth } from "@/providers"
+import { useAuth } from "@/providers/auth-provider"
 
 interface TopHeaderProps {
   tenantName: string

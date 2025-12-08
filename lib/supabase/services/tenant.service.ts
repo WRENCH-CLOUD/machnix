@@ -31,18 +31,77 @@ export async function getAllTenants(): Promise<TenantWithStats[]> {
     throw error
   }
 
-  // TODO: Add queries to fetch stats for each tenant
-  // For now, return basic tenant data
-  return data.map(tenant => ({
-    ...tenant,
-    customer_count: 0,
-    active_jobs: 0,
-    completed_jobs: 0,
-    mechanic_count: 0,
-    total_revenue: 0,
-    status: 'active' as const,
-    subscription: 'pro' as const,
-  }))
+  // Fetch stats for each tenant in parallel
+  const tenantsWithStats = await Promise.all(
+    data.map(async (tenant) => {
+      try {
+        // Get customer count
+        const { count: customerCount } = await supabase
+          .schema('tenant')
+          .from('customers')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+
+        // Get active jobs count (using jobcards table)
+        const { count: activeJobsCount } = await supabase
+          .schema('tenant')
+          .from('jobcards')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .in('status', ['pending', 'in_progress', 'on_hold'])
+
+        // Get completed jobs count
+        const { count: completedJobsCount } = await supabase
+          .schema('tenant')
+          .from('jobcards')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('status', 'completed')
+
+        // Get mechanic count
+        const { count: mechanicCount } = await supabase
+          .schema('tenant')
+          .from('mechanics')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('is_active', true)
+
+        // Get total revenue from transactions
+        const { data: payments } = await supabase
+          .schema('tenant')
+          .from('payments')
+          .select('amount')
+          .eq('tenant_id', tenant.id)
+
+        const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+
+        return {
+          ...tenant,
+          customer_count: customerCount || 0,
+          active_jobs: activeJobsCount || 0,
+          completed_jobs: completedJobsCount || 0,
+          mechanic_count: mechanicCount || 0,
+          total_revenue: totalRevenue,
+          status: 'active' as const,
+          subscription: 'pro' as const,
+        }
+      } catch (err) {
+        console.error(`Error fetching stats for tenant ${tenant.id}:`, err)
+        return {
+          ...tenant,
+          customer_count: 0,
+          active_jobs: 0,
+          completed_jobs: 0,
+          mechanic_count: 0,
+          total_revenue: 0,
+          status: 'active' as const,
+          subscription: 'pro' as const,
+        }
+      }
+    })
+  )
+
+  return tenantsWithStats
 }
 
 /**

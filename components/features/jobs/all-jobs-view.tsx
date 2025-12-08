@@ -20,11 +20,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { type JobCard, statusConfig, type JobStatus } from "@/lib/mock-data"
+import { type UIJob } from "@/lib/job-transforms"
+import { type JobStatus, statusConfig } from "@/lib/mock-data"
 
 interface AllJobsViewProps {
-  jobs: JobCard[]
-  onJobClick: (job: JobCard) => void
+  jobs: UIJob[]
+  onJobClick: (job: UIJob) => void
 }
 
 type SortField = "jobNumber" | "createdAt" | "customer" | "vehicle" | "status"
@@ -101,6 +102,43 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
     }
   }, [jobs])
 
+  const handleExportCSV = () => {
+    // Prepare CSV data
+    const headers = ["Job Number", "Customer", "Phone", "Vehicle", "Reg No", "Mechanic", "Status", "Created Date", "Total Amount"]
+    const csvRows = [headers.join(",")]
+
+    filteredAndSortedJobs.forEach((job) => {
+      const total = job.partsTotal + job.laborTotal + job.tax
+      const createdDate = (job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt)).toLocaleDateString("en-IN")
+      
+      const row = [
+        job.jobNumber,
+        `"${job.customer.name}"`,
+        job.customer.phone || "",
+        `"${job.vehicle.make} ${job.vehicle.model}"`,
+        job.vehicle.regNo,
+        job.mechanic ? `"${job.mechanic.name}"` : "Unassigned",
+        statusConfig[job.status as JobStatus].label,
+        createdDate,
+        total > 0 ? total.toString() : "0",
+      ]
+      csvRows.push(row.join(","))
+    })
+
+    // Create and download CSV file
+    const csvContent = csvRows.join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute("href", url)
+    link.setAttribute("download", `jobs_export_${new Date().toISOString().split("T")[0]}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="h-full flex flex-col p-6 space-y-6">
       {/* Header */}
@@ -109,7 +147,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
           <h1 className="text-2xl font-bold text-foreground">All Jobs</h1>
           <p className="text-muted-foreground">Manage and track all job cards</p>
         </div>
-        <Button variant="outline" className="gap-2 bg-transparent">
+        <Button variant="outline" className="gap-2 bg-transparent" onClick={handleExportCSV}>
           <Download className="w-4 h-4" />
           Export CSV
         </Button>

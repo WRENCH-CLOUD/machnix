@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Circle,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,10 +46,15 @@ import { Separator } from "@/components/ui/separator"
 import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
 import type { UIJob } from "@/lib/job-transforms"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
-import { InvoiceService } from "@/lib/supabase/services"
+import { InvoiceService } from "@/lib/supabase/services/invoice.service"
+import { EstimateService } from "@/lib/supabase/services/estimate.service"
 import type { InvoiceWithRelations } from "@/lib/supabase/services/invoice.service"
+import type { EstimateWithRelations } from "@/lib/supabase/services/estimate.service"
+import type { Database } from "@/lib/supabase/types"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
+
+type EstimateItem = Database['tenant']['Tables']['estimate_items']['Row']
 
 interface JobDetailsProps {
   job: UIJob
@@ -72,18 +78,59 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const enrichedJob = enrichJobWithDummyData(job)
   
   const [dviItems, setDviItems] = useState<DVIItem[]>(enrichedJob.dviItems || [])
-  const [parts, setParts] = useState<Part[]>(enrichedJob.parts || [])
+  const [parts, setParts] = useState<Part[]>([]) // Temporary parts before adding to estimate
+  const [estimateItems, setEstimateItems] = useState<EstimateItem[]>([]) // Parts in estimate
+  const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null)
   const [newNote, setNewNote] = useState("")
-  const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status)
+  const [currentStatus, setCurrentStatus] = useState<JobStatus>(job.status as JobStatus)
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
+  const [loadingEstimate, setLoadingEstimate] = useState(false)
   
-  // Update DVI items when job changes
+  // Load estimate and items when job changes
   useEffect(() => {
     const enrichedJob = enrichJobWithDummyData(job)
     setDviItems(enrichedJob.dviItems || [])
-    setParts(enrichedJob.parts || [])
+    
+    const loadEstimate = async () => {
+      setLoadingEstimate(true)
+      try {
+        console.log('[loadEstimate] Loading estimate for job:', job.id)
+        let estimateData = await EstimateService.getEstimateByJobcard(job.id)
+        
+        // Create estimate if it doesn't exist
+        if (!estimateData) {
+          console.log('[loadEstimate] No estimate found, creating one...')
+          estimateData = await EstimateService.createEstimate({
+            jobcard_id: job.id,
+            customer_id: job.customer.id,
+            vehicle_id: job.vehicle.id,
+            status: 'draft',
+            total_amount: 0,
+            tax_amount: 0,
+            parts_total: 0,
+            labor_total: 0,
+            discount_amount: 0,
+            currency: 'INR',
+            items: [],
+            estimate_number: `EST-${job.jobNumber}`,
+          }) as EstimateWithRelations
+          console.log('[loadEstimate] Estimate created:', estimateData)
+        }
+        
+        console.log('[loadEstimate] Estimate loaded:', estimateData)
+        setEstimate(estimateData)
+        setEstimateItems(estimateData?.estimate_items || [])
+        console.log('[loadEstimate] Items count:', estimateData?.estimate_items?.length)
+      } catch (error) {
+        console.error('[loadEstimate] Error fetching estimate:', error)
+      } finally {
+        setLoadingEstimate(false)
+      }
+    }
+    
+    loadEstimate()
   }, [job.id])
 
   // Fetch invoice when status is ready or completed
@@ -92,13 +139,20 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
       if (job.status === 'ready' || job.status === 'completed') {
         setLoadingInvoice(true)
         try {
+          console.log('[JobDetails] Fetching invoice for job:', job.id, 'status:', job.status)
           const invoiceData = await InvoiceService.getInvoiceByJobId(job.id)
+          console.log('[JobDetails] Invoice fetch result:', invoiceData ? 'Found' : 'Not found')
           setInvoice(invoiceData)
         } catch (error) {
-          console.error('Error fetching invoice:', error)
+          // Don't log error if invoice doesn't exist - it will be created automatically
+          console.warn('[JobDetails] Error fetching invoice:', error)
+          setInvoice(null)
         } finally {
           setLoadingInvoice(false)
         }
+      } else {
+        // Clear invoice if status is not ready/completed
+        setInvoice(null)
       }
     }
     
@@ -107,6 +161,24 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
 
   const statusInfo = statusConfig[currentStatus]
   const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
+
+  // Get valid status transitions based on current status
+  const getValidTransitions = (currentStatus: string): JobStatus[] => {
+    switch (currentStatus) {
+      case 'received':
+        return ['received', 'working']
+      case 'working':
+        return ['received', 'working', 'ready']
+      case 'ready':
+        return ['working', 'ready', 'completed'] // Will be validated for payment
+      case 'completed':
+        return ['completed'] // Cannot change from completed
+      default:
+        return statusOptions
+    }
+  }
+
+  const validStatuses = getValidTransitions(currentStatus)
 
   const handleStatusChange = (newStatus: JobStatus) => {
     setCurrentStatus(newStatus)
@@ -146,11 +218,131 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
     setParts((prev) => prev.map((part) => (part.id === partId ? { ...part, [field]: value } : part)))
   }
 
-  const partsSubtotal = parts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0)
-  const laborSubtotal = parts.reduce((sum, p) => sum + p.laborCost, 0)
+  const addPartToEstimate = async (part: Part) => {
+    if (!estimate) {
+      console.error('[addPartToEstimate] No estimate found')
+      return
+    }
+    
+    try {
+      console.log('[addPartToEstimate] Adding part:', part)
+      const newItem = await EstimateService.addEstimateItem(estimate.id, {
+        custom_name: part.name,
+        custom_part_number: part.partNumber,
+        qty: part.quantity,
+        unit_price: part.unitPrice,
+        labor_cost: part.laborCost,
+      })
+      console.log('[addPartToEstimate] Item added:', newItem)
+      
+      // Optimistically update the UI immediately
+      setEstimateItems((prev) => [...prev, newItem])
+      
+      // Refresh estimate to get updated totals
+      const updatedEstimate = await EstimateService.getEstimateByJobcard(job.id)
+      console.log('[addPartToEstimate] Updated estimate:', updatedEstimate)
+      
+      if (updatedEstimate) {
+        setEstimate(updatedEstimate)
+        // Only update items if we got them from the server
+        if (updatedEstimate.estimate_items) {
+          setEstimateItems(updatedEstimate.estimate_items)
+        }
+        console.log('[addPartToEstimate] State updated - items count:', updatedEstimate.estimate_items?.length)
+      } else {
+        // If refresh failed, manually recalculate totals
+        console.warn('[addPartToEstimate] Estimate refresh failed, keeping local state')
+        const allItems = [...estimateItems, newItem]
+        const parts_total = allItems.reduce((sum, item) => sum + (item.qty * item.unit_price), 0)
+        const labor_total = allItems.reduce((sum, item) => sum + (item.labor_cost || 0), 0)
+        const subtotal = parts_total + labor_total
+        const tax_amount = subtotal * 0.18
+        const total_amount = subtotal + tax_amount
+        
+        setEstimate({
+          ...estimate,
+          parts_total,
+          labor_total,
+          tax_amount,
+          total_amount,
+          estimate_items: allItems,
+        })
+      }
+      
+      // Remove from temporary parts
+      removePart(part.id)
+    } catch (error) {
+      console.error('[addPartToEstimate] Error adding part to estimate:', error)
+      alert('Failed to add part to estimate. Please try again.')
+    }
+  }
+
+  const removeEstimateItem = async (itemId: string) => {
+    try {
+      console.log('[removeEstimateItem] Deleting item:', itemId)
+      
+      // Optimistically remove from UI
+      const previousItems = estimateItems
+      setEstimateItems((prev) => prev.filter((item) => item.id !== itemId))
+      
+      await EstimateService.deleteEstimateItem(itemId)
+      
+      // Refresh estimate to get updated totals
+      const updatedEstimate = await EstimateService.getEstimateByJobcard(job.id)
+      console.log('[removeEstimateItem] Updated estimate:', updatedEstimate)
+      
+      if (updatedEstimate) {
+        setEstimate(updatedEstimate)
+        if (updatedEstimate.estimate_items) {
+          setEstimateItems(updatedEstimate.estimate_items)
+        }
+        console.log('[removeEstimateItem] State updated - items count:', updatedEstimate.estimate_items?.length)
+      } else {
+        // If refresh failed, manually recalculate totals
+        console.warn('[removeEstimateItem] Estimate refresh failed, recalculating locally')
+        const remainingItems = previousItems.filter((item) => item.id !== itemId)
+        const parts_total = remainingItems.reduce((sum, item) => sum + (item.qty * item.unit_price), 0)
+        const labor_total = remainingItems.reduce((sum, item) => sum + (item.labor_cost || 0), 0)
+        const subtotal = parts_total + labor_total
+        const tax_amount = subtotal * 0.18
+        const total_amount = subtotal + tax_amount
+        
+        setEstimate({
+          ...estimate!,
+          parts_total,
+          labor_total,
+          tax_amount,
+          total_amount,
+          estimate_items: remainingItems,
+        })
+      }
+    } catch (error) {
+      console.error('[removeEstimateItem] Error removing estimate item:', error)
+      alert('Failed to remove item. Please try again.')
+      // Revert optimistic update on error
+      const updatedEstimate = await EstimateService.getEstimateByJobcard(job.id)
+      if (updatedEstimate?.estimate_items) {
+        setEstimateItems(updatedEstimate.estimate_items)
+      }
+    }
+  }
+
+  // Get totals from estimate object (calculated on backend)
+  const partsSubtotal = estimate?.parts_total || 0
+  const laborSubtotal = estimate?.labor_total || 0
   const subtotal = partsSubtotal + laborSubtotal
-  const tax = subtotal * 0.18
-  const total = subtotal + tax
+  const tax = estimate?.tax_amount || 0
+  const total = estimate?.total_amount || 0
+
+  // Debug: Log totals when estimate changes
+  useEffect(() => {
+    console.log('[Totals Debug] Estimate:', estimate)
+    console.log('[Totals Debug] Parts total:', partsSubtotal)
+    console.log('[Totals Debug] Labor total:', laborSubtotal)
+    console.log('[Totals Debug] Tax:', tax)
+    console.log('[Totals Debug] Total:', total)
+    console.log('[Totals Debug] Items count:', estimateItems.length)
+  }, [estimate, estimateItems])
 
   const groupedDviItems = dviItems.reduce(
     (acc, item) => {
@@ -160,6 +352,269 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
     },
     {} as Record<string, DVIItem[]>,
   )
+
+  const downloadEstimatePDF = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Estimate - ${job.jobNumber}</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+            body { margin: 0; }
+          }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .header { margin-bottom: 30px; }
+          .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+          .info { margin-bottom: 30px; }
+          .section { margin-bottom: 20px; }
+          .section-title { font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          .text-right { text-align: right; }
+          .totals { margin-left: auto; width: 350px; margin-top: 20px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+          .total-final { font-weight: bold; font-size: 20px; border-top: 2px solid #000; padding-top: 10px; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">ESTIMATE</div>
+          <div>Estimate #: ${estimate?.estimate_number || job.jobNumber}</div>
+          <div>Date: ${new Date().toLocaleDateString()}</div>
+        </div>
+        
+        <div class="info">
+          <div class="section">
+            <div class="section-title">Customer Information</div>
+            <div>Name: ${job.customer.name}</div>
+            <div>Phone: ${job.customer.phone}</div>
+            <div>Email: ${job.customer.email}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Vehicle Information</div>
+            <div>${job.vehicle.year} ${job.vehicle.make} ${job.vehicle.model}</div>
+            <div>Registration: ${job.vehicle.regNo}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Part Number</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Unit Price</th>
+              <th class="text-right">Labor</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${estimateItems.map(item => {
+              const partsAmount = item.qty * item.unit_price
+              const laborAmount = item.labor_cost || 0
+              const lineTotal = partsAmount + laborAmount
+              return `
+                <tr>
+                  <td>${item.custom_name}</td>
+                  <td>${item.custom_part_number || '-'}</td>
+                  <td class="text-right">${item.qty}</td>
+                  <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
+                  <td class="text-right">${laborAmount > 0 ? '₹' + laborAmount.toLocaleString() : '-'}</td>
+                  <td class="text-right">₹${lineTotal.toLocaleString()}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <div class="totals-row">
+            <span>Parts Subtotal:</span>
+            <span>₹${partsSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Labor Subtotal:</span>
+            <span>₹${laborSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>₹${subtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>GST (18%):</span>
+            <span>₹${tax.toLocaleString()}</span>
+          </div>
+          <div class="totals-row total-final">
+            <span>Total:</span>
+            <span>₹${total.toLocaleString()}</span>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `
+    
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+  }
+
+  const downloadInvoicePDF = () => {
+    if (!invoice) return
+    
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice - ${job.jobNumber}</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+            body { margin: 0; }
+          }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .header-left .title { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+          .header-right { text-align: right; }
+          .info { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+          .section-title { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 12px; text-transform: uppercase; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th, td { border-bottom: 1px solid #ddd; padding: 12px 8px; text-align: left; }
+          th { background-color: #f8f8f8; font-weight: bold; border-bottom: 2px solid #333; }
+          .text-right { text-align: right; }
+          .totals { margin-left: auto; width: 350px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+          .total-final { font-weight: bold; font-size: 22px; border-top: 2px solid #000; padding-top: 15px; margin-top: 10px; }
+          .paid { color: #059669; }
+          .balance { color: #d97706; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-left">
+            <div class="title">INVOICE</div>
+            <div>${invoice.invoice_number || job.jobNumber}</div>
+            <div style="font-size: 12px; color: #666;">Date: ${new Date(invoice.invoice_date).toLocaleDateString()}</div>
+          </div>
+          <div class="header-right">
+            <div style="font-weight: bold; font-size: 18px;">Garage A</div>
+            <div style="font-size: 12px;">123 Auto Street, Bangalore</div>
+            <div style="font-size: 12px;">GSTIN: 29XXXXX1234X1Z5</div>
+          </div>
+        </div>
+        
+        <div class="info">
+          <div>
+            <div class="section-title">Bill To</div>
+            <div style="font-weight: bold; font-size: 16px;">${job.customer.name}</div>
+            <div style="font-size: 14px;">${job.customer.phone}</div>
+            <div style="font-size: 14px;">${job.customer.email}</div>
+          </div>
+          <div>
+            <div class="section-title">Vehicle</div>
+            <div style="font-weight: bold; font-size: 16px;">${job.vehicle.year} ${job.vehicle.make} ${job.vehicle.model}</div>
+            <div style="font-size: 14px; font-family: monospace;">${job.vehicle.regNo}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Rate</th>
+              <th class="text-right">Labor</th>
+              <th class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${estimateItems.map(item => {
+              const partsAmount = item.qty * item.unit_price
+              const laborAmount = item.labor_cost || 0
+              const lineTotal = partsAmount + laborAmount
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight: 500;">${item.custom_name}</div>
+                    ${item.custom_part_number ? `<div style="font-size: 11px; color: #666;">${item.custom_part_number}</div>` : ''}
+                  </td>
+                  <td class="text-right">${item.qty}</td>
+                  <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
+                  <td class="text-right">${laborAmount > 0 ? '₹' + laborAmount.toLocaleString() : '-'}</td>
+                  <td class="text-right" style="font-weight: 500;">₹${lineTotal.toLocaleString()}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <div class="totals-row">
+            <span>Parts:</span>
+            <span>₹${partsSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Labor:</span>
+            <span>₹${laborSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row" style="padding-top: 10px; border-top: 1px solid #ddd;">
+            <span>Subtotal:</span>
+            <span>₹${subtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>GST (18%):</span>
+            <span>₹${tax.toLocaleString()}</span>
+          </div>
+          <div class="totals-row total-final">
+            <span>Total:</span>
+            <span>₹${total.toLocaleString()}</span>
+          </div>
+          ${invoice.paid_amount > 0 ? `
+            <div class="totals-row paid" style="padding-top: 10px; border-top: 1px solid #ddd;">
+              <span>Paid:</span>
+              <span>₹${Number(invoice.paid_amount).toLocaleString()}</span>
+            </div>
+            <div class="totals-row balance" style="font-weight: bold; font-size: 18px;">
+              <span>Balance Due:</span>
+              <span>₹${(total - invoice.paid_amount).toLocaleString()}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `
+    
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+  }
 
   return (
     <motion.div
@@ -202,17 +657,25 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                   <DropdownMenuContent align="start">
                     {statusOptions.map((status) => {
                       const config = statusConfig[status]
+                      const isValid = validStatuses.includes(status)
+                      const isCurrent = currentStatus === status
+                      
                       return (
                         <DropdownMenuItem
                           key={status}
-                          onClick={() => handleStatusChange(status)}
+                          disabled={!isValid}
+                          onClick={() => isValid && handleStatusChange(status)}
                           className={cn(
                             "cursor-pointer",
-                            currentStatus === status && "bg-accent"
+                            isCurrent && "bg-accent",
+                            !isValid && "opacity-50 cursor-not-allowed"
                           )}
                         >
                           <div className={cn("w-2 h-2 rounded-full mr-2", config.bgColor)} />
                           {config.label}
+                          {!isValid && !isCurrent && (
+                            <span className="ml-auto text-xs text-muted-foreground">Locked</span>
+                          )}
                         </DropdownMenuItem>
                       )
                     })}
@@ -264,13 +727,13 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                   Overview
                 </TabsTrigger>
               )}
-              <TabsTrigger
+              {/* <TabsTrigger
                 value="dvi"
                 className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
               >
                 <ClipboardCheck className="w-4 h-4 mr-2" />
                 DVI
-              </TabsTrigger>
+              </TabsTrigger> */}
               {!isMechanicMode && (
                 <>
                   <TabsTrigger
@@ -424,16 +887,16 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Parts</span>
-                        <span className="font-medium">₹{(enrichedJob.partsTotal || 0).toLocaleString()}</span>
+                        <span className="font-medium">₹{partsSubtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Labor</span>
-                        <span className="font-medium">₹{(enrichedJob.laborTotal || 0).toLocaleString()}</span>
+                        <span className="font-medium">₹{laborSubtotal.toLocaleString()}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
                         <span>Total</span>
-                        <span>₹{((enrichedJob.partsTotal || 0) + (enrichedJob.laborTotal || 0) + (enrichedJob.tax || 0)).toLocaleString()}</span>
+                        <span>₹{total.toLocaleString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -640,15 +1103,72 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
             )}
           </TabsContent>
 
-          {/* Parts & Estimate Tab */}
+                  {/* Parts & Estimate Tab */}
           {!isMechanicMode && (
             <TabsContent value="parts" className="m-0">
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="p-6 space-y-6">
-                  {/* Parts Table */}
+                  
+                  {/* Estimate Items (Parts already in estimate) */}
+                  {estimateItems.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          Estimate Items
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {/* Header */}
+                          <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+                            <div className="col-span-4">Item</div>
+                            <div className="col-span-2">Part No.</div>
+                            <div className="col-span-1">Qty</div>
+                            <div className="col-span-2">Unit Price</div>
+                            <div className="col-span-2">Labor</div>
+                            <div className="col-span-1"></div>
+                          </div>
+
+                          {/* Estimate Items List */}
+                          {estimateItems.map((item) => (
+                            <div key={item.id} className="grid grid-cols-12 gap-3 items-center bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
+                              <div className="col-span-4">
+                                <div className="text-sm font-medium">{item.custom_name}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm text-muted-foreground">{item.custom_part_number || '-'}</div>
+                              </div>
+                              <div className="col-span-1">
+                                <div className="text-sm">{item.qty}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm">₹{item.unit_price.toLocaleString()}</div>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-sm">₹{(item.labor_cost || 0).toLocaleString()}</div>
+                              </div>
+                              <div className="col-span-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive h-8 w-8"
+                                  onClick={() => removeEstimateItem(item.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Temporary Parts (Not yet added to estimate) */}
                   <Card>
                     <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                      <CardTitle className="text-sm font-semibold">Parts & Labor</CardTitle>
+                      <CardTitle className="text-sm font-semibold">Add New Items</CardTitle>
                       <Button size="sm" onClick={addPart} className="gap-1">
                         <Plus className="w-4 h-4" />
                         Add Item
@@ -658,22 +1178,23 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                       <div className="space-y-3">
                         {/* Header */}
                         <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
-                          <div className="col-span-4">Item</div>
+                          <div className="col-span-3">Item</div>
                           <div className="col-span-2">Part No.</div>
                           <div className="col-span-1">Qty</div>
                           <div className="col-span-2">Unit Price</div>
                           <div className="col-span-2">Labor</div>
-                          <div className="col-span-1"></div>
+                          <div className="col-span-2"></div>
                         </div>
 
-                        {/* Parts List */}
+                        {/* Temporary Parts List */}
                         {parts.map((part) => (
-                          <div key={part.id} className="grid grid-cols-12 gap-3 items-center">
-                            <div className="col-span-4">
+                          <div key={part.id} className="grid grid-cols-12 gap-3 items-center border border-dashed border-border rounded-lg p-2">
+                            <div className="col-span-3">
                               <Input
                                 placeholder="Part name"
                                 value={part.name}
                                 onChange={(e) => updatePart(part.id, "name", e.target.value)}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-2">
@@ -681,57 +1202,73 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 placeholder="Part #"
                                 value={part.partNumber}
                                 onChange={(e) => updatePart(part.id, "partNumber", e.target.value)}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-1">
                               <Input
                                 type="number"
                                 min="1"
-                                value={part.quantity}
-                                onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value))}
+                                value={part.quantity || ""}
+                                onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value) || 1)}
+                                className="h-9"
                               />
                             </div>
                             <div className="col-span-2">
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                                   ₹
                                 </span>
                                 <Input
                                   type="number"
-                                  className="pl-7"
-                                  value={part.unitPrice}
-                                  onChange={(e) => updatePart(part.id, "unitPrice", Number.parseFloat(e.target.value))}
+                                  className="pl-7 h-9"
+                                  value={part.unitPrice === 0 ? "" : part.unitPrice}
+                                  onChange={(e) => updatePart(part.id, "unitPrice", Number.parseFloat(e.target.value) || 0)}
+                                  placeholder="0.00"
                                 />
                               </div>
                             </div>
                             <div className="col-span-2">
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                                   ₹
                                 </span>
                                 <Input
                                   type="number"
-                                  className="pl-7"
-                                  value={part.laborCost}
-                                  onChange={(e) => updatePart(part.id, "laborCost", Number.parseFloat(e.target.value))}
+                                  className="pl-7 h-9"
+                                  value={part.laborCost === 0 ? "" : part.laborCost}
+                                  onChange={(e) => updatePart(part.id, "laborCost", Number.parseFloat(e.target.value) || 0)}
+                                  placeholder="0.00"
                                 />
                               </div>
                             </div>
-                            <div className="col-span-1">
+                            <div className="col-span-2 flex gap-1">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="flex-1 h-9"
+                                onClick={() => addPartToEstimate(part)}
+                                disabled={!part.name || part.quantity <= 0}
+                              >
+                                <Check className="w-3 h-3 mr-1" />
+                                Add to Estimate
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive h-9 w-9"
                                 onClick={() => removePart(part.id)}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
                           </div>
                         ))}
 
                         {parts.length === 0 && (
-                          <div className="text-center py-8 text-muted-foreground">No parts added yet</div>
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            Click "Add Item" to add parts to this job
+                          </div>
                         )}
                       </div>
                     </CardContent>
@@ -769,14 +1306,15 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
 
                   {/* Actions */}
                   <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2 flex-1 bg-transparent">
+                    {/* <Button variant="outline" className="gap-2 flex-1 bg-transparent" onClick={downloadEstimatePDF}>
                       <Download className="w-4 h-4" />
                       Download PDF
-                    </Button>
-                    <Button className="gap-2 flex-1 bg-green-600 hover:bg-green-700">
+                    </Button> */}
+                    {/* <Button className="gap-2 flex-1 bg-green-600 hover:bg-green-700">
                       <Send className="w-4 h-4" />
                       Send Estimate via WhatsApp
-                    </Button>
+                    </Button> */}
+                    {/* TODO: think of what to do with the extra PDF and create whatsapp estimates work   */}
                   </div>
                 </div>
               </ScrollArea>
@@ -796,13 +1334,49 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                       </div>
                     </div>
                   ) : !invoice ? (
-                    <div className="flex items-center justify-center h-64">
+                    <div className="flex flex-col items-center justify-center h-64 space-y-4">
                       <div className="text-center space-y-2">
                         <CreditCard className="w-12 h-12 text-muted-foreground mx-auto" />
                         <p className="text-sm text-muted-foreground">
-                          Invoice will be generated when job status is "Ready for Payment"
+                          {job.status === 'ready' || job.status === 'completed' 
+                            ? 'Invoice not found. It should have been auto-generated.'
+                            : 'Invoice will be generated when job status is "Ready for Payment"'
+                          }
                         </p>
                       </div>
+                      {(job.status === 'ready' || job.status === 'completed') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            setLoadingInvoice(true)
+                            try {
+                              // Try to fetch invoice again
+                              const invoiceData = await InvoiceService.getInvoiceByJobId(job.id)
+                              if (invoiceData) {
+                                setInvoice(invoiceData)
+                              } else {
+                                // If still not found, try to generate it
+                                const estimate = await EstimateService.getEstimateByJobcard(job.id)
+                                if (estimate) {
+                                  const newInvoice = await InvoiceService.generateInvoiceFromEstimate(job.id, estimate.id)
+                                  setInvoice(newInvoice)
+                                } else {
+                                  alert('Cannot generate invoice: No estimate found for this job')
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error refreshing invoice:', error)
+                              alert('Failed to load invoice. Please try again.')
+                            } finally {
+                              setLoadingInvoice(false)
+                            }
+                          }}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Retry Loading Invoice
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -849,35 +1423,35 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                 <th className="text-left py-2 text-sm font-semibold text-gray-500">Description</th>
                                 <th className="text-right py-2 text-sm font-semibold text-gray-500">Qty</th>
                                 <th className="text-right py-2 text-sm font-semibold text-gray-500">Rate</th>
+                                <th className="text-right py-2 text-sm font-semibold text-gray-500">Labor</th>
                                 <th className="text-right py-2 text-sm font-semibold text-gray-500">Amount</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {parts.map((part) => (
-                                <tr key={part.id} className="border-b border-gray-100">
-                                  <td className="py-3">
-                                    <p className="font-medium text-gray-900">{part.name}</p>
-                                    <p className="text-xs text-gray-500">{part.partNumber}</p>
-                                  </td>
-                                  <td className="text-right py-3 text-gray-600">{part.quantity}</td>
-                                  <td className="text-right py-3 text-gray-600">₹{part.unitPrice.toLocaleString()}</td>
-                                  <td className="text-right py-3 font-medium text-gray-900">
-                                    ₹{(part.unitPrice * part.quantity).toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                              {laborSubtotal > 0 && (
-                                <tr className="border-b border-gray-100">
-                                  <td className="py-3">
-                                    <p className="font-medium text-gray-900">Labor Charges</p>
-                                  </td>
-                                  <td className="text-right py-3 text-gray-600">-</td>
-                                  <td className="text-right py-3 text-gray-600">-</td>
-                                  <td className="text-right py-3 font-medium text-gray-900">
-                                    ₹{laborSubtotal.toLocaleString()}
-                                  </td>
-                                </tr>
-                              )}
+                              {estimateItems.map((item) => {
+                                const partsAmount = item.qty * item.unit_price
+                                const laborAmount = item.labor_cost || 0
+                                const lineTotal = partsAmount + laborAmount
+                                
+                                return (
+                                  <tr key={item.id} className="border-b border-gray-100">
+                                    <td className="py-3">
+                                      <p className="font-medium text-gray-900">{item.custom_name}</p>
+                                      {item.custom_part_number && (
+                                        <p className="text-xs text-gray-500">{item.custom_part_number}</p>
+                                      )}
+                                    </td>
+                                    <td className="text-right py-3 text-gray-600">{item.qty}</td>
+                                    <td className="text-right py-3 text-gray-600">₹{item.unit_price.toLocaleString()}</td>
+                                    <td className="text-right py-3 text-gray-600">
+                                      {laborAmount > 0 ? `₹${laborAmount.toLocaleString()}` : '-'}
+                                    </td>
+                                    <td className="text-right py-3 font-medium text-gray-900">
+                                      ₹{lineTotal.toLocaleString()}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
                             </tbody>
                           </table>
 
@@ -885,16 +1459,24 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                           <div className="flex justify-end">
                             <div className="w-64 space-y-2">
                               <div className="flex justify-between text-gray-600">
+                                <span>Parts</span>
+                                <span>₹{partsSubtotal.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between text-gray-600">
+                                <span>Labor</span>
+                                <span>₹{laborSubtotal.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between text-gray-600 pt-2 border-t border-gray-200">
                                 <span>Subtotal</span>
-                                <span>₹{Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                <span>₹{subtotal.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between text-gray-600">
                                 <span>GST (18%)</span>
-                                <span>₹{Number(invoice.tax_amount || 0).toLocaleString()}</span>
+                                <span>₹{tax.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
                                 <span>Total</span>
-                                <span>₹{Number(invoice.total_amount || 0).toLocaleString()}</span>
+                                <span>₹{total.toLocaleString()}</span>
                               </div>
                               {invoice.paid_amount > 0 && (
                                 <>
@@ -904,7 +1486,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                                   </div>
                                   <div className="flex justify-between text-lg font-bold text-amber-600 pt-2 border-t border-gray-200">
                                     <span>Balance Due</span>
-                                    <span>₹{Number(invoice.balance || 0).toLocaleString()}</span>
+                                    <span>₹{(total - invoice.paid_amount).toLocaleString()}</span>
                                   </div>
                                 </>
                               )}
@@ -916,7 +1498,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
 
                       {/* Payment Actions */}
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="gap-2 bg-transparent">
+                        <Button variant="outline" className="gap-2 bg-transparent" onClick={downloadInvoicePDF}>
                           <Download className="w-4 h-4" />
                           Generate PDF
                         </Button>

@@ -26,8 +26,26 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechanicChange, isDragging }: JobCardProps) {
-  const statusInfo = statusConfig[job.status]
+  const statusInfo = statusConfig[job.status as JobStatus]
   const statusOptions: JobStatus[] = ["received", "working", "ready", "completed"]
+
+  // Get valid status transitions based on current status
+  const getValidTransitions = (currentStatus: string): JobStatus[] => {
+    switch (currentStatus) {
+      case 'received':
+        return ['received', 'working']
+      case 'working':
+        return ['received', 'working', 'ready']
+      case 'ready':
+        return ['working', 'ready', 'completed'] // Will be validated for payment
+      case 'completed':
+        return ['completed'] // Cannot change from completed
+      default:
+        return statusOptions
+    }
+  }
+
+  const validStatuses = getValidTransitions(job.status)
 
   const handleStatusChange = (newStatus: JobStatus) => {
     if (onStatusChange && newStatus !== job.status) {
@@ -62,7 +80,7 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
         <CardContent className={cn("p-4", isMechanicMode && "p-5")}>
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-muted-foreground">{job.jobNumber}</span>
               {job.dviPending && (
                 <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs gap-1">
@@ -70,7 +88,7 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
                   DVI
                 </Badge>
               )}
-            </div>
+            </div> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Badge 
@@ -88,20 +106,30 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 {statusOptions.map((status) => {
                   const option = statusConfig[status as JobStatus]
+                  const isValid = validStatuses.includes(status)
+                  const isCurrent = job.status === status
+                  
                   return (
                     <DropdownMenuItem
                       key={status}
+                      disabled={!isValid}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleStatusChange(status as JobStatus)
+                        if (isValid) {
+                          handleStatusChange(status as JobStatus)
+                        }
                       }}
                       className={cn(
                         "cursor-pointer",
-                        job.status === status && "bg-accent"
+                        isCurrent && "bg-accent",
+                        !isValid && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <div className={cn("w-2 h-2 rounded-full mr-2", option.bgColor)} />
                       {option.label}
+                      {!isValid && !isCurrent && (
+                        <span className="ml-auto text-xs text-muted-foreground">Locked</span>
+                      )}
                     </DropdownMenuItem>
                   )
                 })}

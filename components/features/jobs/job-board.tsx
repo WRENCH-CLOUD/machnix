@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { AnimatePresence } from "framer-motion"
 import { LayoutGrid, List, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -128,10 +128,13 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
   const [activeJob, setActiveJob] = useState<UIJob | null>(null)
   const [optimisticJobs, setOptimisticJobs] = useState<UIJob[]>(jobs)
   const [isUpdating, setIsUpdating] = useState(false)
+  const prevJobsRef = useRef<UIJob[]>(jobs)
 
   // Sync optimistic state with actual jobs when they change
   useEffect(() => {
-    if (!isUpdating) {
+    // Only update if jobs actually changed (prevent infinite loops)
+    if (!isUpdating && jobs !== prevJobsRef.current) {
+      prevJobsRef.current = jobs
       setOptimisticJobs(jobs)
     }
   }, [jobs, isUpdating])
@@ -149,7 +152,22 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
 
   const groupedJobs = statusOrder.reduce(
     (acc, status) => {
-      acc[status] = optimisticJobs.filter((job) => job.status === status)
+      if (status === 'completed') {
+        // For completed status, only show jobs completed today
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        acc[status] = optimisticJobs.filter((job) => {
+          if (job.status !== status) return false
+          
+          const updatedDate = new Date(job.updatedAt)
+          updatedDate.setHours(0, 0, 0, 0)
+          
+          return updatedDate.getTime() === today.getTime()
+        })
+      } else {
+        acc[status] = optimisticJobs.filter((job) => job.status === status)
+      }
       return acc
     },
     {} as Record<JobStatus, UIJob[]>,
@@ -194,6 +212,15 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
     }
 
     if (targetStatus && draggedJob.status !== targetStatus) {
+      // Lifecycle Guardrail: Validate transition before optimistic update
+      const isValidTransition = validateStatusTransition(draggedJob.status, targetStatus)
+      
+      if (!isValidTransition) {
+        // Don't allow invalid transitions - show brief feedback
+        console.warn(`Invalid status transition: ${draggedJob.status} -> ${targetStatus}`)
+        return
+      }
+
       // Optimistic update - update UI immediately
       setIsUpdating(true)
       setOptimisticJobs((prevJobs) =>
@@ -204,7 +231,7 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
         )
       )
 
-      // Actual update
+      // Actual update (will check payment for completion in handleStatusChange)
       if (onStatusChange) {
         try {
           await onStatusChange(activeId, targetStatus)
@@ -218,6 +245,20 @@ export function JobBoard({ jobs, onJobClick, isMechanicMode, onStatusChange, onM
         }
       }
     }
+  }
+
+  // Validate status transitions based on job lifecycle
+  const validateStatusTransition = (fromStatus: string, toStatus: string): boolean => {
+    // Status progression: received <-> working <-> ready -> completed
+    // Allow moving backward except from completed
+    const validTransitions: Record<string, string[]> = {
+      'received': ['received', 'working'],
+      'working': ['received', 'working', 'ready'],
+      'ready': ['working', 'ready', 'completed'],
+      'completed': ['completed'], // Cannot change from completed
+    }
+
+    return validTransitions[fromStatus]?.includes(toStatus) ?? false
   }
 
   const handleContextMenu = (e: React.MouseEvent, status: JobStatus) => {

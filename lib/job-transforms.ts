@@ -5,7 +5,8 @@
 
 import { enrichJobWithDummyData } from './dvi-dummy-data'
 import type { JobcardWithRelations } from './supabase/services/job.service'
-import { VehicleService } from './supabase/services'
+import { VehicleService } from './supabase/services/vehicle.service'
+import { EstimateService } from './supabase/services/estimate.service'
 
 export interface UIJob {
   id: string
@@ -105,6 +106,19 @@ export async function transformDatabaseJobToUI(dbJob: JobcardWithRelations): Pro
     updatedAt: dbJob.updated_at,
     created_at: dbJob.created_at,
     updated_at: dbJob.updated_at,
+  }
+
+  // Try to load estimate data for accurate totals
+  try {
+    const estimate = await EstimateService.getEstimateByJobcard(dbJob.id)
+    if (estimate) {
+      uiJob.partsTotal = estimate.parts_total || 0
+      uiJob.laborTotal = estimate.labor_total || 0
+      uiJob.tax = estimate.tax_amount || 0
+    }
+  } catch (error) {
+    // Estimate not found or error - will use defaults from enrichJobWithDummyData
+    console.debug(`No estimate found for job ${dbJob.job_number}`)
   }
 
   // Enrich with dummy DVI data and other fields

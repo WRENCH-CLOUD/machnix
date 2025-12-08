@@ -2,18 +2,27 @@
 
 import { useState, useEffect } from "react"
 import { AnimatePresence } from "framer-motion"
-import { AppSidebar, TopHeader } from "@/components/common"
-import { JobBoard, CreateJobWizard, JobDetails, AllJobsView } from "@/components/features/jobs"
-import { CustomersView } from "@/components/features/customers"
-import { VehiclesView } from "@/components/features/vehicles"
-import { ReportsView } from "@/components/features/reports"
-import { LoginPage } from "@/components/features/auth"
-import { AdminDashboard } from "@/components/features/admin"
-import { MechanicDashboard } from "@/components/features/mechanic"
-import { useAuth } from "@/providers"
-import { JobService, InvoiceService } from "@/lib/supabase/services"
+import { AppSidebar } from "@/components/common/app-sidebar"
+import { TopHeader } from "@/components/common/top-header"
+import { JobBoard } from "@/components/features/jobs/job-board"
+import { CreateJobWizard } from "@/components/features/jobs/create-job-wizard"
+import { JobDetails } from "@/components/features/jobs/job-details"
+import { AllJobsView } from "@/components/features/jobs/all-jobs-view"
+import { UnpaidWarningModal } from "@/components/features/jobs/transactionPop"
+import { CustomersView } from "@/components/features/customers/customers-view"
+import { VehiclesView } from "@/components/features/vehicles/vehicles-view"
+import { ReportsView } from "@/components/features/reports/reports-view"
+import { LoginPage } from "@/components/features/auth/login-page"
+import { AdminDashboard } from "@/components/features/admin/admin-dashboard"
+import { MechanicDashboard } from "@/components/features/mechanic/mechanic-dashboard"
+import { TenantDashboard } from "@/components/features/dashboard/tenant-dashboard"
+import { useAuth } from "@/providers/auth-provider"
+import { JobService } from "@/lib/supabase/services/job.service"
+import { InvoiceService } from "@/lib/supabase/services/invoice.service"
+import { EstimateService } from "@/lib/supabase/services/estimate.service"
+import { PaymentService } from "@/lib/supabase/services/payment.service"
 import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
-import { type JobStatus } from "@/lib/mock-data"
+import { type JobStatus, statusConfig } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
 import Loader from "@/components/ui/loading"
 import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
@@ -26,6 +35,28 @@ function AppContent() {
   const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unpaidJobsCount, setUnpaidJobsCount] = useState(0)
+  const [showUnpaidWarning, setShowUnpaidWarning] = useState(false)
+  const [pendingCompletion, setPendingCompletion] = useState<{
+    jobId: string
+    invoiceId: string
+    balance: number
+    jobNumber?: string
+  } | null>(null)
+
+  // Validate status transitions based on job lifecycle
+  const validateStatusTransition = (fromStatus: string, toStatus: string): boolean => {
+    // Status progression: received <-> working <-> ready -> completed
+    // Allow moving backward except from completed
+    const validTransitions: Record<string, string[]> = {
+      'received': ['received', 'working'],
+      'working': ['received', 'working', 'ready'],
+      'ready': ['working', 'ready', 'completed'],
+      'completed': ['completed'], // Cannot change from completed
+    }
+
+    return validTransitions[fromStatus]?.includes(toStatus) ?? false
+  }
 
   // Fetch jobs when tenant is set
   useEffect(() => {
@@ -166,15 +197,70 @@ function AppContent() {
       const oldJob = jobs.find(job => job.id === jobId)
       const oldStatus = oldJob?.status
       
+      if (!oldStatus) {
+        console.error('Job not found:', jobId)
+        return
+      }
+
+      // Lifecycle Guardrails: Validate status transitions
+      const isValidTransition = validateStatusTransition(oldStatus, newStatus)
+      if (!isValidTransition) {
+        alert(`Cannot change status from ${statusConfig[oldStatus as JobStatus]?.label} to ${statusConfig[newStatus]?.label}`)
+        return
+      }
+
+      // Lifecycle Guardrail: Cannot change from completed
+      if (oldStatus === 'completed') {
+        alert('Cannot change status of a completed job')
+        return
+      }
+      
+      // Lifecycle Guardrail: Check for unpaid invoices before completing
+      if (newStatus === 'completed' && oldStatus !== 'completed') {
+        // Check if there's an invoice for this job
+        const invoice = await InvoiceService.getInvoiceByJobId(jobId)
+        
+        if (invoice && invoice.balance && invoice.balance > 0) {
+          // Show unpaid warning modal
+          setPendingCompletion({
+            jobId,
+            invoiceId: invoice.id,
+            balance: invoice.balance,
+            jobNumber: oldJob?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return // Don't proceed with status change
+        }
+        
+        if (!invoice) {
+          alert('Cannot complete job: No invoice found. Please ensure the job is in "Ready for Payment" status first.')
+          return
+        }
+      }
+      
       // Update job status in database
       await JobService.updateStatus(jobId, newStatus, user?.id)
       
       // Auto-generate invoice when status changes to "ready" (Ready for Payment)
       if (newStatus === 'ready' && oldStatus !== 'ready') {
-        // Fire and forget - don't block UI
-        InvoiceService.createInvoiceFromJob(jobId)
-          .then(() => console.log('Invoice automatically generated for job:', jobId))
-          .catch((invoiceError) => console.error('Failed to auto-generate invoice:', invoiceError))
+        try {
+          console.log('[handleStatusChange] Job moved to ready status, generating invoice...', jobId)
+          // Get estimate for this job
+          const estimate = await EstimateService.getEstimateByJobcard(jobId)
+          if (estimate) {
+            // Generate invoice from estimate
+            console.log('[handleStatusChange] Estimate found, generating invoice from estimate:', estimate.id)
+            const invoice = await InvoiceService.generateInvoiceFromEstimate(jobId, estimate.id)
+            console.log('[handleStatusChange] Invoice generated successfully:', invoice?.id)
+            alert(`Invoice ${invoice.invoice_number || 'generated'} created successfully!`)
+          } else {
+            console.warn('[handleStatusChange] No estimate found for job:', jobId)
+            alert('Warning: No estimate found for this job. Please create an estimate first.')
+          }
+        } catch (err) {
+          console.error('[handleStatusChange] Error generating invoice:', err)
+          alert('Failed to generate invoice. Please check the console for details.')
+        }
       }
       
       // Update local state
@@ -198,6 +284,50 @@ function AppContent() {
       await loadJobs()
       throw err // Re-throw to allow caller to handle
     }
+  };
+
+  const handleMarkPaidAndComplete = async (paymentMethod: string, referenceId?: string) => {
+    if (!pendingCompletion) return
+
+    try {
+      // Epic 4.4: Mark Paid & Complete in single atomic operation
+      await PaymentService.markPaidAndComplete(
+        pendingCompletion.invoiceId,
+        pendingCompletion.jobId,
+        paymentMethod as any,
+        referenceId
+      )
+
+      // Update local state
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === pendingCompletion.jobId
+            ? { ...job, status: 'completed', updated_at: new Date().toISOString() }
+            : job
+        )
+      )
+
+      // Update selected job if it's the one being changed
+      if (selectedJob?.id === pendingCompletion.jobId) {
+        const updatedJob = await JobService.getJobById(pendingCompletion.jobId)
+        const transformedJob = await transformDatabaseJobToUI(updatedJob)
+        setSelectedJob(transformedJob)
+      }
+
+      // Clear pending completion
+      setPendingCompletion(null)
+      setShowUnpaidWarning(false)
+      
+      console.log('Job marked as paid and completed successfully')
+    } catch (error) {
+      console.error('Error marking paid and complete:', error)
+      throw error
+    }
+  }
+
+  const handleCancelCompletion = () => {
+    setPendingCompletion(null)
+    setShowUnpaidWarning(false)
   }
 
   const handleMechanicChange = async (jobId: string, mechanicId: string) => {
@@ -245,6 +375,9 @@ function AppContent() {
         <main className="flex-1 overflow-auto p-6">
           <AnimatePresence mode="wait">
             {activeView === "dashboard" && (
+              <TenantDashboard />
+            )}
+            {activeView === "jobs" && (
               <JobBoard
                 jobs={jobs}
                 loading={loading}
@@ -254,7 +387,7 @@ function AppContent() {
                 onMechanicChange={handleMechanicChange}
               />
             )}
-            {activeView === "jobs" && (
+            {activeView === "all-jobs" && (
               <AllJobsView
                 jobs={jobs}
                 onJobClick={handleJobClick}
@@ -282,6 +415,19 @@ function AppContent() {
         <CreateJobWizard
           onClose={() => setShowCreateJob(false)}
           onSubmit={handleCreateJob}
+        />
+      )}
+
+      {/* Unpaid Warning Modal */}
+      {showUnpaidWarning && pendingCompletion && (
+        <UnpaidWarningModal
+          isOpen={showUnpaidWarning}
+          onClose={() => setShowUnpaidWarning(false)}
+          jobNumber={pendingCompletion.jobNumber}
+          outstandingBalance={pendingCompletion.balance}
+          invoiceId={pendingCompletion.invoiceId}
+          onCancel={handleCancelCompletion}
+          onMarkPaidAndComplete={handleMarkPaidAndComplete}
         />
       )}
     </div>
