@@ -303,6 +303,7 @@ export function CreateJobWizard({ onClose, onSubmit }: CreateJobWizardProps) {
         customer_id: customerId,
         vehicle_id: vehicleId,
         assigned_mechanic_id: formData.job.mechanic || null,
+        details: { complaints: formData.job.complaints },
         status: 'received',
       })
 

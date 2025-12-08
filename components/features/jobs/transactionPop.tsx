@@ -72,21 +72,18 @@ export function UnpaidWarningModal({
   const [referenceId, setReferenceId] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isOpen) {
       setIsCompleted(false)
       setIsProcessing(false)
       setReferenceId('')
-      setError(null)
     }
   }, [isOpen])
 
   const handleMarkPaidAndComplete = async () => {
     try {
       setIsProcessing(true)
-      setError(null)
       await onMarkPaidAndComplete(paymentMethod, referenceId || undefined)
       setIsCompleted(true)
       
@@ -96,10 +93,6 @@ export function UnpaidWarningModal({
       }, 2500)
     } catch (error) {
       console.error('Error marking paid and complete:', error)
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to process payment. Please try again.'
-      setError(errorMessage)
       setIsProcessing(false)
     }
   }
@@ -374,17 +367,6 @@ export function UnpaidWarningModal({
                         ease: [0.22, 1, 0.36, 1],
                       }}
                     >
-                      {/* Error Message */}
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3 rounded-lg bg-red-500/10 border border-red-500/20"
-                        >
-                          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                        </motion.div>
-                      )}
-
                       {/* Amount Display */}
                       <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                         <span className="text-sm font-medium text-muted-foreground">Amount Due</span>

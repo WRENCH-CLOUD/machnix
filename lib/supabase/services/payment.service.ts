@@ -208,6 +208,8 @@ export class PaymentService {
     const tenantId = ensureTenantContext()
     
     try {
+      console.log('[markPaidAndComplete] Starting payment process:', { invoiceId, jobId, paymentMethod, referenceId })
+      
       // Get invoice with estimate to get current totals
       const { data: invoice, error: invoiceError } = await supabase
         .schema('tenant')
@@ -227,51 +229,62 @@ export class PaymentService {
       
       if (invoiceError) {
         console.error('[markPaidAndComplete] Invoice fetch error:', invoiceError)
-        throw invoiceError
+        throw new Error(`Failed to fetch invoice: ${invoiceError.message || JSON.stringify(invoiceError)}`)
       }
       if (!invoice) {
-        console.error('[markPaidAndComplete] Invoice not found:', invoiceId)
         throw new Error('Invoice not found')
       }
       
-      console.log('[markPaidAndComplete] Invoice found:', invoice)
+      console.log('[markPaidAndComplete] Invoice found:', { 
+        id: invoice.id, 
+        total: invoice.total_amount,
+        paid: invoice.paid_amount 
+      })
       
-      // Sync invoice totals with current estimate totals
+      // Get current totals from estimate
       const estimate = invoice.estimate as any
+      const currentTotal = estimate ? estimate.total_amount : invoice.total_amount
+      const currentPaid = invoice.paid_amount || 0
+      const amountDue = currentTotal - currentPaid
+      
+      console.log('[markPaidAndComplete] Calculated amounts:', {
+        currentTotal,
+        currentPaid,
+        amountDue
+      })
+      
+      // If estimate exists, sync invoice totals first
       if (estimate) {
         const currentSubtotal = estimate.parts_total + estimate.labor_total
-        const currentTotal = estimate.total_amount
         
-        // Update invoice with current estimate totals
-        await supabase
+        console.log('[markPaidAndComplete] Syncing invoice with estimate totals')
+        const { error: syncError } = await supabase
           .schema('tenant')
           .from('invoices')
           .update({
             subtotal: currentSubtotal,
             tax_amount: estimate.tax_amount,
             total_amount: currentTotal,
-            balance: currentTotal - (invoice.paid_amount || 0),
           })
           .eq('id', invoiceId)
           .eq('tenant_id', tenantId)
         
-        console.log('[markPaidAndComplete] Invoice synced with estimate totals')
+        if (syncError) {
+          console.error('[markPaidAndComplete] Invoice sync error:', syncError)
+          throw new Error(`Failed to sync invoice: ${syncError.message || JSON.stringify(syncError)}`)
+        }
+        console.log('[markPaidAndComplete] Invoice synced successfully')
       }
       
-      // Calculate payment amount - use current balance or total
-      const paymentAmount = estimate 
-        ? estimate.total_amount - (invoice.paid_amount || 0)
-        : invoice.balance || invoice.total_amount || 0
-      console.log('[markPaidAndComplete] Payment amount:', paymentAmount)
-      
       // Create payment record
+      console.log('[markPaidAndComplete] Creating payment record for amount:', amountDue)
       const { data: payment, error: paymentError } = await supabase
         .schema('tenant')
         .from('payments')
         .insert({
           tenant_id: tenantId,
           invoice_id: invoiceId,
-          amount: paymentAmount,
+          amount: amountDue,
           payment_method: paymentMethod,
           reference_number: referenceId || null,
           payment_date: new Date().toISOString(),
@@ -283,23 +296,19 @@ export class PaymentService {
       
       if (paymentError) {
         console.error('[markPaidAndComplete] Payment creation error:', paymentError)
-        throw paymentError
+        throw new Error(`Failed to create payment: ${paymentError.message || JSON.stringify(paymentError)}`)
       }
       
-      console.log('[markPaidAndComplete] Payment created:', payment)
+      console.log('[markPaidAndComplete] Payment created:', payment.id)
       
-      // Get final total from estimate for invoice update
-      const finalTotal = estimate ? estimate.total_amount : invoice.total_amount
-      
-      // Update invoice to mark as paid (balance = 0, paid_amount = total)
+      // Update invoice to mark as paid
+      console.log('[markPaidAndComplete] Updating invoice to paid status')
       const { data: updatedInvoice, error: updateInvoiceError } = await supabase
         .schema('tenant')
         .from('invoices')
         .update({
-          balance: 0,
-          paid_amount: finalTotal,
+          paid_amount: currentTotal,
           status: 'paid',
-          updated_at: new Date().toISOString(),
         })
         .eq('id', invoiceId)
         .eq('tenant_id', tenantId)
@@ -308,12 +317,13 @@ export class PaymentService {
       
       if (updateInvoiceError) {
         console.error('[markPaidAndComplete] Invoice update error:', updateInvoiceError)
-        throw updateInvoiceError
+        throw new Error(`Failed to update invoice: ${updateInvoiceError.message || JSON.stringify(updateInvoiceError)}`)
       }
       
-      console.log('[markPaidAndComplete] Invoice updated:', updatedInvoice)
+      console.log('[markPaidAndComplete] Invoice updated to paid')
       
       // Update job status to completed
+      console.log('[markPaidAndComplete] Updating job to completed status')
       const { error: jobUpdateError } = await supabase
         .schema('tenant')
         .from('jobcards')
@@ -326,15 +336,18 @@ export class PaymentService {
       
       if (jobUpdateError) {
         console.error('[markPaidAndComplete] Job update error:', jobUpdateError)
-        throw jobUpdateError
+        throw new Error(`Failed to update job: ${jobUpdateError.message || JSON.stringify(jobUpdateError)}`)
       }
       
-      console.log('[markPaidAndComplete] Job completed successfully')
+      console.log('[markPaidAndComplete] Job marked as completed successfully')
       
       return { payment, invoice: updatedInvoice }
     } catch (error) {
       console.error('[markPaidAndComplete] Unexpected error:', error)
-      throw error
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('An unexpected error occurred during payment processing')
     }
   }
 }
