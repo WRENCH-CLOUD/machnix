@@ -353,6 +353,269 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
     {} as Record<string, DVIItem[]>,
   )
 
+  const downloadEstimatePDF = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Estimate - ${job.jobNumber}</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+            body { margin: 0; }
+          }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .header { margin-bottom: 30px; }
+          .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+          .info { margin-bottom: 30px; }
+          .section { margin-bottom: 20px; }
+          .section-title { font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          .text-right { text-align: right; }
+          .totals { margin-left: auto; width: 350px; margin-top: 20px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+          .total-final { font-weight: bold; font-size: 20px; border-top: 2px solid #000; padding-top: 10px; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">ESTIMATE</div>
+          <div>Estimate #: ${estimate?.estimate_number || job.jobNumber}</div>
+          <div>Date: ${new Date().toLocaleDateString()}</div>
+        </div>
+        
+        <div class="info">
+          <div class="section">
+            <div class="section-title">Customer Information</div>
+            <div>Name: ${job.customer.name}</div>
+            <div>Phone: ${job.customer.phone}</div>
+            <div>Email: ${job.customer.email}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">Vehicle Information</div>
+            <div>${job.vehicle.year} ${job.vehicle.make} ${job.vehicle.model}</div>
+            <div>Registration: ${job.vehicle.regNo}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Part Number</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Unit Price</th>
+              <th class="text-right">Labor</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${estimateItems.map(item => {
+              const partsAmount = item.qty * item.unit_price
+              const laborAmount = item.labor_cost || 0
+              const lineTotal = partsAmount + laborAmount
+              return `
+                <tr>
+                  <td>${item.custom_name}</td>
+                  <td>${item.custom_part_number || '-'}</td>
+                  <td class="text-right">${item.qty}</td>
+                  <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
+                  <td class="text-right">${laborAmount > 0 ? '₹' + laborAmount.toLocaleString() : '-'}</td>
+                  <td class="text-right">₹${lineTotal.toLocaleString()}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <div class="totals-row">
+            <span>Parts Subtotal:</span>
+            <span>₹${partsSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Labor Subtotal:</span>
+            <span>₹${laborSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>₹${subtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>GST (18%):</span>
+            <span>₹${tax.toLocaleString()}</span>
+          </div>
+          <div class="totals-row total-final">
+            <span>Total:</span>
+            <span>₹${total.toLocaleString()}</span>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `
+    
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+  }
+
+  const downloadInvoicePDF = () => {
+    if (!invoice) return
+    
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice - ${job.jobNumber}</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+            body { margin: 0; }
+          }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .header-left .title { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+          .header-right { text-align: right; }
+          .info { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+          .section-title { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 12px; text-transform: uppercase; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th, td { border-bottom: 1px solid #ddd; padding: 12px 8px; text-align: left; }
+          th { background-color: #f8f8f8; font-weight: bold; border-bottom: 2px solid #333; }
+          .text-right { text-align: right; }
+          .totals { margin-left: auto; width: 350px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+          .total-final { font-weight: bold; font-size: 22px; border-top: 2px solid #000; padding-top: 15px; margin-top: 10px; }
+          .paid { color: #059669; }
+          .balance { color: #d97706; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-left">
+            <div class="title">INVOICE</div>
+            <div>${invoice.invoice_number || job.jobNumber}</div>
+            <div style="font-size: 12px; color: #666;">Date: ${new Date(invoice.invoice_date).toLocaleDateString()}</div>
+          </div>
+          <div class="header-right">
+            <div style="font-weight: bold; font-size: 18px;">Garage A</div>
+            <div style="font-size: 12px;">123 Auto Street, Bangalore</div>
+            <div style="font-size: 12px;">GSTIN: 29XXXXX1234X1Z5</div>
+          </div>
+        </div>
+        
+        <div class="info">
+          <div>
+            <div class="section-title">Bill To</div>
+            <div style="font-weight: bold; font-size: 16px;">${job.customer.name}</div>
+            <div style="font-size: 14px;">${job.customer.phone}</div>
+            <div style="font-size: 14px;">${job.customer.email}</div>
+          </div>
+          <div>
+            <div class="section-title">Vehicle</div>
+            <div style="font-weight: bold; font-size: 16px;">${job.vehicle.year} ${job.vehicle.make} ${job.vehicle.model}</div>
+            <div style="font-size: 14px; font-family: monospace;">${job.vehicle.regNo}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Rate</th>
+              <th class="text-right">Labor</th>
+              <th class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${estimateItems.map(item => {
+              const partsAmount = item.qty * item.unit_price
+              const laborAmount = item.labor_cost || 0
+              const lineTotal = partsAmount + laborAmount
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight: 500;">${item.custom_name}</div>
+                    ${item.custom_part_number ? `<div style="font-size: 11px; color: #666;">${item.custom_part_number}</div>` : ''}
+                  </td>
+                  <td class="text-right">${item.qty}</td>
+                  <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
+                  <td class="text-right">${laborAmount > 0 ? '₹' + laborAmount.toLocaleString() : '-'}</td>
+                  <td class="text-right" style="font-weight: 500;">₹${lineTotal.toLocaleString()}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <div class="totals-row">
+            <span>Parts:</span>
+            <span>₹${partsSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>Labor:</span>
+            <span>₹${laborSubtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row" style="padding-top: 10px; border-top: 1px solid #ddd;">
+            <span>Subtotal:</span>
+            <span>₹${subtotal.toLocaleString()}</span>
+          </div>
+          <div class="totals-row">
+            <span>GST (18%):</span>
+            <span>₹${tax.toLocaleString()}</span>
+          </div>
+          <div class="totals-row total-final">
+            <span>Total:</span>
+            <span>₹${total.toLocaleString()}</span>
+          </div>
+          ${invoice.paid_amount > 0 ? `
+            <div class="totals-row paid" style="padding-top: 10px; border-top: 1px solid #ddd;">
+              <span>Paid:</span>
+              <span>₹${Number(invoice.paid_amount).toLocaleString()}</span>
+            </div>
+            <div class="totals-row balance" style="font-weight: bold; font-size: 18px;">
+              <span>Balance Due:</span>
+              <span>₹${(total - invoice.paid_amount).toLocaleString()}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `
+    
+    printWindow.document.write(pdfContent)
+    printWindow.document.close()
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1043,14 +1306,15 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
 
                   {/* Actions */}
                   <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2 flex-1 bg-transparent">
+                    {/* <Button variant="outline" className="gap-2 flex-1 bg-transparent" onClick={downloadEstimatePDF}>
                       <Download className="w-4 h-4" />
                       Download PDF
-                    </Button>
-                    <Button className="gap-2 flex-1 bg-green-600 hover:bg-green-700">
+                    </Button> */}
+                    {/* <Button className="gap-2 flex-1 bg-green-600 hover:bg-green-700">
                       <Send className="w-4 h-4" />
                       Send Estimate via WhatsApp
-                    </Button>
+                    </Button> */}
+                    {/* TODO: think of what to do with the extra PDF and create whatsapp estimates work   */}
                   </div>
                 </div>
               </ScrollArea>
@@ -1234,7 +1498,7 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
 
                       {/* Payment Actions */}
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="gap-2 bg-transparent">
+                        <Button variant="outline" className="gap-2 bg-transparent" onClick={downloadInvoicePDF}>
                           <Download className="w-4 h-4" />
                           Generate PDF
                         </Button>
