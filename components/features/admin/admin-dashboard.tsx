@@ -33,8 +33,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/providers/auth-provider"
-import { getAllTenants, type TenantWithStats } from "@/lib/supabase/services/tenant.service"
-import { AnalyticsService, type GlobalAnalytics } from "@/lib/supabase/services/analytics.service"
+import { type TenantWithStats } from "@/lib/supabase/services/tenant.service"
+import { type GlobalAnalytics } from "@/lib/supabase/services/analytics.service"
 import { Spinner } from "@/components/ui/spinner"
 import { TenantDetailsDialog } from "./tenant-details-dialog"
 import { CreateTenantDialog } from "./create-tenant-dialog"
@@ -80,7 +80,11 @@ export function AdminDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getAllTenants()
+      const response = await fetch('/api/admin/tenants')
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenants')
+      }
+      const { tenants: data } = await response.json()
       setTenants(data)
     } catch (err) {
       console.error('Failed to load tenants:', err)
@@ -93,7 +97,11 @@ export function AdminDashboard() {
   const loadGlobalAnalytics = async () => {
     try {
       setAnalyticsLoading(true)
-      const analytics = await AnalyticsService.getGlobalAnalytics()
+      const response = await fetch('/api/admin/analytics')
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics')
+      }
+      const { analytics } = await response.json()
       setGlobalAnalytics(analytics)
     } catch (err) {
       console.error('Failed to load analytics:', err)
@@ -207,12 +215,12 @@ export function AdminDashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            {/* <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
                 5
               </span>
-            </Button>
+            </Button> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 px-2">
