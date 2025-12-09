@@ -47,10 +47,9 @@ export async function GET(request: NextRequest) {
           // Get mechanic count
           const { count: mechanicCount } = await supabaseAdmin
             .schema('tenant')
-            .from('users')
+            .from('mechanics')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenant.id)
-            .eq('role', 'mechanic')
             .eq('is_active', true)
 
           // Get total revenue from invoices
