@@ -62,9 +62,6 @@ export async function GET(request: NextRequest) {
 
           const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
 
-          // Extract metadata
-          const metadata = tenant.metadata as any || {}
-
           return {
             ...tenant,
             customer_count: customerCount || 0,
@@ -72,8 +69,6 @@ export async function GET(request: NextRequest) {
             completed_jobs: completedJobsCount || 0,
             mechanic_count: mechanicCount || 0,
             total_revenue: totalRevenue,
-            status: metadata.status || 'active',
-            subscription: metadata.subscription || 'pro',
           }
         } catch (err) {
           console.error(`[TENANT_LIST] Error fetching stats for tenant ${tenant.id}:`, err)
@@ -85,8 +80,6 @@ export async function GET(request: NextRequest) {
             completed_jobs: 0,
             mechanic_count: 0,
             total_revenue: 0,
-            status: 'active' as const,
-            subscription: 'pro' as const,
           }
         }
       })
