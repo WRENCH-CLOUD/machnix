@@ -104,7 +104,18 @@ CREATE POLICY tenants_insert
 <<<<<<< Updated upstream
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_tenant_users_role ON tenant.users(role);
-CREATE INDEX IF NOT EXISTS idx_platform_admins_role ON public.platform_admins(role);
+
+-- Only create index for platform_admins if the table exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'platform_admins'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_platform_admins_role ON public.platform_admins(role);
+    END IF;
+END $$;
 
 -- Add comments for documentation
 COMMENT ON TYPE tenant.user_role IS 'Roles available for tenant users: tenant (garage owner/admin), mechanic (technician)';

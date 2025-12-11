@@ -137,16 +137,16 @@ export class PaymentService {
   }
 
   /**
-   * Get payment transactions for a payment
+   * Get payment transactions for an invoice
    */
-  static async getPaymentTransactions(paymentId: string): Promise<PaymentTransaction[]> {
+  static async getPaymentTransactionsByInvoice(invoiceId: string): Promise<PaymentTransaction[]> {
     const tenantId = ensureTenantContext()
     
     const { data, error } = await supabase
       .schema('tenant')
       .from('payment_transactions')
       .select('*')
-      .eq('payment_id', paymentId)
+      .eq('invoice_id', invoiceId)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
     
@@ -157,12 +157,13 @@ export class PaymentService {
   /**
    * Initiate Razorpay payment
    */
-  static async initiateRazorpayPayment(paymentId: string, razorpayOrderId: string): Promise<PaymentTransaction> {
+  static async initiateRazorpayPayment(invoiceId: string, amount: number, razorpayOrderId: string): Promise<PaymentTransaction> {
     return this.addPaymentTransaction({
-      payment_id: paymentId,
-      gateway: 'razorpay',
-      transaction_id: razorpayOrderId,
-      status: 'pending',
+      invoice_id: invoiceId,
+      mode: 'razorpay',
+      amount: amount,
+      razorpay_order_id: razorpayOrderId,
+      status: 'initiated',
     })
   }
 
@@ -170,10 +171,10 @@ export class PaymentService {
    * Complete Razorpay payment
    */
   static async completeRazorpayPayment(
-    transactionId: string,
+    razorpayOrderId: string,
     razorpayPaymentId: string,
-    status: 'success' | 'failed',
-    response?: any
+    razorpaySignature: string,
+    status: 'success' | 'failed'
   ): Promise<PaymentTransaction> {
     const tenantId = ensureTenantContext()
     
@@ -183,14 +184,170 @@ export class PaymentService {
       .update({
         status,
         razorpay_payment_id: razorpayPaymentId,
-        gateway_response: response,
+        razorpay_signature: razorpaySignature,
+        paid_at: status === 'success' ? new Date().toISOString() : null,
       })
-      .eq('transaction_id', transactionId)
+      .eq('razorpay_order_id', razorpayOrderId)
       .eq('tenant_id', tenantId)
       .select()
       .single()
     
     if (error) throw error
     return data
+  }
+
+  /**
+   * Mark invoice as paid and complete the job in a single atomic operation
+   */
+  static async markPaidAndComplete(
+    invoiceId: string,
+    jobId: string,
+    paymentMethod: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'other',
+    referenceId?: string
+  ): Promise<{ payment: Payment; invoice: Invoice }> {
+    const tenantId = ensureTenantContext()
+    
+    try {
+      console.log('[markPaidAndComplete] Starting payment process:', { invoiceId, jobId, paymentMethod, referenceId })
+      
+      // Get invoice with estimate to get current totals
+      const { data: invoice, error: invoiceError } = await supabase
+        .schema('tenant')
+        .from('invoices')
+        .select(`
+          *,
+          estimate:estimate_id (
+            parts_total,
+            labor_total,
+            tax_amount,
+            total_amount
+          )
+        `)
+        .eq('id', invoiceId)
+        .eq('tenant_id', tenantId)
+        .single()
+      
+      if (invoiceError) {
+        console.error('[markPaidAndComplete] Invoice fetch error:', invoiceError)
+        throw new Error(`Failed to fetch invoice: ${invoiceError.message || JSON.stringify(invoiceError)}`)
+      }
+      if (!invoice) {
+        throw new Error('Invoice not found')
+      }
+      
+      console.log('[markPaidAndComplete] Invoice found:', { 
+        id: invoice.id, 
+        total: invoice.total_amount,
+        paid: invoice.paid_amount 
+      })
+      
+      // Get current totals from estimate
+      const estimate = invoice.estimate as any
+      const currentTotal = estimate ? estimate.total_amount : invoice.total_amount
+      const currentPaid = invoice.paid_amount || 0
+      const amountDue = currentTotal - currentPaid
+      
+      console.log('[markPaidAndComplete] Calculated amounts:', {
+        currentTotal,
+        currentPaid,
+        amountDue
+      })
+      
+      // If estimate exists, sync invoice totals first
+      if (estimate) {
+        const currentSubtotal = estimate.parts_total + estimate.labor_total
+        
+        console.log('[markPaidAndComplete] Syncing invoice with estimate totals')
+        const { error: syncError } = await supabase
+          .schema('tenant')
+          .from('invoices')
+          .update({
+            subtotal: currentSubtotal,
+            tax_amount: estimate.tax_amount,
+            total_amount: currentTotal,
+          })
+          .eq('id', invoiceId)
+          .eq('tenant_id', tenantId)
+        
+        if (syncError) {
+          console.error('[markPaidAndComplete] Invoice sync error:', syncError)
+          throw new Error(`Failed to sync invoice: ${syncError.message || JSON.stringify(syncError)}`)
+        }
+        console.log('[markPaidAndComplete] Invoice synced successfully')
+      }
+      
+      // Create payment record
+      console.log('[markPaidAndComplete] Creating payment record for amount:', amountDue)
+      const { data: payment, error: paymentError } = await supabase
+        .schema('tenant')
+        .from('payments')
+        .insert({
+          tenant_id: tenantId,
+          invoice_id: invoiceId,
+          amount: amountDue,
+          payment_method: paymentMethod,
+          reference_number: referenceId || null,
+          payment_date: new Date().toISOString(),
+          status: 'completed',
+          paid_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+      
+      if (paymentError) {
+        console.error('[markPaidAndComplete] Payment creation error:', paymentError)
+        throw new Error(`Failed to create payment: ${paymentError.message || JSON.stringify(paymentError)}`)
+      }
+      
+      console.log('[markPaidAndComplete] Payment created:', payment.id)
+      
+      // Update invoice to mark as paid
+      console.log('[markPaidAndComplete] Updating invoice to paid status')
+      const { data: updatedInvoice, error: updateInvoiceError } = await supabase
+        .schema('tenant')
+        .from('invoices')
+        .update({
+          paid_amount: currentTotal,
+          status: 'paid',
+        })
+        .eq('id', invoiceId)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single()
+      
+      if (updateInvoiceError) {
+        console.error('[markPaidAndComplete] Invoice update error:', updateInvoiceError)
+        throw new Error(`Failed to update invoice: ${updateInvoiceError.message || JSON.stringify(updateInvoiceError)}`)
+      }
+      
+      console.log('[markPaidAndComplete] Invoice updated to paid')
+      
+      // Update job status to completed
+      console.log('[markPaidAndComplete] Updating job to completed status')
+      const { error: jobUpdateError } = await supabase
+        .schema('tenant')
+        .from('jobcards')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
+        .eq('tenant_id', tenantId)
+      
+      if (jobUpdateError) {
+        console.error('[markPaidAndComplete] Job update error:', jobUpdateError)
+        throw new Error(`Failed to update job: ${jobUpdateError.message || JSON.stringify(jobUpdateError)}`)
+      }
+      
+      console.log('[markPaidAndComplete] Job marked as completed successfully')
+      
+      return { payment, invoice: updatedInvoice }
+    } catch (error) {
+      console.error('[markPaidAndComplete] Unexpected error:', error)
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('An unexpected error occurred during payment processing')
+    }
   }
 }

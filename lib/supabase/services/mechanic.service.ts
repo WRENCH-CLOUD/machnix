@@ -25,6 +25,14 @@ export class MechanicService {
   }
 
   /**
+   * Get all active mechanics for the current tenant
+   * Alias for getMechanics - can be filtered if there's an is_active column
+   */
+  static async getActive(): Promise<Mechanic[]> {
+    return this.getMechanics()
+  }
+
+  /**
    * Get a single mechanic by ID
    */
   static async getMechanicById(mechanicId: string): Promise<Mechanic> {
