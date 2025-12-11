@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { setTenantUserClaims } from '@/lib/auth/set-jwt-claims'
+import { JWT_ROLES } from '@/lib/auth/jwt-claims'
 
 interface CreateTenantRequest {
   tenantName: string
@@ -111,8 +113,11 @@ export async function POST(request: NextRequest) {
       user_metadata: {
         name: body.adminName,
         phone: body.adminPhone || null,
+<<<<<<< Updated upstream
         role: 'tenant_admin',
         tenant_id: newTenant.id,
+=======
+>>>>>>> Stashed changes
         tenant_name: body.tenantName,
       },
     })
@@ -132,7 +137,35 @@ export async function POST(request: NextRequest) {
 
     console.log(`[TENANT_CREATE] Auth user created: ${authUser.user.id}`)
 
+    // STEP 4b: Set JWT claims via app_metadata
+    // This is CRITICAL - sets 'role' and 'tenant_id' in the JWT for RLS
+    console.log(`[TENANT_CREATE] Setting JWT claims (role: tenant_owner, tenant_id: ${newTenant.id})`)
+    
+    const jwtResult = await setTenantUserClaims(
+      supabaseAdmin,
+      authUser.user.id,
+      JWT_ROLES.TENANT_OWNER,
+      newTenant.id
+    )
+
+    if (!jwtResult.success) {
+      console.error('[TENANT_CREATE] Failed to set JWT claims:', jwtResult.error)
+      
+      // Rollback: Delete auth user and tenant
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+      await supabaseAdmin
+        .schema('tenant')
+        .from('tenants')
+        .delete()
+        .eq('id', newTenant.id)
+      
+      throw new Error('Failed to set JWT claims for admin user')
+    }
+
+    console.log(`[TENANT_CREATE] JWT claims set successfully`)
+
     // STEP 5: Create mapping in tenant.users
+    // Note: The 'role' here is for the tenant.users table, separate from JWT claims
     const { error: userMappingError } = await supabaseAdmin
       .schema('tenant')
       .from('users')
@@ -142,7 +175,11 @@ export async function POST(request: NextRequest) {
         name: body.adminName,
         email: body.adminEmail,
         phone: body.adminPhone || null,
+<<<<<<< Updated upstream
         role: 'tenant_admin',
+=======
+        role: 'tenant', // tenant.users role (matches tenant.user_role enum)
+>>>>>>> Stashed changes
         is_active: true,
       })
 
