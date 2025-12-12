@@ -15,50 +15,22 @@ SET row_security = off;
 
 
 
-ALTER SCHEMA "public" OWNER TO "postgres";
+-- ALTER SCHEMA "public" OWNER TO "postgres";
 
 
 CREATE SCHEMA IF NOT EXISTS "tenant";
 
 
-ALTER SCHEMA "tenant" OWNER TO "postgres";
+-- ALTER SCHEMA "tenant" OWNER TO "postgres";
 
-
-CREATE SCHEMA IF NOT EXISTS "vehicle_data";
-
-
-ALTER SCHEMA "vehicle_data" OWNER TO "postgres";
-
-
+ -- TODO: Review GraphQL extension necessity with team
 CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
-
-
-
-
-
 
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
 
-
-
-
-
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 
-
-
-
-
-
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
-
-
-
-
-
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
@@ -68,11 +40,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 CREATE TYPE "tenant"."Roles" AS ENUM (
     'admin',
     'tenant',
-    'mechanic'
+    'mechanic',
+    'employee',
 );
-
-
-ALTER TYPE "tenant"."Roles" OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."decrement_mechanic_active_jobs"("mechanic_id" "uuid") RETURNS "void"
@@ -87,7 +57,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."decrement_mechanic_active_jobs"("mechanic_id" "uuid") OWNER TO "postgres";
+-- ALTER FUNCTION "public"."decrement_mechanic_active_jobs"("mechanic_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_or_create_user_tenant"("user_id" "uuid") RETURNS "uuid"
@@ -132,7 +102,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_or_create_user_tenant"("user_id" "uuid") OWNER TO "postgres";
+-- ALTER FUNCTION "public"."get_or_create_user_tenant"("user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
@@ -195,7 +165,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
+-- ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."increment_mechanic_active_jobs"("mechanic_id" "uuid") RETURNS "void"
@@ -211,7 +181,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."increment_mechanic_active_jobs"("mechanic_id" "uuid") OWNER TO "postgres";
+-- ALTER FUNCTION "public"."increment_mechanic_active_jobs"("mechanic_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."set_config"("parameter" "text", "value" "text") RETURNS "void"
@@ -223,7 +193,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."set_config"("parameter" "text", "value" "text") OWNER TO "postgres";
+-- ALTER FUNCTION "public"."set_config"("parameter" "text", "value" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."test_tenant_insert"() RETURNS "jsonb"
@@ -267,7 +237,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."test_tenant_insert"() OWNER TO "postgres";
+-- ALTER FUNCTION "public"."test_tenant_insert"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."calculate_invoice_totals"("invoice_id_param" "uuid") RETURNS "void"
@@ -300,7 +270,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "tenant"."calculate_invoice_totals"("invoice_id_param" "uuid") OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."calculate_invoice_totals"("invoice_id_param" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."current_tenant"() RETURNS "uuid"
@@ -314,7 +284,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "tenant"."current_tenant"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."current_tenant"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."current_tenant_id"() RETURNS "uuid"
@@ -324,7 +294,7 @@ CREATE OR REPLACE FUNCTION "tenant"."current_tenant_id"() RETURNS "uuid"
 $$;
 
 
-ALTER FUNCTION "tenant"."current_tenant_id"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."current_tenant_id"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."generate_estimate_number"() RETURNS "trigger"
@@ -365,7 +335,7 @@ END;
 $_$;
 
 
-ALTER FUNCTION "tenant"."generate_estimate_number"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."generate_estimate_number"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."generate_invoice_number"() RETURNS "trigger"
@@ -406,7 +376,7 @@ END;
 $_$;
 
 
-ALTER FUNCTION "tenant"."generate_invoice_number"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."generate_invoice_number"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."generate_job_number"() RETURNS "trigger"
@@ -447,7 +417,7 @@ END;
 $_$;
 
 
-ALTER FUNCTION "tenant"."generate_job_number"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."generate_job_number"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."touch_updated_at"() RETURNS "trigger"
@@ -462,7 +432,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "tenant"."touch_updated_at"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."touch_updated_at"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."update_part_stock"() RETURNS "trigger"
@@ -485,7 +455,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "tenant"."update_part_stock"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."update_part_stock"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "tenant"."update_updated_at_column"() RETURNS "trigger"
@@ -498,7 +468,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "tenant"."update_updated_at_column"() OWNER TO "postgres";
+-- ALTER FUNCTION "tenant"."update_updated_at_column"() OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -511,7 +481,7 @@ CREATE TABLE IF NOT EXISTS "public"."schema_migrations" (
 );
 
 
-ALTER TABLE "public"."schema_migrations" OWNER TO "postgres";
+-- ALTER TABLE "public"."schema_migrations" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."vehicle_category" (
@@ -521,7 +491,7 @@ CREATE TABLE IF NOT EXISTS "public"."vehicle_category" (
 );
 
 
-ALTER TABLE "public"."vehicle_category" OWNER TO "postgres";
+-- ALTER TABLE "public"."vehicle_category" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."vehicle_make" (
@@ -532,7 +502,7 @@ CREATE TABLE IF NOT EXISTS "public"."vehicle_make" (
 );
 
 
-ALTER TABLE "public"."vehicle_make" OWNER TO "postgres";
+-- ALTER TABLE "public"."vehicle_make" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."vehicle_model" (
@@ -545,7 +515,7 @@ CREATE TABLE IF NOT EXISTS "public"."vehicle_model" (
 );
 
 
-ALTER TABLE "public"."vehicle_model" OWNER TO "postgres";
+-- ALTER TABLE "public"."vehicle_model" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."activities" (
@@ -564,7 +534,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."activities" (
 );
 
 
-ALTER TABLE "tenant"."activities" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."activities" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."customer_communications" (
@@ -583,7 +553,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."customer_communications" (
 );
 
 
-ALTER TABLE "tenant"."customer_communications" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."customer_communications" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."customers" (
@@ -599,7 +569,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."customers" (
 );
 
 
-ALTER TABLE "tenant"."customers" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."customers" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."dvi_checkpoint_categories" (
@@ -614,7 +584,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."dvi_checkpoint_categories" (
 );
 
 
-ALTER TABLE "tenant"."dvi_checkpoint_categories" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."dvi_checkpoint_categories" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."dvi_checkpoints" (
@@ -631,7 +601,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."dvi_checkpoints" (
 );
 
 
-ALTER TABLE "tenant"."dvi_checkpoints" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."dvi_checkpoints" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."dvi_items" (
@@ -646,7 +616,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."dvi_items" (
 );
 
 
-ALTER TABLE "tenant"."dvi_items" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."dvi_items" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."dvi_photos" (
@@ -660,7 +630,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."dvi_photos" (
 );
 
 
-ALTER TABLE "tenant"."dvi_photos" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."dvi_photos" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."dvi_templates" (
@@ -674,7 +644,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."dvi_templates" (
 );
 
 
-ALTER TABLE "tenant"."dvi_templates" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."dvi_templates" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."estimate_items" (
@@ -692,7 +662,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."estimate_items" (
 );
 
 
-ALTER TABLE "tenant"."estimate_items" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."estimate_items" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."estimates" (
@@ -721,7 +691,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."estimates" (
 );
 
 
-ALTER TABLE "tenant"."estimates" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."estimates" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."inventory_transactions" (
@@ -739,7 +709,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."inventory_transactions" (
 );
 
 
-ALTER TABLE "tenant"."inventory_transactions" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."inventory_transactions" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."invoices" (
@@ -770,7 +740,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."invoices" (
 );
 
 
-ALTER TABLE "tenant"."invoices" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."invoices" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."jobcards" (
@@ -788,7 +758,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."jobcards" (
 );
 
 
-ALTER TABLE "tenant"."jobcards" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."jobcards" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."mechanics" (
@@ -803,7 +773,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."mechanics" (
 );
 
 
-ALTER TABLE "tenant"."mechanics" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."mechanics" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."notifications" (
@@ -826,7 +796,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."notifications" (
 );
 
 
-ALTER TABLE "tenant"."notifications" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."notifications" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."part_usages" (
@@ -840,7 +810,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."part_usages" (
 );
 
 
-ALTER TABLE "tenant"."part_usages" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."part_usages" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."parts" (
@@ -859,7 +829,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."parts" (
 );
 
 
-ALTER TABLE "tenant"."parts" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."parts" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."payment_transactions" (
@@ -880,7 +850,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."payment_transactions" (
 );
 
 
-ALTER TABLE "tenant"."payment_transactions" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."payment_transactions" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."payments" (
@@ -900,7 +870,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."payments" (
 );
 
 
-ALTER TABLE "tenant"."payments" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."payments" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."razorpay_settings" (
@@ -913,7 +883,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."razorpay_settings" (
 );
 
 
-ALTER TABLE "tenant"."razorpay_settings" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."razorpay_settings" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."settings" (
@@ -935,7 +905,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."settings" (
 );
 
 
-ALTER TABLE "tenant"."settings" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."settings" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."tenants" (
@@ -949,7 +919,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."tenants" (
 ALTER TABLE ONLY "tenant"."tenants" FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "tenant"."tenants" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."tenants" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."users" (
@@ -970,7 +940,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."users" (
 ALTER TABLE ONLY "tenant"."users" FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "tenant"."users" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."users" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "tenant"."vehicles" (
@@ -988,7 +958,7 @@ CREATE TABLE IF NOT EXISTS "tenant"."vehicles" (
 );
 
 
-ALTER TABLE "tenant"."vehicles" OWNER TO "postgres";
+-- ALTER TABLE "tenant"."vehicles" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "tenant"."v_vehicle_full" AS
@@ -1009,7 +979,7 @@ CREATE OR REPLACE VIEW "tenant"."v_vehicle_full" AS
      LEFT JOIN "public"."vehicle_make" "m" ON (("m"."id" = "v"."make_id")));
 
 
-ALTER VIEW "tenant"."v_vehicle_full" OWNER TO "postgres";
+-- ALTER VIEW "tenant"."v_vehicle_full" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."schema_migrations"
@@ -1706,14 +1676,15 @@ ALTER TABLE ONLY "tenant"."razorpay_settings"
     ADD CONSTRAINT "razorpay_settings_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenant"."tenants"("id") ON DELETE CASCADE;
 
 
+-- make auth_user_id unique (if not already)
+ALTER TABLE "tenant"."users"
+  ADD CONSTRAINT users_auth_user_id_unique UNIQUE (auth_user_id);
 
-ALTER TABLE ONLY "tenant"."users"
-    ADD CONSTRAINT "users_auth_user_id_fkey" FOREIGN KEY ("auth_user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+-- change FK behavior to SET NULL (safer)
+ALTER TABLE "tenant"."users"
+  ADD CONSTRAINT users_auth_user_id_fkey
+  FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
-
-
-ALTER TABLE ONLY "tenant"."users"
-    ADD CONSTRAINT "users_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenant"."tenants"("id") ON DELETE CASCADE;
 
 
 
@@ -2003,7 +1974,7 @@ CREATE POLICY "tenants_select_policy" ON "tenant"."tenants" FOR SELECT USING (tr
 
 
 
-ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+-- ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
 
@@ -2026,180 +1997,12 @@ GRANT USAGE ON SCHEMA "tenant" TO "service_role";
 GRANT USAGE ON SCHEMA "tenant" TO "authenticated";
 GRANT USAGE ON SCHEMA "tenant" TO "anon";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 GRANT ALL ON FUNCTION "public"."get_or_create_user_tenant"("user_id" "uuid") TO "authenticated";
 
 
 
 GRANT ALL ON FUNCTION "public"."test_tenant_insert"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."test_tenant_insert"() TO "anon";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 GRANT SELECT ON TABLE "public"."schema_migrations" TO "anon";
@@ -2403,13 +2206,6 @@ GRANT SELECT ON TABLE "tenant"."v_vehicle_full" TO "app_mechanic";
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "tenant"."v_vehicle_full" TO "authenticated";
 
 
-
-
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT SELECT,USAGE ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT SELECT,USAGE ON SEQUENCES TO "authenticated";
 
@@ -2429,31 +2225,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "tenant" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "tenant" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "tenant" GRANT SELECT,INSERT,DELETE,UPDATE ON TABLES TO "app_tenant";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "tenant" GRANT SELECT ON TABLES TO "app_mechanic";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
