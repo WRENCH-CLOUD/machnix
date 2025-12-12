@@ -74,9 +74,6 @@ export async function GET(
 
     const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
 
-    // Extract metadata
-    const metadata = tenant.metadata as any || {}
-
     const tenantWithStats = {
       ...tenant,
       customer_count: customerCount || 0,
@@ -84,8 +81,6 @@ export async function GET(
       completed_jobs: completedJobsCount || 0,
       mechanic_count: mechanicCount || 0,
       total_revenue: totalRevenue,
-      status: metadata.status || 'active',
-      subscription: metadata.subscription || 'pro',
     }
 
     return NextResponse.json({

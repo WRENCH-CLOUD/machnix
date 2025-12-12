@@ -6,14 +6,13 @@ export type TenantInsert = Database['tenant']['Tables']['tenants']['Insert']
 export type TenantUpdate = Database['tenant']['Tables']['tenants']['Update']
 
 // Extended tenant type with computed stats
+// Note: status and subscription are now actual columns in the database, not computed
 export interface TenantWithStats extends Tenant {
   customer_count?: number
   active_jobs?: number
   completed_jobs?: number
   mechanic_count?: number
   total_revenue?: number
-  status?: 'active' | 'suspended' | 'trial'
-  subscription?: 'starter' | 'pro' | 'enterprise'
 }
 
 /**
@@ -82,8 +81,6 @@ export async function getAllTenants(): Promise<TenantWithStats[]> {
           completed_jobs: completedJobsCount || 0,
           mechanic_count: mechanicCount || 0,
           total_revenue: totalRevenue,
-          status: 'active' as const,
-          subscription: 'pro' as const,
         }
       } catch (err) {
         console.error(`Error fetching stats for tenant ${tenant.id}:`, err)
@@ -94,8 +91,6 @@ export async function getAllTenants(): Promise<TenantWithStats[]> {
           completed_jobs: 0,
           mechanic_count: 0,
           total_revenue: 0,
-          status: 'active' as const,
-          subscription: 'pro' as const,
         }
       }
     })
