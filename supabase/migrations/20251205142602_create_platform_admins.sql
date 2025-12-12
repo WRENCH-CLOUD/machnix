@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS public.platform_admins (
   auth_user_id uuid NOT NULL UNIQUE,
   name text NOT NULL,
   email text NOT NULL UNIQUE,
-  phone text,
+  phone text, 
+  role text DEFAULT 'admin' check (role IN ('admin', 'platform_admin' , 'employee')),
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -54,56 +55,25 @@ DROP POLICY IF EXISTS platform_admins_select_for_admins ON public.platform_admin
 DROP POLICY IF EXISTS platform_admins_insert_for_admins ON public.platform_admins;
 DROP POLICY IF EXISTS platform_admins_update_for_admins ON public.platform_admins;
 
--- Policy: service_role (full access) via JWT claim
--- Note: Supabase service role often has elevated privileges; using this JWT claim lets you bypass RLS for service tokens.
-CREATE POLICY platform_admins_service_role_all
+-- Policy: Full access for service_role and platform_admin JWT claims
+-- IMPORTANT: Uses JWT claims to avoid infinite recursion
+-- JWT claims are set via app_metadata when user is created
+CREATE POLICY platform_admins_all
   ON public.platform_admins
   FOR ALL
-  USING ( (auth.jwt() ->> 'role') = 'service_role' );
-
--- Policy: allow active platform admins (by auth_user_id) to SELECT
-CREATE POLICY platform_admins_select_for_admins
-  ON public.platform_admins
-  FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM public.platform_admins pa
-      WHERE pa.auth_user_id = auth.uid() AND pa.is_active = true
-    )
-    OR (auth.jwt() ->> 'role') = 'service_role'
-  );
-
--- Policy: allow active platform admins to INSERT (they can insert new admins)
-CREATE POLICY platform_admins_insert_for_admins
-  ON public.platform_admins
-  FOR INSERT
-  WITH CHECK (
-    ( (auth.jwt() ->> 'role') = 'service_role' )
-    OR (
-      EXISTS (
-        SELECT 1 FROM public.platform_admins pa
-        WHERE pa.auth_user_id = auth.uid() AND pa.is_active = true
-      )
-    )
-  );
-
--- Policy: allow active platform admins to UPDATE their record or others
-CREATE POLICY platform_admins_update_for_admins
-  ON public.platform_admins
-  FOR UPDATE
-  USING (
+    -- Service role has full access
     (auth.jwt() ->> 'role') = 'service_role'
-    OR EXISTS (
-      SELECT 1 FROM public.platform_admins pa
-      WHERE pa.auth_user_id = auth.uid() AND pa.is_active = true
-    )
+    OR
+    -- Platform admins (via JWT claim) have full access
+    (auth.jwt() ->> 'role') = 'platform_admin'
+    OR
+    -- Users can access their own record (for reading profile)
+    auth_user_id = auth.uid()
   )
   WITH CHECK (
-    (auth.jwt() ->> 'role') = 'service_role'
-    OR EXISTS (
-      SELECT 1 FROM public.platform_admins pa
-      WHERE pa.auth_user_id = auth.uid() AND pa.is_active = true
-    )
+    -- Only service_role and platform_admin can INSERT/UPDATE
+    (auth.jwt() ->> 'role') IN ('service_role', 'platform_admin')
   );
 
 -- Grants: allow authenticated to SELECT/INSERT/UPDATE subject to RLS policies

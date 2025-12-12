@@ -118,15 +118,8 @@ export async function POST(request: NextRequest) {
       user_metadata: {
         name: body.adminName,
         phone: body.adminPhone || null,
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        role: 'tenant_admin',
-=======
         role: 'tenant', // Changed from 'tenant_admin' to match enum
->>>>>>> origin/Dev
         tenant_id: newTenant.id,
-=======
->>>>>>> Stashed changes
         tenant_name: body.tenantName,
       },
     })
@@ -184,15 +177,13 @@ export async function POST(request: NextRequest) {
         name: body.adminName,
         email: body.adminEmail,
         phone: body.adminPhone || null,
-<<<<<<< HEAD
-<<<<<<< Updated upstream
+
         role: 'tenant_admin',
-=======
+
         role: 'tenant', // tenant.users role (matches tenant.user_role enum)
->>>>>>> Stashed changes
-=======
+
         role: 'tenant', // Changed from 'tenant_admin' to match enum (tenant.user_role)
->>>>>>> origin/Dev
+
         is_active: true,
       })
 

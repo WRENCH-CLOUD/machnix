@@ -41,6 +41,10 @@
 
 -- Drop all existing RLS policies to rebuild them with standardized claims
 DROP POLICY IF EXISTS platform_admins_service_role_all ON public.platform_admins;
+DROP POLICY IF EXISTS platform_admins_all ON public.platform_admins;
+DROP POLICY IF EXISTS platform_admins_select_for_admins ON public.platform_admins;
+DROP POLICY IF EXISTS platform_admins_insert_for_admins ON public.platform_admins;
+DROP POLICY IF EXISTS platform_admins_update_for_admins ON public.platform_admins;
 DROP POLICY IF EXISTS tenants_select ON tenant.tenants;
 DROP POLICY IF EXISTS tenants_insert ON tenant.tenants;
 DROP POLICY IF EXISTS tenants_update ON tenant.tenants;
@@ -67,19 +71,12 @@ CREATE POLICY platform_admins_all
     -- Platform admins have full access
     (auth.jwt() ->> 'role') = 'platform_admin'
     OR
-    -- Users can access their own record
-    EXISTS (
-      SELECT 1 
-      FROM public.platform_admins pa
-      WHERE pa.auth_user_id = auth.uid() 
-        AND pa.is_active = true
-    )
+    -- Users can access their own record (avoid infinite recursion)
+    auth_user_id = auth.uid()
   )
   WITH CHECK (
-    -- Same rules for INSERT/UPDATE
-    (auth.jwt() ->> 'role') = 'service_role'
-    OR
-    (auth.jwt() ->> 'role') = 'platform_admin'
+    -- Only service_role and platform_admin can INSERT/UPDATE
+    (auth.jwt() ->> 'role') IN ('service_role', 'platform_admin')
   );
 
 -- ============================================================================

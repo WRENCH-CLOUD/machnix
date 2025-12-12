@@ -898,6 +898,13 @@ REVOKE ALL ON SCHEMA tenant FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA tenant TO authenticated;
 
+-- Grant schema access to service_role (bypasses RLS, for admin operations)
+GRANT ALL ON SCHEMA public TO service_role;
+GRANT ALL ON SCHEMA tenant TO service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA tenant TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA tenant TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA tenant TO service_role;
+
 -- Grant table-level privileges to authenticated (do not grant ALL globally, rely on RLS)
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA tenant TO authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;

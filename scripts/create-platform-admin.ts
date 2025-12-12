@@ -15,10 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import * as fs from 'fs'
-<<<<<<< HEAD
 import { setPlatformAdminClaims } from '../lib/auth/set-jwt-claims'
-=======
->>>>>>> origin/Dev
 
 // Load .env.local file
 const envPath = path.join(process.cwd(), '.env.local')
@@ -89,7 +86,6 @@ async function createPlatformAdmin() {
         
         console.log('✅ Found existing user:', existingUser.id)
         
-<<<<<<< HEAD
         // Step 2: Set JWT claims for existing user
         console.log('\n📝 Step 2: Setting JWT claims (role: platform_admin)...')
         const jwtResult = await setPlatformAdminClaims(supabase, existingUser.id)
@@ -103,10 +99,6 @@ async function createPlatformAdmin() {
         
         // Step 3: Create platform_admins entry
         console.log('\n📝 Step 3: Creating platform_admins entry...')
-=======
-        // Step 2: Create platform_admins entry
-        console.log('\n📝 Step 2: Creating platform_admins entry...')
->>>>>>> origin/Dev
         const { data: adminData, error: adminError } = await supabase
           .from('platform_admins')
           .insert({
@@ -146,7 +138,6 @@ async function createPlatformAdmin() {
     console.log('✅ Auth user created:', authData.user.id)
     console.log('   Email:', authData.user.email)
 
-<<<<<<< HEAD
     // Step 2: Set JWT claims via app_metadata
     console.log('\n📝 Step 2: Setting JWT claims (role: platform_admin)...')
     const jwtResult = await setPlatformAdminClaims(supabase, authData.user.id)
@@ -162,10 +153,6 @@ async function createPlatformAdmin() {
 
     // Step 3: Create platform_admins entry
     console.log('\n📝 Step 3: Creating platform_admins entry...')
-=======
-    // Step 2: Create platform_admins entry
-    console.log('\n📝 Step 2: Creating platform_admins entry...')
->>>>>>> origin/Dev
     const { data: adminData, error: adminError } = await supabase
       .from('platform_admins')
       .insert({
