@@ -116,7 +116,7 @@ export async function setUserJwtClaims(
     }
 
     // Update user via Admin API
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       {
         app_metadata: appMetadata,

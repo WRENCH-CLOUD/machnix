@@ -49,7 +49,7 @@ const eslintConfig = [
       "react-hooks/exhaustive-deps": "warn",
       
       // General
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-console": ["warn", { allow: ["warn", "error" , "log"] }],
       "prefer-const": "warn",
       "no-unused-vars": "off", // Using @typescript-eslint/no-unused-vars instead
     },

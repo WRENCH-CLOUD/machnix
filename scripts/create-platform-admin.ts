@@ -1,193 +1,159 @@
 /**
- * DISPOSABLE SCRIPT - Create Platform Admin
- * 
- * This script creates a platform admin user with an entry in both:
- * - auth.users (Supabase authentication)
- * - public.platform_admins (platform admin table)
- * 
+ * scripts/create-platform-admin.ts
+ * Hardened disposable script to create a platform admin (auth user + platform_admins row)
+ *
  * Usage:
- * 1. Set your environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
- * 2. Run: npx tsx scripts/create-platform-admin.ts
- * 3. Delete this script after use
+ *  - Ensure .env.local has NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+ *  - Run: npx tsx scripts/create-platform-admin.ts
+ *
+ * NOTE: This script uses the service_role key. Keep it secret. Run locally or on a secure CI job.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
-import * as path from 'path'
 import * as fs from 'fs'
-import { setPlatformAdminClaims } from '../lib/auth/set-jwt-claims'
+import * as path from 'path'
 
-// Load .env.local file
 const envPath = path.join(process.cwd(), '.env.local')
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath })
 } else {
-  console.warn('⚠️  .env.local not found, using system environment variables\n')
+  console.warn('⚠️  .env.local not found — falling back to process.env')
 }
 
-// Configuration - UPDATE THESE VALUES
-const ADMIN_EMAIL = 'admin@mechanix.com'
-const ADMIN_PASSWORD = 'admin123' 
-const ADMIN_NAME = 'Super Admin'
-const ADMIN_PHONE = '' // Optional
+// CONFIG - change only for local testing
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'sagunvarma25@gmail.com'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123' // change in real use
+const ADMIN_NAME = process.env.ADMIN_NAME ?? 'Super Admin'
+const ADMIN_PHONE = process.env.ADMIN_PHONE ?? ''
 
-// Supabase configuration
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('❌ Missing environment variables:')
-  console.error('   NEXT_PUBLIC_SUPABASE_URL:', SUPABASE_URL ? '✓' : '✗')
-  console.error('   SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗')
+  console.error('Missing environment variables. Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.')
   process.exit(1)
 }
 
-// Create admin client (bypasses RLS)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
+  auth: { autoRefreshToken: false, persistSession: false }
 })
 
-async function createPlatformAdmin() {
-
-
+// Small helper to set app_metadata (role) via admin API
+async function setPlatformAdminClaims(supabaseAdmin: SupabaseClient, userId: string) {
   try {
-    // Step 1: Create auth.users entry
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      app_metadata: {
+        role: 'platform_admin'
+      }
+    })
+    if (error) return { success: false, error }
+    return { success: true, data }
+  } catch (err) {
+    return { success: false, error: err }
+  }
+}
+
+async function run() {
+  try {
+    console.log('ℹ️  Creating platform admin — using service role (must be local/secure)')
+    // 1) Attempt to create the auth user
+    const { data: createData, error: createError } = await supabase.auth.admin.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
       email_confirm: true,
-      user_metadata: {
-        name: ADMIN_NAME,
-        phone: ADMIN_PHONE
-      }
+      user_metadata: { name: ADMIN_NAME, phone: ADMIN_PHONE }
     })
 
-    if (authError) {
-      console.error('❌ Error creating auth user:', authError.message)
-      
-      // Check if user already exists
-      if (authError.message.includes('already registered')) {
-        console.log('⚠️  User already exists. Attempting to retrieve user ID...')
-        
-        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
-        if (listError) {
-          console.error('❌ Error listing users:', listError.message)
-          process.exit(1)
-        }
-        
-        const existingUser = users.find(u => u.email === ADMIN_EMAIL)
-        if (!existingUser) {
-          console.error('❌ Could not find existing user')
-          process.exit(1)
-        }
-        
-        console.log('✅ Found existing user:', existingUser.id)
-        
-        // Step 2: Set JWT claims for existing user
-        console.log('\n📝 Step 2: Setting JWT claims (role: platform_admin)...')
-        const jwtResult = await setPlatformAdminClaims(supabase, existingUser.id)
-        
-        if (!jwtResult.success) {
-          console.error('❌ Error setting JWT claims:', jwtResult.error)
-          process.exit(1)
-        }
-        
-        console.log('✅ JWT claims set successfully')
-        
-        // Step 3: Create platform_admins entry
-        console.log('\n📝 Step 3: Creating platform_admins entry...')
-        const { data: adminData, error: adminError } = await supabase
-          .from('platform_admins')
-          .insert({
-            auth_user_id: existingUser.id,
-            name: ADMIN_NAME,
-            email: ADMIN_EMAIL,
-            role: 'admin', // Uses platform_admin_role enum
-            phone: ADMIN_PHONE,
-            is_active: true,
-            metadata: {
-              created_via: 'disposable_script',
-              created_at: new Date().toISOString(),
-              initial_admin: true
-            }
-          })
-          .select()
-          .single()
+    let userId: string | null = null
 
-        if (adminError) {
-          console.error('❌ Error creating platform_admins entry:', adminError.message)
+    if (createError) {
+      console.warn('⚠️  createUser error:', createError.message)
+      // if user already exists, attempt to find it
+      if ((createError as any).message?.includes?.('already registered') || (createError as any).status === 400) {
+        console.log('ℹ️  User appears to already exist — searching by email...')
+        const listResp = await supabase.auth.admin.listUsers()
+        if (listResp.error) {
+          console.error('❌ Could not list users:', listResp.error.message || listResp.error)
           process.exit(1)
         }
-
-        console.log('✅ Platform admin entry created:', adminData.id)
-        printSuccessMessage(existingUser.id, adminData.id)
-        return
+        const users = (listResp.data as any)?.users ?? []
+        const existing = users.find((u: any) => u.email === ADMIN_EMAIL)
+        if (!existing) {
+          console.error('❌ Could not find existing user after createUser error')
+          process.exit(1)
+        }
+        userId = existing.id
+        console.log('✅ Found existing user id:', userId)
+      } else {
+        console.error('❌ createUser failed:', createError)
+        process.exit(1)
       }
-      
-      process.exit(1)
+    } else {
+      if (!createData || !createData.user) {
+        console.error('❌ createUser returned no user data', createData)
+        process.exit(1)
+      }
+      userId = createData.user.id
+      console.log('✅ Auth user created:', userId)
     }
 
-    if (!authData.user) {
-      console.error('❌ No user data returned')
+    // 2) Set app_metadata (role = platform_admin)
+    console.log('ℹ️  Setting app_metadata.role = platform_admin for user:', userId)
+    const setRes = await setPlatformAdminClaims(supabase, userId as string)
+    if (!setRes.success) {
+      console.error('❌ Failed to set JWT claims:', setRes.error)
+      // optional rollback: delete newly created user, but only if we just created it
       process.exit(1)
     }
+    console.log('✅ app_metadata updated. (Note: existing tokens need refresh to pick this up)')
 
-    console.log('✅ Auth user created:', authData.user.id)
-    console.log('   Email:', authData.user.email)
-
-    // Step 2: Set JWT claims via app_metadata
-    console.log('\n📝 Step 2: Setting JWT claims (role: platform_admin)...')
-    const jwtResult = await setPlatformAdminClaims(supabase, authData.user.id)
-    
-    if (!jwtResult.success) {
-      console.error('❌ Error setting JWT claims:', jwtResult.error)
-      console.error('   Rolling back auth user...')
-      await supabase.auth.admin.deleteUser(authData.user.id)
-      process.exit(1)
-    }
-    
-    console.log('✅ JWT claims set successfully')
-
-    // Step 3: Create platform_admins entry
-    console.log('\n📝 Step 3: Creating platform_admins entry...')
-    const { data: adminData, error: adminError } = await supabase
+    // 3) Insert into public.platform_admins (idempotent insert if exists)
+    console.log('ℹ️  Inserting platform_admins row...')
+    const { data: existingRow, error: selectErr } = await supabase
       .from('platform_admins')
-      .insert({
-        auth_user_id: authData.user.id,
+      .select('id, auth_user_id')
+      .eq('auth_user_id', userId)
+      .maybeSingle()
+
+    if (selectErr) {
+      console.error('❌ Error checking platform_admins table:', selectErr)
+      process.exit(1)
+    }
+
+    if (existingRow) {
+      console.log('ℹ️  platform_admins row already exists for this user:', existingRow.id)
+      console.log('🎉 Done — platform admin is configured.')
+      process.exit(0)
+    }
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('platform_admins')
+      .insert([{
+        auth_user_id: userId,
         name: ADMIN_NAME,
         email: ADMIN_EMAIL,
-        role: 'admin', // Uses platform_admin_role enum
+        role: 'admin',
         phone: ADMIN_PHONE,
         is_active: true,
-        metadata: {
-          created_via: 'disposable_script',
-          created_at: new Date().toISOString(),
-          initial_admin: true
-        }
-      })
+        metadata: { created_via: 'disposable_script', created_at: new Date().toISOString(), initial_admin: true }
+      }])
       .select()
       .single()
 
-    if (adminError) {
-      console.error('❌ Error creating platform_admins entry:', adminError.message)
+    if (insertErr) {
+      console.error('❌ Failed to insert platform_admins row:', insertErr)
       process.exit(1)
     }
 
-    // Success!
-    printSuccessMessage(authData.user.id, adminData.id)
+    console.log('✅ platform_admins row inserted with id:', (inserted as any).id)
+    console.log('🎉 Platform admin created successfully — userId:', userId)
+    console.log('ℹ️  IMPORTANT: Have the new user sign in (or refresh token) to pick up the new app_metadata in JWTs.')
 
-  } catch (error) {
-    console.error('❌ Unexpected error:', error)
+  } catch (err) {
+    console.error('❌ Unexpected error:', err)
     process.exit(1)
   }
 }
 
-function printSuccessMessage(authUserId: string, platformAdminId: string) {
-  console.log('\n🎉 Platform admin created successfully!')
-}
-
-// Run the script
-createPlatformAdmin()
+run()

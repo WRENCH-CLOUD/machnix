@@ -176,11 +176,7 @@ export async function POST(request: NextRequest) {
         auth_user_id: authUser.user.id,
         name: body.adminName,
         email: body.adminEmail,
-        phone: body.adminPhone || null,
-
-        role: 'tenant_admin',
-
-        role: 'tenant', // tenant.users role (matches tenant.user_role enum)
+        phone: body.adminPhone || null,// tenant.users role (matches tenant.user_role enum)
 
         role: 'tenant', // Changed from 'tenant_admin' to match enum (tenant.user_role)
 
