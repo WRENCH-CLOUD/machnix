@@ -22,7 +22,7 @@ if (fs.existsSync(envPath)) {
 }
 
 // CONFIG - change only for local testing
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'sagunvarma25@gmail.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@mechanix.com'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123' // change in real use
 const ADMIN_NAME = process.env.ADMIN_NAME ?? 'Super Admin'
 const ADMIN_PHONE = process.env.ADMIN_PHONE ?? ''
@@ -133,7 +133,7 @@ async function run() {
         auth_user_id: userId,
         name: ADMIN_NAME,
         email: ADMIN_EMAIL,
-        role: 'admin',
+        role: 'platform_admin',
         phone: ADMIN_PHONE,
         is_active: true,
         metadata: { created_via: 'disposable_script', created_at: new Date().toISOString(), initial_admin: true }
