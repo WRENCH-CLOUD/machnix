@@ -137,6 +137,9 @@ export class InvoiceService {
   ): Promise<Payment> {
     const tenantId = ensureTenantContext()
     
+    console.log('[InvoiceService.addPayment] Input payment:', payment)
+    console.log('[InvoiceService.addPayment] Tenant ID:', tenantId)
+    
     const { data, error } = await supabase
       .schema('tenant')
       .from('payments')
@@ -147,18 +150,36 @@ export class InvoiceService {
       .select()
       .single()
     
-    if (error) throw error
+    if (error) {
+      console.error('[InvoiceService.addPayment] Database error:', error)
+      throw new Error(`Failed to create payment: ${error.message || error.hint || 'Unknown database error'}`)
+    }
 
-    // Update invoice paid_amount and balance
-    const invoice = await this.getInvoiceById(payment.invoice_id)
-    const newPaidAmount = invoice.paid_amount + payment.amount
-    const newBalance = invoice.total_amount - newPaidAmount
-    
-    await this.updateInvoice(payment.invoice_id, {
-      paid_amount: newPaidAmount,
-      balance: newBalance,
-      status: newBalance === 0 ? 'paid' : newBalance < invoice.total_amount ? 'partial' : 'pending',
-    })
+    if (!data) {
+      throw new Error('Failed to create payment: No data returned')
+    }
+
+    console.log('[InvoiceService.addPayment] Payment created:', data)
+
+    // Update invoice paid_amount (balance is auto-calculated by database)
+    try {
+      const invoice = await this.getInvoiceById(payment.invoice_id)
+      const newPaidAmount = Number(invoice.paid_amount || 0) + Number(payment.amount)
+      const newBalance = Number(invoice.total_amount) - newPaidAmount
+      
+      console.log('[InvoiceService.addPayment] Updating invoice - Paid:', newPaidAmount, 'Balance:', newBalance)
+      
+      // Don't update 'balance' - it's a generated column in the database
+      await this.updateInvoice(payment.invoice_id, {
+        paid_amount: newPaidAmount,
+        status: newBalance === 0 ? 'paid' : newBalance < invoice.total_amount ? 'partial' : 'pending',
+      })
+      
+      console.log('[InvoiceService.addPayment] Invoice updated successfully')
+    } catch (updateError: any) {
+      console.error('[InvoiceService.addPayment] Error updating invoice:', updateError)
+      throw new Error(`Payment created but failed to update invoice: ${updateError.message}`)
+    }
     
     return data
   }

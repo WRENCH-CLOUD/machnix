@@ -47,7 +47,7 @@ async function checkPlatformAdmin() {
       process.exit(2)
     }
 
-    logger.info('📊 Platform Admins Found:', Array.isArray(admins) ? admins.length : 0)
+    // logger.info('📊 Platform Admins Found:', Array.isArray(admins) ? admins.length : 0)
     (admins || []).forEach((a: any, i: number) => {
       logger.info(`Admin #${i + 1}: id=${a.id} auth_user_id=${a.auth_user_id} email=${a.email} role=${a.role} active=${a.is_active}`)
     })
