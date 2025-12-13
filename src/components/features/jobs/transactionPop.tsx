@@ -91,9 +91,10 @@ export function UnpaidWarningModal({
       setTimeout(() => {
         onClose()
       }, 2500)
-    } catch (error) {
-      console.error('Error marking paid and complete:', error)
+    } catch (error: any) {
+      console.error('[TransactionPop] Payment failed:', error?.message || error)
       setIsProcessing(false)
+      // Let the modal stay open so user can see the error and try again
     }
   }
 

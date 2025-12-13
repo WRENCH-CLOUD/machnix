@@ -52,6 +52,7 @@ import { EstimateService } from "@/lib/supabase/services/estimate.service"
 import type { InvoiceWithRelations } from "@/lib/supabase/services/invoice.service"
 import type { EstimateWithRelations } from "@/lib/supabase/services/estimate.service"
 import type { Database } from "@/lib/supabase/types"
+import { UnpaidWarningModal } from "./transactionPop"
 // Note: mechanics import removed - mechanic assignment features temporarily disabled
 import { cn } from "@/lib/utils"
 
@@ -63,6 +64,7 @@ interface JobDetailsProps {
   isMechanicMode: boolean
   onStatusChange?: (jobId: string, newStatus: JobStatus) => void
   onMechanicChange?: (jobId: string, mechanicId: string) => void
+  onJobUpdate?: () => Promise<void>
 }
 
 const dviStatusConfig = {
@@ -72,7 +74,7 @@ const dviStatusConfig = {
   pending: { label: "Pending", icon: Circle, color: "text-muted-foreground", bg: "bg-muted" },
 }
 
-export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMechanicChange }: JobDetailsProps) {
+export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMechanicChange, onJobUpdate }: JobDetailsProps) {
   const [activeTab, setActiveTab] = useState(isMechanicMode ? "dvi" : "overview")
   
   // Enrich job with dummy data if needed
@@ -87,7 +89,9 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
   const [currentMechanic, setCurrentMechanic] = useState(job.mechanic)
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null)
   const [loadingInvoice, setLoadingInvoice] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [loadingEstimate, setLoadingEstimate] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   
   // Helper to check if estimate is locked (can't be modified)
   const isEstimateLocked = currentStatus === 'completed'
@@ -645,11 +649,21 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className={cn(
-          "w-full bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4",
+          "w-full bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative",
           isMechanicMode ? "max-w-lg" : "max-w-5xl",
         )}
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
+        {/* Loading Overlay */}
+        {isRefreshing && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Updating job details...</p>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
           <div className="flex-1">
@@ -1554,14 +1568,14 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
                         </Button> */} 
                         <Button 
                           className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                          disabled={!invoice || loadingInvoice || invoice.status === 'paid'}
                           onClick={() => {
-                            if (onStatusChange) {
-                              handleStatusChange("completed")
-                            }
+                            if (!invoice) return
+                            setShowPaymentModal(true)
                           }}
                         >
                           <Check className="w-4 h-4" />
-                          Mark Paid (Cash)
+                          {invoice?.status === 'paid' ? 'Already Paid' : 'Mark Paid'}
                         </Button>
                       </div>
                     </>
@@ -1572,6 +1586,84 @@ export function JobDetails({ job, onClose, isMechanicMode, onStatusChange, onMec
           )}
         </Tabs>
       </motion.div>
+
+      {/* Payment Modal */}
+      {invoice && (
+        <UnpaidWarningModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          jobNumber={job.jobNumber}
+          outstandingBalance={invoice.total_amount || 0}
+          invoiceId={invoice.id}
+          onCancel={() => setShowPaymentModal(false)}
+          onMarkPaidAndComplete={async (paymentMethod: string, referenceId?: string) => {
+            try {
+              console.log('[Payment Modal] Starting payment process')
+              console.log('[Payment Modal] Invoice:', invoice)
+              console.log('[Payment Modal] Method:', paymentMethod, 'Reference:', referenceId)
+              
+              // Validate invoice data
+              if (!invoice?.id) {
+                throw new Error('Invalid invoice: missing ID')
+              }
+              
+              if (!invoice.total_amount || invoice.total_amount <= 0) {
+                throw new Error('Invalid invoice: amount must be greater than 0')
+              }
+              
+              // Add payment for the full amount
+              const paymentData: any = {
+                invoice_id: invoice.id,
+                amount: Number(invoice.total_amount),
+                payment_method: paymentMethod,
+                status: 'completed',
+              }
+              
+              // Add optional fields only if they have values
+              if (referenceId) {
+                paymentData.reference_number = referenceId
+              }
+              
+              if (referenceId) {
+                paymentData.notes = `${paymentMethod} payment - Ref: ${referenceId}`
+              }
+              
+              console.log('[Payment Modal] Payment data prepared:', JSON.stringify(paymentData, null, 2))
+              
+              // Add payment
+              const payment = await InvoiceService.addPayment(paymentData)
+              console.log('[Payment Modal] Payment created:', payment)
+              
+              // Update job status to completed
+              if (onStatusChange) {
+                console.log('[Payment Modal] Updating job status to completed')
+                await onStatusChange(job.id, "completed")
+              }
+              
+              // Reload invoice to show updated payment info
+              console.log('[Payment Modal] Reloading invoice')
+              const updatedInvoice = await InvoiceService.getInvoiceByJobId(job.id)
+              setInvoice(updatedInvoice)
+              
+              // Refresh job data to update the card
+              if (onJobUpdate) {
+                console.log('[Payment Modal] Refreshing job data')
+                setIsRefreshing(true)
+                try {
+                  await onJobUpdate()
+                } finally {
+                  setIsRefreshing(false)
+                }
+              }
+              
+              console.log('[Payment Modal] Payment process completed successfully')
+            } catch (error: any) {
+              console.error('[Payment Modal] Error:', error?.message || error)
+              throw error
+            }
+          }}
+        />
+      )}
     </motion.div>
   )
 }
