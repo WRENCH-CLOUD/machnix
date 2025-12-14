@@ -182,10 +182,17 @@ BEGIN
 END$$;
 
 -- Convert payments.payment_method to enum
+-- First drop the default, then convert, then add it back
+ALTER TABLE tenant.payments
+  ALTER COLUMN payment_method DROP DEFAULT;
+
 ALTER TABLE tenant.payments
   ALTER COLUMN payment_method
   TYPE tenant.payment_method_enum
   USING payment_method::tenant.payment_method_enum;
+
+ALTER TABLE tenant.payments
+  ALTER COLUMN payment_method SET DEFAULT 'cash'::tenant.payment_method_enum;
 
 
 

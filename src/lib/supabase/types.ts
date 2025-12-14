@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -37,57 +38,42 @@ export type Database = {
       platform_admins: {
         Row: {
           auth_user_id: string
-          created_at: string | null
+          created_at: string
           created_by: string | null
           email: string
           id: string
-          is_active: boolean | null
-          metadata: Json | null
+          is_active: boolean
+          metadata: Json
           name: string
           phone: string | null
-          role: Database["public"]["Enums"]["platform_admin_role"] | null
-          updated_at: string | null
+          role: Database["public"]["Enums"]["platform_admin_role"]
+          updated_at: string
         }
         Insert: {
           auth_user_id: string
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           email: string
           id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
+          is_active?: boolean
+          metadata?: Json
           name: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["platform_admin_role"] | null
-          updated_at?: string | null
+          role?: Database["public"]["Enums"]["platform_admin_role"]
+          updated_at?: string
         }
         Update: {
           auth_user_id?: string
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           email?: string
           id?: string
-          is_active?: boolean | null
-          metadata?: Json | null
+          is_active?: boolean
+          metadata?: Json
           name?: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["platform_admin_role"] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      schema_migrations: {
-        Row: {
-          applied_at: string | null
-          version: string
-        }
-        Insert: {
-          applied_at?: string | null
-          version: string
-        }
-        Update: {
-          applied_at?: string | null
-          version?: string
+          role?: Database["public"]["Enums"]["platform_admin_role"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -163,6 +149,13 @@ export type Database = {
             referencedRelation: "vehicle_make"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vehicle_model_vehicle_category_fkey"
+            columns: ["vehicle_category"]
+            isOneToOne: false
+            referencedRelation: "vehicle_category"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -170,23 +163,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      decrement_mechanic_active_jobs: {
-        Args: { mechanic_id: string }
-        Returns: undefined
-      }
-      get_or_create_user_tenant: { Args: { user_id: string }; Returns: string }
-      increment_mechanic_active_jobs: {
-        Args: { mechanic_id: string }
-        Returns: undefined
-      }
-      set_config: {
-        Args: { parameter: string; value: string }
-        Returns: undefined
-      }
-      test_tenant_insert: { Args: never; Returns: Json }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      platform_admin_role: "admin"
+      platform_admin_role: "platform_admin" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -197,126 +178,82 @@ export type Database = {
       activities: {
         Row: {
           activity_type: string
-          created_at: string | null
+          created_at: string
           description: string
           entity_id: string | null
           entity_type: string | null
           id: string
           ip_address: unknown
-          jobcard_id: string
-          metadata: Json | null
+          jobcard_id: string | null
+          metadata: Json
           tenant_id: string
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
           activity_type: string
-          created_at?: string | null
+          created_at?: string
           description: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           ip_address?: unknown
-          jobcard_id: string
-          metadata?: Json | null
+          jobcard_id?: string | null
+          metadata?: Json
           tenant_id: string
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
           activity_type?: string
-          created_at?: string | null
+          created_at?: string
           description?: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           ip_address?: unknown
-          jobcard_id?: string
-          metadata?: Json | null
+          jobcard_id?: string | null
+          metadata?: Json
           tenant_id?: string
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "activities_jobcard_id_fkey"
-            columns: ["jobcard_id"]
-            isOneToOne: false
-            referencedRelation: "jobcards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "activities_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      customer_communications: {
+      counters: {
         Row: {
-          created_at: string | null
-          customer_id: string
-          direction: string
+          counter_key: string
+          created_at: string
+          current_value: number
           id: string
-          jobcard_id: string | null
-          message: string | null
-          metadata: Json | null
-          sent_by: string | null
-          status: string | null
-          subject: string | null
+          prefix: string
           tenant_id: string
-          type: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          customer_id: string
-          direction: string
+          counter_key: string
+          created_at?: string
+          current_value?: number
           id?: string
-          jobcard_id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          sent_by?: string | null
-          status?: string | null
-          subject?: string | null
+          prefix: string
           tenant_id: string
-          type: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          customer_id?: string
-          direction?: string
+          counter_key?: string
+          created_at?: string
+          current_value?: number
           id?: string
-          jobcard_id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          sent_by?: string | null
-          status?: string | null
-          subject?: string | null
+          prefix?: string
           tenant_id?: string
-          type?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "customer_communications_customer_id_fkey"
-            columns: ["customer_id"]
+            foreignKeyName: "counters_tenant_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "customer_communications_jobcard_id_fkey"
-            columns: ["jobcard_id"]
-            isOneToOne: false
-            referencedRelation: "jobcards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "customer_communications_sent_by_fkey"
-            columns: ["sent_by"]
-            isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -324,36 +261,36 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
-          created_at: string | null
+          created_at: string
           email: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           address?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           address?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -367,41 +304,41 @@ export type Database = {
       }
       dvi_checkpoint_categories: {
         Row: {
-          created_at: string | null
+          created_at: string
           description: string | null
           display_order: number | null
           id: string
           is_active: boolean | null
           name: string
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
           name: string
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
       dvi_checkpoints: {
         Row: {
           category_id: string | null
-          created_at: string | null
+          created_at: string
           description: string | null
           display_order: number | null
           id: string
@@ -409,11 +346,11 @@ export type Database = {
           name: string
           template_id: string | null
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           category_id?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           display_order?: number | null
           id?: string
@@ -421,11 +358,11 @@ export type Database = {
           name: string
           template_id?: string | null
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           category_id?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           display_order?: number | null
           id?: string
@@ -433,70 +370,47 @@ export type Database = {
           name?: string
           template_id?: string | null
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "dvi_checkpoints_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "dvi_checkpoint_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dvi_checkpoints_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "dvi_templates"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       dvi_items: {
         Row: {
           checkpoint_id: string
           checkpoint_name: string | null
-          created_at: string | null
+          created_at: string
           id: string
           jobcard_id: string
           notes: string | null
           status: string | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           checkpoint_id: string
           checkpoint_name?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           jobcard_id: string
           notes?: string | null
           status?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           checkpoint_id?: string
           checkpoint_name?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           jobcard_id?: string
           notes?: string | null
           status?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "dvi_items_jobcard_id_fkey"
-            columns: ["jobcard_id"]
-            isOneToOne: false
-            referencedRelation: "jobcards"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       dvi_photos: {
         Row: {
           caption: string | null
-          created_at: string | null
+          created_at: string
           dvi_item_id: string
           id: string
           storage_path: string
@@ -505,7 +419,7 @@ export type Database = {
         }
         Insert: {
           caption?: string | null
-          created_at?: string | null
+          created_at?: string
           dvi_item_id: string
           id?: string
           storage_path: string
@@ -514,63 +428,48 @@ export type Database = {
         }
         Update: {
           caption?: string | null
-          created_at?: string | null
+          created_at?: string
           dvi_item_id?: string
           id?: string
           storage_path?: string
           uploaded_by?: string | null
           url?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "dvi_photos_dvi_item_id_fkey"
-            columns: ["dvi_item_id"]
-            isOneToOne: false
-            referencedRelation: "dvi_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dvi_photos_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       dvi_templates: {
         Row: {
-          created_at: string | null
+          created_at: string
           description: string | null
           id: string
           is_active: boolean | null
           name: string
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean | null
           name: string
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
       estimate_items: {
         Row: {
-          created_at: string | null
+          created_at: string
           custom_name: string | null
           custom_part_number: string | null
           description: string | null
@@ -583,7 +482,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           custom_name?: string | null
           custom_part_number?: string | null
           description?: string | null
@@ -596,7 +495,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           custom_name?: string | null
           custom_part_number?: string | null
           description?: string | null
@@ -608,27 +507,12 @@ export type Database = {
           total?: number | null
           unit_price?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "estimate_items_estimate_id_fkey"
-            columns: ["estimate_id"]
-            isOneToOne: false
-            referencedRelation: "estimates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "estimate_items_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "parts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       estimates: {
         Row: {
           approved_at: string | null
-          created_at: string | null
+          created_at: string
           created_by: string | null
           currency: string | null
           customer_id: string | null
@@ -646,13 +530,13 @@ export type Database = {
           tax_amount: number | null
           tenant_id: string
           total_amount: number | null
-          updated_at: string | null
+          updated_at: string
           valid_until: string | null
           vehicle_id: string | null
         }
         Insert: {
           approved_at?: string | null
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
@@ -670,13 +554,13 @@ export type Database = {
           tax_amount?: number | null
           tenant_id: string
           total_amount?: number | null
-          updated_at?: string | null
+          updated_at?: string
           valid_until?: string | null
           vehicle_id?: string | null
         }
         Update: {
           approved_at?: string | null
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
@@ -694,7 +578,7 @@ export type Database = {
           tax_amount?: number | null
           tenant_id?: string
           total_amount?: number | null
-          updated_at?: string | null
+          updated_at?: string
           valid_until?: string | null
           vehicle_id?: string | null
         }
@@ -724,13 +608,6 @@ export type Database = {
             foreignKeyName: "estimates_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: "v_vehicle_full"
-            referencedColumns: ["vehicle_id"]
-          },
-          {
-            foreignKeyName: "estimates_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -738,7 +615,7 @@ export type Database = {
       }
       inventory_transactions: {
         Row: {
-          created_at: string | null
+          created_at: string
           created_by: string | null
           id: string
           notes: string | null
@@ -751,7 +628,7 @@ export type Database = {
           unit_cost: number | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           id?: string
           notes?: string | null
@@ -764,7 +641,7 @@ export type Database = {
           unit_cost?: number | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           id?: string
           notes?: string | null
@@ -776,72 +653,7 @@ export type Database = {
           transaction_type?: string
           unit_cost?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_transactions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_transactions_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "parts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invoice_items: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          invoice_id: string
-          item_name: string
-          item_number: string | null
-          labor_cost: number | null
-          qty: number
-          total: number | null
-          unit_price: number
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          invoice_id: string
-          item_name: string
-          item_number?: string | null
-          labor_cost?: number | null
-          qty?: number
-          total?: number | null
-          unit_price?: number
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          invoice_id?: string
-          item_name?: string
-          item_number?: string | null
-          labor_cost?: number | null
-          qty?: number
-          total?: number | null
-          unit_price?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoice_items_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       invoices: {
         Row: {
@@ -854,12 +666,11 @@ export type Database = {
           file_key: string | null
           filename: string | null
           id: string
-          invoice_date: string | null
+          invoice_date: string
           invoice_number: string | null
-          issued_at: string | null
+          issued_at: string
           jobcard_id: string | null
-          metadata: Json | null
-          notes: string | null
+          metadata: Json
           paid_amount: number | null
           payment_mode: string | null
           status: string
@@ -867,9 +678,8 @@ export type Database = {
           tax: number | null
           tax_amount: number | null
           tenant_id: string
-          total: number | null
           total_amount: number | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           balance?: number | null
@@ -881,12 +691,11 @@ export type Database = {
           file_key?: string | null
           filename?: string | null
           id?: string
-          invoice_date?: string | null
+          invoice_date?: string
           invoice_number?: string | null
-          issued_at?: string | null
+          issued_at?: string
           jobcard_id?: string | null
-          metadata?: Json | null
-          notes?: string | null
+          metadata?: Json
           paid_amount?: number | null
           payment_mode?: string | null
           status?: string
@@ -894,9 +703,8 @@ export type Database = {
           tax?: number | null
           tax_amount?: number | null
           tenant_id: string
-          total?: number | null
           total_amount?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           balance?: number | null
@@ -908,12 +716,11 @@ export type Database = {
           file_key?: string | null
           filename?: string | null
           id?: string
-          invoice_date?: string | null
+          invoice_date?: string
           invoice_number?: string | null
-          issued_at?: string | null
+          issued_at?: string
           jobcard_id?: string | null
-          metadata?: Json | null
-          notes?: string | null
+          metadata?: Json
           paid_amount?: number | null
           payment_mode?: string | null
           status?: string
@@ -921,18 +728,10 @@ export type Database = {
           tax?: number | null
           tax_amount?: number | null
           tenant_id?: string
-          total?: number | null
           total_amount?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "invoices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
@@ -966,41 +765,41 @@ export type Database = {
       jobcards: {
         Row: {
           assigned_mechanic_id: string | null
-          created_at: string | null
+          created_at: string
           created_by: string | null
           customer_id: string
-          details: Json | null
+          details: Json
           id: string
           job_number: string
           status: string
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
           vehicle_id: string
         }
         Insert: {
           assigned_mechanic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           customer_id: string
-          details?: Json | null
+          details?: Json
           id?: string
           job_number: string
           status?: string
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
           vehicle_id: string
         }
         Update: {
           assigned_mechanic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           customer_id?: string
-          details?: Json | null
+          details?: Json
           id?: string
           job_number?: string
           status?: string
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
           vehicle_id?: string
         }
         Relationships: [
@@ -1029,13 +828,6 @@ export type Database = {
             foreignKeyName: "jobcards_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: "v_vehicle_full"
-            referencedColumns: ["vehicle_id"]
-          },
-          {
-            foreignKeyName: "jobcards_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -1043,7 +835,7 @@ export type Database = {
       }
       mechanics: {
         Row: {
-          created_at: string | null
+          created_at: string
           email: string | null
           hourly_rate: number | null
           id: string
@@ -1053,7 +845,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           hourly_rate?: number | null
           id?: string
@@ -1063,7 +855,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           hourly_rate?: number | null
           id?: string
@@ -1082,11 +874,61 @@ export type Database = {
           },
         ]
       }
+      monthly_analytics: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          outstanding_revenue: number
+          paid_revenue: number
+          tenant_id: string
+          total_invoices: number
+          total_jobs: number
+          total_revenue: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          outstanding_revenue?: number
+          paid_revenue?: number
+          tenant_id: string
+          total_invoices?: number
+          total_jobs?: number
+          total_revenue?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          outstanding_revenue?: number
+          paid_revenue?: number
+          tenant_id?: string
+          total_invoices?: number
+          total_jobs?: number
+          total_revenue?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_analytics_tenant_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           category: string | null
           channel: string
-          created_at: string | null
+          created_at: string
           customer_id: string | null
           entity_id: string | null
           entity_type: string | null
@@ -1096,7 +938,7 @@ export type Database = {
           payload: Json | null
           read_at: string | null
           sent_at: string | null
-          status: string | null
+          status: string
           template: string | null
           tenant_id: string
           user_id: string | null
@@ -1104,7 +946,7 @@ export type Database = {
         Insert: {
           category?: string | null
           channel: string
-          created_at?: string | null
+          created_at?: string
           customer_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -1114,7 +956,7 @@ export type Database = {
           payload?: Json | null
           read_at?: string | null
           sent_at?: string | null
-          status?: string | null
+          status?: string
           template?: string | null
           tenant_id: string
           user_id?: string | null
@@ -1122,7 +964,7 @@ export type Database = {
         Update: {
           category?: string | null
           channel?: string
-          created_at?: string | null
+          created_at?: string
           customer_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -1132,75 +974,37 @@ export type Database = {
           payload?: Json | null
           read_at?: string | null
           sent_at?: string | null
-          status?: string | null
+          status?: string
           template?: string | null
           tenant_id?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_jobcard_id_fkey"
-            columns: ["jobcard_id"]
-            isOneToOne: false
-            referencedRelation: "jobcards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       part_usages: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           jobcard_id: string
-          labor_cost: number | null
-          part_id: string | null
-          part_name: string | null
-          part_number: string | null
+          part_id: string
           qty: number
           tenant_id: string
           unit_price: number | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           jobcard_id: string
-          labor_cost?: number | null
-          part_id?: string | null
-          part_name?: string | null
-          part_number?: string | null
+          part_id: string
           qty: number
           tenant_id: string
           unit_price?: number | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           jobcard_id?: string
-          labor_cost?: number | null
-          part_id?: string | null
-          part_name?: string | null
-          part_number?: string | null
+          part_id?: string
           qty?: number
           tenant_id?: string
           unit_price?: number | null
@@ -1231,10 +1035,10 @@ export type Database = {
       }
       parts: {
         Row: {
-          created_at: string | null
+          created_at: string
           description: string | null
           id: string
-          metadata: Json | null
+          metadata: Json
           name: string
           reorder_level: number | null
           sell_price: number | null
@@ -1242,13 +1046,13 @@ export type Database = {
           stock_on_hand: number | null
           tenant_id: string
           unit_cost: number | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
-          metadata?: Json | null
+          metadata?: Json
           name: string
           reorder_level?: number | null
           sell_price?: number | null
@@ -1256,13 +1060,13 @@ export type Database = {
           stock_on_hand?: number | null
           tenant_id: string
           unit_cost?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
-          metadata?: Json | null
+          metadata?: Json
           name?: string
           reorder_level?: number | null
           sell_price?: number | null
@@ -1270,7 +1074,7 @@ export type Database = {
           stock_on_hand?: number | null
           tenant_id?: string
           unit_cost?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1285,7 +1089,7 @@ export type Database = {
       payment_transactions: {
         Row: {
           amount: number
-          created_at: string | null
+          created_at: string
           id: string
           invoice_id: string
           mode: string
@@ -1298,7 +1102,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          created_at?: string | null
+          created_at?: string
           id?: string
           invoice_id: string
           mode: string
@@ -1311,7 +1115,7 @@ export type Database = {
         }
         Update: {
           amount?: number
-          created_at?: string | null
+          created_at?: string
           id?: string
           invoice_id?: string
           mode?: string
@@ -1322,22 +1126,7 @@ export type Database = {
           status?: string
           tenant_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "payment_transactions_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_transactions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payments: {
         Row: {
@@ -1348,8 +1137,8 @@ export type Database = {
           method: string | null
           notes: string | null
           paid_at: string | null
-          payment_date: string | null
-          payment_method: string
+          payment_date: string
+          payment_method: Database["tenant"]["Enums"]["payment_method_enum"]
           received_by: string | null
           reference_number: string | null
           status: string
@@ -1363,8 +1152,8 @@ export type Database = {
           method?: string | null
           notes?: string | null
           paid_at?: string | null
-          payment_date?: string | null
-          payment_method?: string
+          payment_date?: string
+          payment_method?: Database["tenant"]["Enums"]["payment_method_enum"]
           received_by?: string | null
           reference_number?: string | null
           status?: string
@@ -1378,8 +1167,8 @@ export type Database = {
           method?: string | null
           notes?: string | null
           paid_at?: string | null
-          payment_date?: string | null
-          payment_method?: string
+          payment_date?: string
+          payment_method?: Database["tenant"]["Enums"]["payment_method_enum"]
           received_by?: string | null
           reference_number?: string | null
           status?: string
@@ -1394,13 +1183,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payments_received_by_fkey"
-            columns: ["received_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "payments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1411,42 +1193,34 @@ export type Database = {
       }
       razorpay_settings: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           key_id: string
           key_secret: string
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           key_id: string
           key_secret: string
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           key_id?: string
           key_secret?: string
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "razorpay_settings_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       settings: {
         Row: {
-          created_at: string | null
+          created_at: string
           currency: string | null
           email_enabled: boolean | null
           estimate_prefix: string | null
@@ -1459,11 +1233,11 @@ export type Database = {
           tax_rate: number | null
           tenant_id: string
           timezone: string | null
-          updated_at: string | null
+          updated_at: string
           whatsapp_enabled: boolean | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
           email_enabled?: boolean | null
           estimate_prefix?: string | null
@@ -1476,11 +1250,11 @@ export type Database = {
           tax_rate?: number | null
           tenant_id: string
           timezone?: string | null
-          updated_at?: string | null
+          updated_at?: string
           whatsapp_enabled?: boolean | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           currency?: string | null
           email_enabled?: boolean | null
           estimate_prefix?: string | null
@@ -1493,16 +1267,16 @@ export type Database = {
           tax_rate?: number | null
           tenant_id?: string
           timezone?: string | null
-          updated_at?: string | null
+          updated_at?: string
           whatsapp_enabled?: boolean | null
         }
         Relationships: []
       }
       tenants: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          metadata: Json | null
+          metadata: Json
           name: string
           slug: string | null
           status: Database["tenant"]["Enums"]["tenant_status"]
@@ -1510,9 +1284,9 @@ export type Database = {
           subscription_status: string | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          metadata?: Json | null
+          metadata?: Json
           name: string
           slug?: string | null
           status?: Database["tenant"]["Enums"]["tenant_status"]
@@ -1520,9 +1294,9 @@ export type Database = {
           subscription_status?: string | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          metadata?: Json | null
+          metadata?: Json
           name?: string
           slug?: string | null
           status?: Database["tenant"]["Enums"]["tenant_status"]
@@ -1531,115 +1305,48 @@ export type Database = {
         }
         Relationships: []
       }
-      transactions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          created_by: string | null
-          id: string
-          invoice_id: string
-          jobcard_id: string | null
-          notes: string | null
-          payment_method: string
-          reference_id: string | null
-          tenant_id: string
-          transaction_date: string
-          updated_at: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          invoice_id: string
-          jobcard_id?: string | null
-          notes?: string | null
-          payment_method: string
-          reference_id?: string | null
-          tenant_id: string
-          transaction_date?: string
-          updated_at?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          invoice_id?: string
-          jobcard_id?: string | null
-          notes?: string | null
-          payment_method?: string
-          reference_id?: string | null
-          tenant_id?: string
-          transaction_date?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_jobcard_id_fkey"
-            columns: ["jobcard_id"]
-            isOneToOne: false
-            referencedRelation: "jobcards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
           auth_user_id: string
           avatar_url: string | null
-          created_at: string | null
-          email: string
+          created_at: string
+          email: string | null
           id: string
-          is_active: boolean | null
+          is_active: boolean
           last_login: string | null
           name: string
           phone: string | null
-          role: Database["tenant"]["Enums"]["user_role"]
+          role: Database["tenant"]["Enums"]["roles"]
           tenant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           auth_user_id: string
           avatar_url?: string | null
-          created_at?: string | null
-          email: string
+          created_at?: string
+          email?: string | null
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           last_login?: string | null
           name: string
           phone?: string | null
-          role?: Database["tenant"]["Enums"]["user_role"]
+          role?: Database["tenant"]["Enums"]["roles"]
           tenant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           auth_user_id?: string
           avatar_url?: string | null
-          created_at?: string | null
-          email?: string
+          created_at?: string
+          email?: string | null
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           last_login?: string | null
           name?: string
           phone?: string | null
-          role?: Database["tenant"]["Enums"]["user_role"]
+          role?: Database["tenant"]["Enums"]["roles"]
           tenant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1653,7 +1360,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
-          created_at: string | null
+          created_at: string
           customer_id: string
           id: string
           make_id: string | null
@@ -1666,7 +1373,7 @@ export type Database = {
           year: number | null
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           customer_id: string
           id?: string
           make_id?: string | null
@@ -1679,7 +1386,7 @@ export type Database = {
           year?: number | null
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           customer_id?: string
           id?: string
           make_id?: string | null
@@ -1700,13 +1407,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vehicles_model_id_fkey"
-            columns: ["model_id"]
-            isOneToOne: false
-            referencedRelation: "v_vehicle_full"
-            referencedColumns: ["model_id"]
-          },
-          {
             foreignKeyName: "vehicles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1717,52 +1417,23 @@ export type Database = {
       }
     }
     Views: {
-      v_vehicle_full: {
-        Row: {
-          customer_id: string | null
-          make_id: string | null
-          make_name: string | null
-          model_id: string | null
-          model_name: string | null
-          odometer: number | null
-          reg_no: string | null
-          tenant_id: string | null
-          vehicle_category: string | null
-          vehicle_id: string | null
-          vin: string | null
-          year: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehicles_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vehicles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
-      calculate_invoice_totals: {
-        Args: { invoice_id_param: string }
+      get_next_counter_value: {
+        Args: { p_counter_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      init_default_counters: {
+        Args: { p_tenant_id: string }
         Returns: undefined
       }
-      current_tenant: { Args: never; Returns: string }
-      current_tenant_id: { Args: never; Returns: string }
     }
     Enums: {
-      Roles: "admin" | "tenant" | "mechanic"
+      payment_method_enum: "cash" | "card" | "upi" | "bank_transfer" | "cheque"
+      roles: "tenant" | "frontdesk"
       subscription_tier: "starter" | "pro" | "enterprise"
       tenant_status: "active" | "suspended" | "trial" | "inactive"
-      user_role: "tenant" | "mechanic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1893,15 +1564,15 @@ export const Constants = {
   },
   public: {
     Enums: {
-      platform_admin_role: ["admin"],
+      platform_admin_role: ["platform_admin", "employee"],
     },
   },
   tenant: {
     Enums: {
-      Roles: ["admin", "tenant", "mechanic"],
+      payment_method_enum: ["cash", "card", "upi", "bank_transfer", "cheque"],
+      roles: ["tenant", "frontdesk"],
       subscription_tier: ["starter", "pro", "enterprise"],
       tenant_status: ["active", "suspended", "trial", "inactive"],
-      user_role: ["tenant", "mechanic"],
     },
   },
 } as const

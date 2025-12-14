@@ -153,40 +153,33 @@ export class VehicleService {
   static async getVehicleById(vehicleId: string): Promise<VehicleWithRelations> {
     const tenantId = ensureTenantContext()
     
-    const { data, error } = await supabase
+    const { data: vehicle, error } = await supabase
       .schema('tenant')
       .from('vehicles')
       .select(`
         *,
-        customer:customers(*),
-        make:vehicle_make(*),
-        model:vehicle_model(*)
+        customer:customers(*)
       `)
       .eq('id', vehicleId)
       .eq('tenant_id', tenantId)
       .single()
     
     if (error) throw error
-    return data as VehicleWithRelations[]
+    
+    // Fetch make and model separately from public schema if they exist
+    const result: VehicleWithRelations = vehicle as VehicleWithRelations
+    
+    if (vehicle.make_id) {
+      result.make = await this.getMakeById(vehicle.make_id)
+    }
+    if (vehicle.model_id) {
+      result.model = await this.getModelById(vehicle.model_id)
+    }
+    
+    return result
   }
 
-  /**
-   * Get vehicles by customer ID
-   */
-  static async getVehiclesByCustomerId(customerId: string): Promise<Vehicle[]> {
-    const tenantId = ensureTenantContext()
-    
-    const { data, error } = await supabase
-      .schema('tenant')
-      .from('vehicles')
-      .select('*')
-      .eq('customer_id', customerId)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-    
-    if (error) throw error
-    return data
-  }
+
 
   /**
    * Search vehicles by registration number
@@ -199,16 +192,28 @@ export class VehicleService {
       .from('vehicles')
       .select(`
         *,
-        customer:customers(*),
-        make:vehicle_make(*),
-        model:vehicle_model(*)
+        customer:customers(*)
       `)
       .eq('tenant_id', tenantId)
       .ilike('reg_no', `%${query}%`)
       .order('created_at', { ascending: false })
     
     if (error) throw error
-    return data as VehicleWithRelations[]
+    
+    // Fetch make and model data separately for each vehicle
+    const vehiclesWithRelations: VehicleWithRelations[] = await Promise.all(
+      (data as VehicleWithRelations[]).map(async (vehicle) => {
+        if (vehicle.make_id) {
+          vehicle.make = await this.getMakeById(vehicle.make_id) || undefined
+        }
+        if (vehicle.model_id) {
+          vehicle.model = await this.getModelById(vehicle.model_id) || undefined
+        }
+        return vehicle
+      })
+    )
+    
+    return vehiclesWithRelations
   }
 
   /**
