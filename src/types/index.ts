@@ -1,5 +1,5 @@
 // Job related types
-export type JobStatus = "created" | "in_progress" | "completed" | "closed" | "cancelled"
+export type JobStatus = "received" | "working" | "ready" | "completed" | "cancelled"
 export type EstimateStatus = "draft" | "pending" | "approved" | "rejected" | "expired"
 export type InvoiceStatus = "pending" | "paid" | "partially_paid" | "overdue" | "cancelled"
 export type PaymentStatus = "initiated" | "success" | "failed"

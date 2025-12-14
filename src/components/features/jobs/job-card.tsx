@@ -166,6 +166,26 @@ export function JobCard({ job, onClick, isMechanicMode, onStatusChange, onMechan
           {/* Complaint Preview */}
           <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{job.complaints}</p>
 
+          {/* Payment Status - Show for ready/completed jobs */}
+          {(job.status === 'ready' || job.status === 'completed') && (job.laborTotal > 0 || job.partsTotal > 0) && (
+            <div className="mb-3 p-2 rounded-lg bg-secondary/30 border border-border">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Total Amount:</span>
+                <span className="font-semibold text-foreground">
+                  ₹{(job.laborTotal + job.partsTotal + job.tax).toLocaleString()}
+                </span>
+              </div>
+              {job.status === 'completed' && (
+                <div className="flex justify-between items-center text-xs mt-1">
+                  <span className="text-emerald-500">Paid</span>
+                  <Badge className="bg-emerald-500/20 text-emerald-500 border-0 text-xs">
+                    Completed
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-border">
             {job.mechanic ? (
