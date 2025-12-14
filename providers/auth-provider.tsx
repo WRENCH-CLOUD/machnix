@@ -86,93 +86,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (error) throw error
     
-    // Step 1: Check if user is a platform admin
+    // Use server-side endpoint to check role (bypasses RLS for initial login)
     if (data.user) {
-      //console.log('[AUTH] Checking platform admin for user:', data.user.id)
-      const { data: platformAdmin, error: platformAdminError } = await supabase
-        .from('platform_admins')
-        .select('id, is_active, role')
-        .eq('auth_user_id', data.user.id)
-        .eq('is_active', true)
-        .single()
+      try {
+        const response = await fetch('/api/auth/check-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id }),
+        })
 
-      //console.log('[AUTH] Platform admin query result:', { platformAdmin, platformAdminError })
+        if (!response.ok) {
+          throw new Error('Failed to check user role')
+        }
 
-      if (!platformAdminError && platformAdmin) {
-        //console.log('[AUTH] User is platform admin, setting role to platform_admin')
-        setUserRole('platform_admin')
-        return
+        const roleData = await response.json()
+
+        if (roleData.type === 'platform_admin') {
+          setUserRole('platform_admin')
+          return
+        }
+
+        if (roleData.type === 'tenant_user') {
+          await setActiveTenant(roleData.tenantId)
+          setUserRole(roleData.role)
+          return
+        }
+
+        // No access found
+        setUserRole('no_access')
+        throw new Error('You do not have access to this system. Please contact an administrator.')
+      } catch (error) {
+        console.error('[AUTH] Error checking user role:', error)
+        throw error
       }
-
-      // Step 2: Check if user exists in tenant.users
-      //console.log('[AUTH] Checking tenant.users for user:', data.user.id)
-      const { data: userData, error: userError } = await supabase
-        .schema('tenant')
-        .from('users')
-        .select('tenant_id, role')
-        .eq('auth_user_id', data.user.id)
-        .eq('is_active', true)
-        .single()
-      
-      //console.log('[AUTH] Tenant user query result:', { userData, userError })
-
-      if (!userError && userData) {
-        //console.log('[AUTH] User found in tenant.users with role:', userData.role)
-        await setActiveTenant(userData.tenant_id)
-        setUserRole(userData.role)
-        return
-      }
-
-      // Step 3: No access found
-      //console.log('[AUTH] User has no access')
-      setUserRole('no_access')
-      throw new Error('You do not have access to this system. Please contact an administrator.')
     }
   }
 
   const checkUserRole = async (userId: string) => {
     try {
-      //console.log('[AUTH] Checking user role for:', userId)
-      
-      // Step 1: Check if user is a platform admin (may not exist in local dev)
-      try {
-        const { data: platformAdmin, error: platformAdminError } = await supabase
-          .from('platform_admins')
-          .select('id, is_active, role')
-          .eq('auth_user_id', userId)
-          .eq('is_active', true)
-          .maybeSingle() // Use maybeSingle to avoid 406 errors
+      // Use server-side endpoint to check role (bypasses RLS)
+      const response = await fetch('/api/auth/check-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
 
-        if (!platformAdminError && platformAdmin) {
-          //console.log('[AUTH] User is platform admin')
-          setUserRole('platform_admin')
-          setLoading(false)
-          return
-        }
-      } catch (err) {
-        // Platform admins table might not exist in local dev, continue to tenant check
-        //console.log('[AUTH] Platform admins table not accessible, checking tenant users')
+      if (!response.ok) {
+        throw new Error('Failed to check user role')
       }
 
-      // Step 2: Check if user exists in tenant.users
-      const { data: userData, error: userError } = await supabase
-        .schema('tenant')
-        .from('users')
-        .select('tenant_id, role')
-        .eq('auth_user_id', userId)
-        .eq('is_active', true)
-        .single()
-      
-      if (!userError && userData) {
-        //console.log('[AUTH] User found in tenant.users with role:', userData.role)
-        await setActiveTenant(userData.tenant_id)
-        setUserRole(userData.role)
+      const roleData = await response.json()
+
+      if (roleData.type === 'platform_admin') {
+        setUserRole('platform_admin')
         setLoading(false)
         return
       }
 
-      // Step 3: No access found
-      //console.log('[AUTH] User has no access')
+      if (roleData.type === 'tenant_user') {
+        await setActiveTenant(roleData.tenantId)
+        setUserRole(roleData.role)
+        setLoading(false)
+        return
+      }
+
+      // No access found
       setUserRole('no_access')
       setLoading(false)
     } catch (error) {

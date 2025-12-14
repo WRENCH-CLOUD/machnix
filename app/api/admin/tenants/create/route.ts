@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     // For local development: auto-confirm email and set temporary password
     // For production: use email_confirm: false and send magic link
     const isDevelopment = process.env.NODE_ENV === 'development'
-    const temporaryPassword = isDevelopment ? 'Welcome123!' : undefined
+    // const temporaryPassword = isDevelopment ? 'Welcome123!' : undefined
+    const temporaryPassword = 'Welcome123!'
     
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: body.adminEmail,

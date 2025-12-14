@@ -82,7 +82,7 @@ export class AnalyticsService {
     if (invError) throw invError
 
     // Calculate totals
-    const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
+    const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
     const paidAmount = invoices?.filter(inv => inv.status === 'paid')
       .reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
     const partialAmount = invoices?.filter(inv => inv.status === 'partial')
@@ -185,92 +185,93 @@ export class AnalyticsService {
   /**
    * Get global analytics across all tenants (Platform Admin only)
    */
-  static async getGlobalAnalytics(): Promise<GlobalAnalytics> {
-    // Get all payments with tenant info
-    const { data: allPayments, error: payError } = await supabase
-      .schema('tenant')
-      .from('payments')
-      .select(`
-        *,
-        invoice:invoices(
-          invoice_number,
-          customer:customers(name)
-        )
-      `)
-      .order('payment_date', { ascending: false })
-      .limit(100)
+  // TODO: REVIEW THIS very costly query, disabled for now 
+  // static async getGlobalAnalytics(): Promise<GlobalAnalytics> {
+  //   // Get all payments with tenant info
+  //   const { data: allPayments, error: payError } = await supabase
+  //     .schema('tenant')
+  //     .from('payments')
+  //     .select(`
+  //       *,
+  //       invoice:invoices(
+  //         invoice_number,
+  //         customer:customers(name)
+  //       )
+  //     `)
+  //     .order('payment_date', { ascending: false })
+  //     .limit(100)
 
-    if (payError) throw payError
+  //   if (payError) throw payError
 
-    // Get all tenants
-    const { data: tenants, error: tenantError } = await supabase
-      .schema('tenant')
-      .from('tenants')
-      .select('id, name')
+  //   // Get all tenants
+  //   const { data: tenants, error: tenantError } = await supabase
+  //     .schema('tenant')
+  //     .from('tenants')
+  //     .select('id, name')
 
-    if (tenantError) throw tenantError
+  //   if (tenantError) throw tenantError
 
-    // Calculate total revenue
-    const totalRevenue = allPayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
-    const totalPayments = allPayments?.length || 0
+  //   // Calculate total revenue
+  //   const totalRevenue = allPayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+  //   const totalPayments = allPayments?.length || 0
 
-    // Count active tenants (those with at least one payment)
-    const tenantsWithPayments = new Set(allPayments?.map(p => p.tenant_id))
-    const activeTenants = tenantsWithPayments.size
+  //   // Count active tenants (those with at least one payment)
+  //   const tenantsWithPayments = new Set(allPayments?.map(p => p.tenant_id))
+  //   const activeTenants = tenantsWithPayments.size
 
-    // Calculate revenue by tenant
-    const revenueByTenantMap = new Map<string, { revenue: number; count: number }>()
-    allPayments?.forEach(p => {
-      const current = revenueByTenantMap.get(p.tenant_id) || { revenue: 0, count: 0 }
-      current.revenue += p.amount || 0
-      current.count += 1
-      revenueByTenantMap.set(p.tenant_id, current)
-    })
+  //   // Calculate revenue by tenant
+  //   const revenueByTenantMap = new Map<string, { revenue: number; count: number }>()
+  //   allPayments?.forEach(p => {
+  //     const current = revenueByTenantMap.get(p.tenant_id) || { revenue: 0, count: 0 }
+  //     current.revenue += p.amount || 0
+  //     current.count += 1
+  //     revenueByTenantMap.set(p.tenant_id, current)
+  //   })
 
-    const revenueByTenant = Array.from(revenueByTenantMap.entries()).map(([tenant_id, stats]) => {
-      const tenant = tenants?.find(t => t.id === tenant_id)
-      return {
-        tenant_id,
-        tenant_name: tenant?.name || 'Unknown',
-        revenue: stats.revenue,
-        payment_count: stats.count,
-      }
-    }).sort((a, b) => b.revenue - a.revenue)
+  //   const revenueByTenant = Array.from(revenueByTenantMap.entries()).map(([tenant_id, stats]) => {
+  //     const tenant = tenants?.find(t => t.id === tenant_id)
+  //     return {
+  //       tenant_id,
+  //       tenant_name: tenant?.name || 'Unknown',
+  //       revenue: stats.revenue,
+  //       payment_count: stats.count,
+  //     }
+  //   }).sort((a, b) => b.revenue - a.revenue)
 
-    // Calculate revenue by payment method
-    const revenueByPaymentMethod = {
-      cash: 0,
-      card: 0,
-      upi: 0,
-      bank_transfer: 0,
-      cheque: 0,
-    }
+  //   // Calculate revenue by payment method
+  //   const revenueByPaymentMethod = {
+  //     cash: 0,
+  //     card: 0,
+  //     upi: 0,
+  //     bank_transfer: 0,
+  //     cheque: 0,
+  //   }
 
-    allPayments?.forEach(p => {
-      const method = p.payment_method || 'cash'
-      if (revenueByPaymentMethod.hasOwnProperty(method)) {
-        revenueByPaymentMethod[method as keyof typeof revenueByPaymentMethod] += p.amount || 0
-      }
-    })
+  //   allPayments?.forEach(p => {
+  //     const method = p.payment_method || 'cash'
+  //     if (revenueByPaymentMethod.hasOwnProperty(method)) {
+  //       revenueByPaymentMethod[method as keyof typeof revenueByPaymentMethod] += p.amount || 0
+  //     }
+  //   })
 
-    // Get recent payments with tenant names
-    const recentPayments = allPayments?.slice(0, 20).map(p => {
-      const tenant = tenants?.find(tn => tn.id === p.tenant_id)
-      return {
-        ...p,
-        tenant_name: tenant?.name || 'Unknown',
-      } as RecentPayment & { tenant_name: string }
-    }) || []
+  //   // Get recent payments with tenant names
+  //   const recentPayments = allPayments?.slice(0, 20).map(p => {
+  //     const tenant = tenants?.find(tn => tn.id === p.tenant_id)
+  //     return {
+  //       ...p,
+  //       tenant_name: tenant?.name || 'Unknown',
+  //     } as RecentPayment & { tenant_name: string }
+  //   }) || []
 
-    return {
-      totalRevenue,
-      totalPayments,
-      activeTenants,
-      revenueByTenant,
-      recentPayments,
-      revenueByPaymentMethod,
-    }
-  }
+  //   return {
+  //     totalRevenue,
+  //     totalPayments,
+  //     activeTenants,
+  //     revenueByTenant,
+  //     recentPayments,
+  //     revenueByPaymentMethod,
+  //   }
+  // }
 
   /**
    * Get revenue trends for a tenant (daily/weekly/monthly)
