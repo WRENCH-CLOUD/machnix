@@ -1,0 +1,118 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { AppSidebar } from "@/components/common/app-sidebar"
+import { TopHeader } from "@/components/common/top-header"
+import { AllJobsView } from "legacy/Legacy-ui(needed-to-migrate)/jobs/all-jobs-view"
+import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details"
+import { useAuth } from "@/providers/auth-provider"
+import { useRouter } from "next/navigation"
+import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
+import { type JobStatus } from "@/lib/mock-data"
+
+export default function AllJobsPage() {
+  const { user, loading: authLoading, tenantId } = useAuth()
+  const router = useRouter()
+  const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
+  const [jobs, setJobs] = useState<UIJob[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (user && tenantId) {
+      loadJobs()
+    }
+  }, [user, tenantId])
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true)
+      // Call API route - business logic is in the use case
+      const response = await fetch('/api/jobs')
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs')
+      }
+      const dbJobs = await response.json()
+      const transformedJobs = await Promise.all(
+        dbJobs.map((job: any) => transformDatabaseJobToUI(job))
+      )
+      setJobs(transformedJobs)
+    } catch (err) {
+      console.error('Error loading jobs:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleJobClick = async (job: UIJob) => {
+    setSelectedJob(job)
+  }
+
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
+    try {
+      // Call API route - business logic is in the use case
+      const response = await fetch(`/api/jobs/${jobId}/update-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update job status')
+      }
+      
+      await loadJobs()
+      
+      // Update selected job if it's the one being changed
+      if (selectedJob?.id === jobId) {
+        const updatedJobs = jobs.find(j => j.id === jobId)
+        if (updatedJobs) {
+          setSelectedJob({ ...updatedJobs, status: newStatus })
+        }
+      }
+    } catch (err) {
+      console.error('Error updating job status:', err)
+      throw err
+    }
+  }
+
+  if (authLoading || loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      <AppSidebar activeView="all-jobs" onViewChange={(view) => router.push(`/${view}`)} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopHeader
+          tenantName="Mechanix Garage"
+          onCreateJob={() => router.push("/jobs")}
+        />
+        <main className="flex-1 overflow-auto p-6">
+          <AllJobsView
+            jobs={jobs}
+            onJobClick={handleJobClick}
+          />
+        </main>
+      </div>
+
+      {selectedJob && (
+        <JobDetails
+          job={selectedJob}
+          isMechanicMode={false}
+          onClose={() => setSelectedJob(null)}
+          onStatusChange={handleStatusChange}
+          onJobUpdate={async () => {
+            // Refresh the job list
+            await loadJobs()
+          }}
+        />
+      )}
+    </div>
+  )
+}

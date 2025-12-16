@@ -4,9 +4,9 @@
  */
 
 import { enrichJobWithDummyData } from './dvi-dummy-data'
-import type { JobcardWithRelations } from './supabase/services/job.service'
-import { VehicleService } from './supabase/services/vehicle.service'
-import { EstimateService } from './supabase/services/estimate.service'
+import type { JobcardWithRelations } from '../app/modules/job.service'
+import { VehicleService } from '../app/modules/vehicle.service'
+import { EstimateService } from '../app/modules/estimate.service'
 
 export interface UIJob {
   id: string

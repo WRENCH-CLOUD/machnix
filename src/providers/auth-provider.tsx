@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import { supabase, setTenantContext } from '@/lib/supabase/client'
 
 interface AuthContextType {
@@ -11,12 +11,25 @@ interface AuthContextType {
   userRole: string | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, name: string, role?: string) => Promise<void>
   signOut: () => Promise<void>
-  setActiveTenant: (tenantId: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+/**
+ * Extract authoritative claims from JWT (app_metadata)
+ */
+function extractClaims(session: Session | null) {
+  if (!session?.user) return null
+
+  const meta = session.user.app_metadata as any
+
+  return {
+    role: meta.role ?? null,
+    tenantId: meta.tenant_id ?? null,
+    userType: meta.user_type ?? null,
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -25,270 +38,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  /**
+   * Initial session load
+   */
   useEffect(() => {
-    // Check for tenant from cookie (set by middleware for subdomain routing)
-    const getTenantFromCookie = () => {
-      if (typeof document !== 'undefined') {
-        const cookies = document.cookie.split(';')
-        const tenantCookie = cookies.find(c => c.trim().startsWith('tenant-id='))
-        if (tenantCookie) {
-          return tenantCookie.split('=')[1]
-        }
-      }
-      return null
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      // Check for tenant from cookie first (subdomain routing)
-      const cookieTenantId = getTenantFromCookie()
-      if (cookieTenantId && cookieTenantId !== tenantId) {
-        //console.log('[AUTH] Setting tenant from cookie:', cookieTenantId)
-        setTenantContext(cookieTenantId)
-        setTenantId(cookieTenantId)
-      }
-      
-      if (session?.user) {
-        // Check user role on initial load
-        checkUserRole(session.user.id)
-      } else {
-        setLoading(false)
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySession(session)
+      setLoading(false)
     })
 
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      if (!session) {
-        setTenantId(null)
-        setUserRole(null)
-        localStorage.removeItem('tenantId')
-      } else if (session.user) {
-        checkUserRole(session.user.id)
-      }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
+  /**
+   * Apply session + JWT claims consistently
+   */
+  const applySession = (session: Session | null) => {
+    setSession(session)
+    setUser(session?.user ?? null)
+
+    const claims = extractClaims(session)
+
+    if (!claims) {
+      setTenantId(null)
+      setUserRole(null)
+      console.log('[AuthProvider] No claims found in session')
+      return
+    }
+
+    console.log('[AuthProvider] Claims extracted:', {
+      role: claims.role,
+      tenantId: claims.tenantId,
+      userType: claims.userType,
+      userId: session?.user?.id
+    })
+    setUserRole(claims.role)
+    setTenantId(claims.tenantId)
+
+    if (claims.tenantId) {
+      // This sets Postgres RLS session context
+      setTenantContext(claims.tenantId)
+    }
+  }
+
+  /**
+   * Sign in (JWT claims already exist — we just read them)
+   */
   const signIn = async (email: string, password: string) => {
-    const { error, data } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    
-    if (error) throw error
-    
-    // Use server-side endpoint to check role (bypasses RLS for initial login)
-    if (data.user) {
-      try {
-        const response = await fetch('/api/auth/check-role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: data.user.id }),
-        })
 
-        if (!response.ok) {
-          throw new Error('Failed to check user role')
-        }
-
-        const roleData = await response.json()
-
-        if (roleData.type === 'platform_admin') {
-          setUserRole('platform_admin')
-          return
-        }
-
-        if (roleData.type === 'tenant_user') {
-          await setActiveTenant(roleData.tenantId)
-          setUserRole(roleData.role)
-          return
-        }
-
-        // No access found
-        setUserRole('no_access')
-        throw new Error('You do not have access to this system. Please contact an administrator.')
-      } catch (error) {
-        console.error('[AUTH] Error checking user role:', error)
-        throw error
-      }
-    }
-  }
-
-  const checkUserRole = async (userId: string) => {
-    try {
-      // Use server-side endpoint to check role (bypasses RLS)
-      const response = await fetch('/api/auth/check-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to check user role')
-      }
-
-      const roleData = await response.json()
-
-      if (roleData.type === 'platform_admin') {
-        setUserRole('platform_admin')
-        setLoading(false)
-        return
-      }
-
-      if (roleData.type === 'tenant_user') {
-        await setActiveTenant(roleData.tenantId)
-        setUserRole(roleData.role)
-        setLoading(false)
-        return
-      }
-
-      // No access found
-      setUserRole('no_access')
-      setLoading(false)
-    } catch (error) {
-      console.error('[AUTH] Error checking user role:', error)
-      setUserRole('no_access')
-      setLoading(false)
-    }
-  }
-
-  const fetchUserRole = async (userId: string, tenantId: string) => {
-    const { data } = await supabase
-      .schema('tenant')
-      .from('users')
-      .select('role')
-      .eq('auth_user_id', userId)
-      .eq('tenant_id', tenantId)
-      .single()
-    
-    if (data) {
-      setUserRole(data.role)
-    }
-  }
-
-  const signUp = async (email: string, password: string, name: string, role: string = 'tenant') => {    // Step 1: Create the auth user
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-        },
-      },
-    })
-    
     if (error) {
-      console.error('Supabase signup error:', error)
-      throw new Error(`Signup failed: ${error.message}`)
+      throw error
     }
-    
-    // Check if email confirmation is required
-    if (data.user && !data.session) {
-      throw new Error('Please check your email to confirm your account before logging in.')
-    }
-    
-    // Step 2: Create tenant and user record manually (trigger is disabled)
-    if (data.user && data.session) {
-      //console.log('User created in auth, now creating tenant and user record...')
-      
-      try {
-        // Use the provided role instead of determining from email
-        const userRole = role
-        
-        let tenantData;
-        
-        // For tenant role, try to use the Main Garage tenant if it exists
-        if (userRole === 'tenant') {
-          const { data: existingTenant } = await supabase
-            .schema('tenant')
-            .from('tenants')
-            .select()
-            .eq('slug', 'main-garage')
-            .single()
-          
-          if (existingTenant) {
-            //console.log('Using existing Main Garage tenant for tenant user')
-            tenantData = existingTenant
-          }
-        }
-        
-        // If not admin or Main Garage doesn't exist, create a new tenant
-        if (!tenantData) {
-          const { data: newTenant, error: tenantError } = await supabase
-            .schema('tenant')
-            .from('tenants')
-            .insert({
-              name: `Garage - ${name}`,
-              slug: `garage-${Date.now()}`,
-              metadata: { subscription_status: 'trial' }
-            })
-            .select()
-            .single()
-          
-          if (tenantError) {
-            console.error('Error creating tenant:', tenantError)
-            throw new Error(`Failed to create tenant: ${tenantError.message}`)
-          }
-          
-          tenantData = newTenant
-        }
-        
-        //console.log('Tenant ID:', tenantData.id)
-        
-        // Create user record in tenant.users
-        const { error: userError } = await supabase
-          .schema('tenant')
-          .from('users')
-          .insert({
-            auth_user_id: data.user.id,
-            tenant_id: tenantData.id,
-            email: email,
-            name: name,
-            role: userRole
-          })
-        
-        if (userError) {
-          console.error('Error creating user record:', userError)
-          throw new Error(`Failed to create user record: ${userError.message}`)
-        }
-        
-        //console.log('User record created with role:', userRole)
-        
-        // Set the active tenant
-        await setActiveTenant(tenantData.id)
-        setUserRole(userRole)
-        //console.log('Signup completed successfully')
-        
-      } catch (err) {
-        console.error('Error in post-signup setup:', err)
-        // Clean up: delete the auth user if tenant/user creation failed
-        await supabase.auth.admin.deleteUser(data.user.id).catch(console.error)
-        throw err
-      }
-    }
+    // No role checks here.
+    // JWT + RLS are authoritative.
   }
 
+  /**
+   * Sign out
+   */
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-    
+
+    setUser(null)
+    setSession(null)
     setTenantId(null)
     setUserRole(null)
-    localStorage.removeItem('tenantId')
-  }
-
-  const setActiveTenant = async (newTenantId: string) => {
-    await setTenantContext(newTenantId)
-    setTenantId(newTenantId)
-    localStorage.setItem('tenantId', newTenantId)
   }
 
   return (
@@ -300,9 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userRole,
         loading,
         signIn,
-        signUp,
         signOut,
-        setActiveTenant,
       }}
     >
       {children}
@@ -312,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context

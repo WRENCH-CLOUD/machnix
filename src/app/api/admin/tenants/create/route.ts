@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { setTenantUserClaims } from '@/lib/auth/set-jwt-claims'
-import { JWT_ROLES } from '@/lib/auth/jwt-claims'
-
-interface CreateTenantRequest {
-  tenantName: string
-  tenantSlug: string
-  adminName: string
-  adminEmail: string
-  adminPhone?: string
-  subscription: 'starter' | 'pro' | 'enterprise'
-  notes?: string
-}
+import { CreateTenantWithOwnerUseCase } from '@/modules/tenant-management/application/create-tenant-with-owner.usecase'
+import { TenantRepository } from '@/modules/tenant-management/infrastructure/tenant.repository'
+import { SupabaseAuthRepository } from '@/modules/access/infrastructure/auth.repository.supabase'
+import { JwtClaimsService } from '@/modules/access/application/jwt-claim.service'
+import { SupabaseTenantUserRepository } from '@/modules/access/infrastructure/tenant-user.repository.supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,261 +12,28 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin()
 
     // Parse request body
-    const body: CreateTenantRequest = await request.json()
+    const body = await request.json()
 
-    // Validate required fields
-    if (!body.tenantName || !body.tenantSlug || !body.adminName || !body.adminEmail) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    // Validate email format
-    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
-    if (!emailRegex.test(body.adminEmail)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      )
-    }
-
-    // Validate slug format
-    const slugRegex = /^[a-z0-9-]+$/
-    if (!slugRegex.test(body.tenantSlug)) {
-      return NextResponse.json(
-        { error: 'Invalid tenant slug. Use only lowercase letters, numbers, and hyphens.' },
-        { status: 400 }
-      )
-    }
-
-    // Log the tenant creation attempt
     console.log(`[TENANT_CREATE] Initiating tenant creation for: ${body.tenantName} (${body.tenantSlug})`)
 
-    // STEP 1: Check if slug already exists
-    const { data: existingTenant } = await supabaseAdmin
-      .schema('tenant')
-      .from('tenants')
-      .select('id')
-      .eq('slug', body.tenantSlug)
-      .single()
-
-    if (existingTenant) {
-      console.log(`[TENANT_CREATE] Tenant slug already exists: ${body.tenantSlug}`)
-      return NextResponse.json(
-        { error: 'Tenant slug already exists. Please choose a different slug.' },
-        { status: 409 }
-      )
-    }
-
-    // STEP 2: Check if admin email already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers()
-    const emailExists = existingUser.users.some(
-      user => user.email?.toLowerCase() === body.adminEmail.toLowerCase()
+    // Create use case with all dependencies
+    const usecase = new CreateTenantWithOwnerUseCase(
+      new TenantRepository(),
+      new SupabaseAuthRepository(),
+      new JwtClaimsService(),
+      new SupabaseTenantUserRepository(),
+      supabaseAdmin
     )
 
-    if (emailExists) {
-      console.log(`[TENANT_CREATE] Email already registered: ${body.adminEmail}`)
-      return NextResponse.json(
-        { error: 'Email address already registered in the system.' },
-        { status: 409 }
-      )
-    }
-
-    // STEP 3: Create tenant record in tenant.tenants
-    const { data: newTenant, error: tenantError } = await supabaseAdmin
-      .schema('tenant')
-      .from('tenants')
-      .insert({
-        name: body.tenantName,
-        slug: body.tenantSlug,
-        metadata: {
-          subscription: body.subscription,
-          status: 'active',
-          notes: body.notes || null,
-          created_by: 'admin',
-          created_at: new Date().toISOString(),
-        }
-      })
-      .select()
-      .single()
-
-    if (tenantError || !newTenant) {
-      console.error('[TENANT_CREATE] Failed to create tenant:', tenantError)
-      throw new Error('Failed to create tenant record')
-    }
-
-    console.log(`[TENANT_CREATE] Tenant created successfully: ${newTenant.id}`)
-
-    // STEP 4: Create auth user via Supabase Admin API
-    // For local development: auto-confirm email and set temporary password
-    // For production: use email_confirm: false and send magic link
-    const isDevelopment = process.env.NODE_ENV === 'development'
-    // const temporaryPassword = isDevelopment ? 'Welcome123!' : undefined
-    const temporaryPassword = 'Welcome123!'
-    
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: body.adminEmail,
-      email_confirm: isDevelopment ? true : false, // Auto-confirm in development
-      password: temporaryPassword, // Set temporary password in development
-      user_metadata: {
-        name: body.adminName,
-        phone: body.adminPhone || null,
-        role: 'tenant', // Changed from 'tenant_admin' to match enum
-        tenant_id: newTenant.id,
-        tenant_name: body.tenantName,
-      },
-    })
-
-    if (authError || !authUser.user) {
-      console.error('[TENANT_CREATE] Failed to create auth user:', authError)
-      
-      // Rollback: Delete the tenant record
-      await supabaseAdmin
-        .schema('tenant')
-        .from('tenants')
-        .delete()
-        .eq('id', newTenant.id)
-      
-      throw new Error('Failed to create admin user')
-    }
-
-    console.log(`[TENANT_CREATE] Auth user created: ${authUser.user.id}`)
-
-    // STEP 4b: Set JWT claims via app_metadata
-    // This is CRITICAL - sets 'role' and 'tenant_id' in the JWT for RLS
-    console.log(`[TENANT_CREATE] Setting JWT claims (role: tenant_owner, tenant_id: ${newTenant.id})`)
-    
-    const jwtResult = await setTenantUserClaims(
-      supabaseAdmin,
-      authUser.user.id,
-      JWT_ROLES.TENANT_OWNER,
-      newTenant.id
-    )
-
-    if (!jwtResult.success) {
-      console.error('[TENANT_CREATE] Failed to set JWT claims:', jwtResult.error)
-      
-      // Rollback: Delete auth user and tenant
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-      await supabaseAdmin
-        .schema('tenant')
-        .from('tenants')
-        .delete()
-        .eq('id', newTenant.id)
-      
-      throw new Error('Failed to set JWT claims for admin user')
-    }
-
-    console.log(`[TENANT_CREATE] JWT claims set successfully`)
-
-    // STEP 5: Create mapping in tenant.users
-    // Note: The 'role' here is for the tenant.users table, separate from JWT claims
-    const { error: userMappingError } = await supabaseAdmin
-      .schema('tenant')
-      .from('users')
-      .insert({
-        tenant_id: newTenant.id,
-        auth_user_id: authUser.user.id,
-        name: body.adminName,
-        email: body.adminEmail,
-        phone: body.adminPhone || null,// tenant.users role (matches tenant.user_role enum)
-
-        role: 'tenant', // Changed from 'tenant_admin' to match enum (tenant.user_role)
-
-        is_active: true,
-      })
-
-    if (userMappingError) {
-      console.error('[TENANT_CREATE] Failed to create user mapping:', userMappingError)
-      
-      // Rollback: Delete auth user and tenant
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-      await supabaseAdmin
-        .schema('tenant')
-        .from('tenants')
-        .delete()
-        .eq('id', newTenant.id)
-      
-      throw new Error('Failed to create user mapping')
-    }
-
-    console.log(`[TENANT_CREATE] User mapping created successfully`)
-
-    // STEP 6: Generate magic link for password setup (production only)
-    let magicLink = null
-    
-    if (!isDevelopment) {
-      const { data: link, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: body.adminEmail,
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
-        }
-      })
-
-      if (magicLinkError || !link) {
-        console.error('[TENANT_CREATE] Failed to generate magic link:', magicLinkError)
-        // Don't rollback here - tenant and user are created successfully
-        // We can resend the invite later
-      } else {
-        magicLink = link
-        console.log(`[TENANT_CREATE] Magic link generated successfully`)
-      }
-    } else {
-      console.log(`[TENANT_CREATE] Development mode - skipping magic link generation, using temporary password instead`)
-    }
-
-    // STEP 7: Send invitation email (in production, use a proper email service)
-    // For now, we'll return the magic link in the response
-    // In production, you would:
-    // - Use SendGrid, AWS SES, or similar service
-    // - Send a branded email with the magic link
-    // - Never expose the raw magic link in the API response
-
-    // TODO: Implement email sending service
-    // await sendInvitationEmail({
-    //   to: body.adminEmail,
-    //   tenantName: body.tenantName,
-    //   adminName: body.adminName,
-    //   magicLink: magicLink.properties.action_link,
-    // })
+    // Execute the use case
+    const result = await usecase.execute(body)
 
     console.log(`[TENANT_CREATE] Tenant creation completed successfully for: ${body.tenantName}`)
 
-    // Log the creation event
-    await supabaseAdmin
-      .schema('tenant')
-      .from('tenants')
-      .update({
-        metadata: {
-          ...newTenant.metadata as any,
-          admin_email: body.adminEmail,
-          invite_sent_at: new Date().toISOString(),
-        }
-      })
-      .eq('id', newTenant.id)
-
     return NextResponse.json({
       success: true,
-      message: isDevelopment 
-        ? 'Tenant created successfully with temporary password.' 
-        : 'Tenant created successfully. Invitation email sent.',
-      tenant: {
-        id: newTenant.id,
-        name: newTenant.name,
-        slug: newTenant.slug,
-      },
-      // Development only - include credentials
-      ...(isDevelopment && {
-        credentials: {
-          email: body.adminEmail,
-          temporaryPassword: temporaryPassword,
-          note: 'Use these credentials to login immediately. Change password after first login.'
-        }
-      }),
-      // In production, don't return this - send via email only
-      inviteLink: !isDevelopment ? magicLink?.properties?.action_link : null,
+      message: 'Tenant created successfully',
+      ...result
     })
 
   } catch (error) {
