@@ -1,4 +1,12 @@
-export default function StatCard({ title, value, icon }) {
+import React from 'react';
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}
+
+export default function StatCard({ title, value, icon }: StatCardProps) {
   return (
     <div className="h-24 bg-[#0f0f0f] rounded-lg border border-white/5 p-4 relative overflow-hidden">
       <div className="text-xs text-gray-500 mb-2">{title}</div>

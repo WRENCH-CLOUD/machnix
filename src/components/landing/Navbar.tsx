@@ -1,13 +1,14 @@
 import { 
-  Wrench, Menu, X, User, Play, 
-  ClipboardList, Users, MessageCircle, FileText, Percent, Box, 
-  Check, Star, Wand2, Zap, Languages, Copy, ArrowRight,
-  Facebook, Twitter, Instagram, Mail, Phone, ChartLine, Car
+  Wrench, Menu, X, User
 } from 'lucide-react';
 
+interface NavbarProps {
+  isScrolled: boolean;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+}
 
-
-export default function Navbar({ isScrolled, mobileMenuOpen, setMobileMenuOpen }) {
+export default function Navbar({ isScrolled, mobileMenuOpen, setMobileMenuOpen }: NavbarProps) {
   return (
     <nav 
       className={`fixed w-full z-50 transition-all duration-300 ${
@@ -36,7 +37,7 @@ export default function Navbar({ isScrolled, mobileMenuOpen, setMobileMenuOpen }
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="https://app.wrenchcloud.com/login" className="text-gray-300 hover:text-white font-medium px-4 py-2 transition-colors border border-transparent hover:border-gray-700 rounded-lg flex items-center gap-2">
+            <a href="/login" className="text-gray-300 hover:text-white font-medium px-4 py-2 transition-colors border border-transparent hover:border-gray-700 rounded-lg flex items-center gap-2">
               <User size={18} /> Log In
             </a>
             <button className="bg-[#22c55e] text-black px-5 py-2.5 rounded-lg font-bold hover:bg-[#4ade80] transition-all shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)]">
