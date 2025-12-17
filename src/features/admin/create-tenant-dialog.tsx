@@ -1,23 +1,39 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/hooks/use-toast"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateTenantDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
 }
 
-export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTenantDialogProps) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+export function CreateTenantDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: CreateTenantDialogProps) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     tenantName: "",
     tenantSlug: "",
@@ -26,32 +42,32 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
     adminPhone: "",
     subscription: "pro",
     notes: "",
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/tenants/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+    e.preventDefault();
 
-      const data = await response.json()
+    try {
+      setLoading(true);
+      const response = await fetch("/api/admin/tenants/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create tenant')
+        throw new Error(data.error || "Failed to create tenant");
       }
 
       toast({
         title: "Success",
         description: data.message || "Tenant created successfully",
-      })
+      });
 
-      onSuccess()
-      onOpenChange(false)
+      onSuccess();
+      onOpenChange(false);
       setFormData({
         tenantName: "",
         tenantSlug: "",
@@ -60,17 +76,18 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
         adminPhone: "",
         subscription: "pro",
         notes: "",
-      })
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create tenant",
+        description:
+          error instanceof Error ? error.message : "Failed to create tenant",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,7 +98,7 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
             Add a new garage to the platform
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -89,18 +106,25 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
               <Input
                 id="tenantName"
                 value={formData.tenantName}
-                onChange={(e) => setFormData({ ...formData, tenantName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, tenantName: e.target.value })
+                }
                 placeholder="ABC Motors"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="tenantSlug">Slug *</Label>
               <Input
                 id="tenantSlug"
                 value={formData.tenantSlug}
-                onChange={(e) => setFormData({ ...formData, tenantSlug: e.target.value.toLowerCase() })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    tenantSlug: e.target.value.toLowerCase(),
+                  })
+                }
                 placeholder="abc-motors"
                 required
               />
@@ -113,19 +137,23 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
               <Input
                 id="adminName"
                 value={formData.adminName}
-                onChange={(e) => setFormData({ ...formData, adminName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, adminName: e.target.value })
+                }
                 placeholder="John Doe"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="adminEmail">Admin Email *</Label>
               <Input
                 id="adminEmail"
                 type="email"
                 value={formData.adminEmail}
-                onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, adminEmail: e.target.value })
+                }
                 placeholder="john@example.com"
                 required
               />
@@ -139,16 +167,20 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
                 id="adminPhone"
                 type="tel"
                 value={formData.adminPhone}
-                onChange={(e) => setFormData({ ...formData, adminPhone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, adminPhone: e.target.value })
+                }
                 placeholder="+91 9876543210"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="subscription">Subscription Plan *</Label>
               <Select
                 value={formData.subscription}
-                onValueChange={(value) => setFormData({ ...formData, subscription: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, subscription: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -167,7 +199,9 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
             <Input
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               placeholder="Any additional notes..."
             />
           </div>
@@ -189,5 +223,5 @@ export function CreateTenantDialog({ open, onOpenChange, onSuccess }: CreateTena
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

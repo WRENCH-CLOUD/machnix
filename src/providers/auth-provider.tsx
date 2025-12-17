@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase, setTenantContext } from '@/lib/supabase/client'
-import { set } from 'date-fns'
+import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
@@ -91,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Sign in (JWT claims already exist — we just read them)
    */
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -100,7 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       throw error
     }
-
   }
 
   /**
@@ -115,24 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTenantId(null)
     setUserRole(null)
   }
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      const claims = extractClaims(session)
-      if (claims) {
-        setTenantId(claims?.tenantId ?? null)
-        setUserRole(claims?.role ?? null)
-        if (claims?.tenantId) {
-          // This sets Postgres RLS session context
-          setTenantContext(claims.tenantId)
-        }
-      }
-      setLoading(false)
-      console.log("AuthProvider session changed:", session)
-    })
-  }, [])
 
   return (
     <AuthContext.Provider
