@@ -4,7 +4,7 @@
  */
 
 import { enrichJobWithDummyData } from './dvi-dummy-data'
-import type { JobcardWithRelations } from '../app/modules/job.service'
+import type { JobCardWithRelations } from '../app/modules/job-management/domain/job.entity'
 import { VehicleService } from '../app/modules/vehicle.service'
 import { EstimateService } from '../app/modules/estimate.service'
 
@@ -55,7 +55,7 @@ export interface UIJob {
  * Transform database jobcard to UI format
  * Now async to support make/model lookups
  */
-export async function transformDatabaseJobToUI(dbJob: JobcardWithRelations): Promise<UIJob> {
+export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Promise<UIJob> {
   // Extract vehicle data and handle make/model lookup
   const vehicle = dbJob.vehicle
   
@@ -76,7 +76,7 @@ export async function transformDatabaseJobToUI(dbJob: JobcardWithRelations): Pro
   // Transform to UI format
   const uiJob: any = {
     id: dbJob.id,
-    jobNumber: dbJob.job_number || 'N/A',
+    jobNumber: dbJob.jobNumber || 'N/A',
     customer: {
       id: dbJob.customer?.id || '',
       name: dbJob.customer?.name || 'Unknown Customer',
@@ -102,10 +102,10 @@ export async function transformDatabaseJobToUI(dbJob: JobcardWithRelations): Pro
     } : null,
     status: dbJob.status,
     complaints: extractComplaints(dbJob.details),
-    createdAt: dbJob.created_at,
-    updatedAt: dbJob.updated_at,
-    created_at: dbJob.created_at,
-    updated_at: dbJob.updated_at,
+    createdAt: dbJob.createdAt,
+    updatedAt: dbJob.updatedAt,
+    created_at: dbJob.createdAt,
+    updated_at: dbJob.updatedAt,
   }
 
   // Try to load estimate data for accurate totals
