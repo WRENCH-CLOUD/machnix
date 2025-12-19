@@ -10,7 +10,7 @@ create(input:{
 
 deactivate(tenantId: string, authUserId: string): Promise<void>
 
-findByTenantAndAuthUser(tenantId: string, authUserId: string): Promise<String | null>
+findByTenantAndAuthUser(tenantId: string, authUserId: string): Promise<string | null>
 
 findRole(
     tenantId: string,
