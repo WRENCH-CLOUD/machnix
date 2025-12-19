@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseVehicleRepository } from '@/app/modules/vehicle-management/infrastructure/vehicle.repository.supabase'
-import { GetAllVehiclesUseCase } from '@/app/modules/vehicle-management/application/get-all-vehicles.use-case'
+import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
+import { GetAllVehiclesUseCase } from '@/modules/vehicle/application/get-all-vehicles.use-case'
 
 export async function GET() {
   try {

@@ -1,4 +1,4 @@
-import { JobCard, JobCardWithRelations, JobStatus } from './job.entity'
+import { JobCard, JobCardWithRelations, JobStatus } from './job-entity'
 
 /**
  * Job Repository Interface

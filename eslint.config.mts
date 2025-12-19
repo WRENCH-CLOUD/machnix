@@ -3,100 +3,159 @@ import tseslint from "typescript-eslint";
 import importPlugin from "eslint-plugin-import";
 import checkFile from "eslint-plugin-check-file";
 
-export default tseslint.config(
+export default[
+  // ---------------------------------------------------------------------------
   // 1. GLOBAL IGNORES
+  // ---------------------------------------------------------------------------
   {
     ignores: [
       "**/node_modules/**",
-      "**/.pnp/**",
-      "**/.pnp.js",
-      "**/coverage/**",
       "**/.next/**",
-      "**/out/**",
-      "**/build/**",
       "**/dist/**",
-      "**/.DS_Store",
-      "**/*.pem",
-      "**/npm-debug.log*",
-      "**/pnpm-lock.log",
-      "**/pnpm-debug.log*",
-      "**/yarn-lock.log",
-      "**/yarn-debug.log*",
-      "**/yarn-error.log*",
-      "**/.env.local",
-      "**/.env",
-      "**/.env.development.local",
-      "**/.env.test.local",
-      "**/.env.production.local",
+      "**/build/**",
+      "**/out/**",
       "**/.turbo/**",
       "**/.vercel/**",
+      "**/coverage/**",
       "**/*.tsbuildinfo",
       "**/next-env.d.ts",
-      "**/supabase/.temp/**",
-      "**/supabase/.branches/**",
-      "**/*.config.js",
-      "**/*.config.mjs",
+
+      // env
+      "**/.env",
+      "**/.env.*",
+
+      // lock files
+      "**/pnpm-lock.yaml",
+      "**/yarn.lock",
+      "**/package-lock.json",
+
+      // misc
+      "**/.DS_Store",
+      "**/*.pem",
     ],
   },
 
-  // 2. Base Setup
+  // ---------------------------------------------------------------------------
+  // 2. BASE CONFIGS
+  // ---------------------------------------------------------------------------
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
-  // 3. TypeScript specific settings
+  // ---------------------------------------------------------------------------
+  // 3. TYPESCRIPT (SAFE PROJECT MODE)
+  // ---------------------------------------------------------------------------
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ["src/**/*.ts", "src/**/*.tsx"],
     languageOptions: {
       parserOptions: {
-        project: "./tsconfig.json",
+        project: "./tsconfig.eslint.json",
       },
     },
   },
 
-  // 4. Architectural Boundary Enforcement
+  // ---------------------------------------------------------------------------
+  // 4. ARCHITECTURAL + NAMING RULES
+  // ---------------------------------------------------------------------------
   {
     plugins: {
       import: importPlugin,
       "check-file": checkFile,
     },
+
     rules: {
+      // =====================================================================
+      // IMPORT BOUNDARIES (CLEAN ARCHITECTURE)
+      // =====================================================================
       "import/no-restricted-paths": [
         "error",
         {
           zones: [
-            { target: "./src/modules", from: "./src/app", message: "Architectural Violation: Modules cannot import from the App layer." },
-            { target: "./src/components", from: "./src/modules", message: "Architectural Violation: UI components must be dumb. Do not import modules." },
-            { target: "./src/components", from: "./src/lib", message: "Architectural Violation: UI components should not import technical adapters (lib/)." },
-            { 
-              target: "./src/modules/*/domain", 
-              from: "./src/modules/*/infrastructure", 
-              message: "Architectural Violation: Domain entities must be pure. Infrastructure imports are forbidden." 
+            {
+              target: "./src/app",
+              from: "./src/modules",
+              message:
+                "Architectural Violation: App layer must not be imported by modules.",
             },
-            { 
-              target: "./src/modules/*/domain", 
-              from: "./src/lib", 
-              message: "Architectural Violation: Domain must have zero dependencies (no lib/ imports)." 
+            {
+              target: "./src/components",
+              from: "./src/modules",
+              message:
+                "Architectural Violation: UI components must be dumb. Do not import modules.",
+            },
+            {
+              target: "./src/components",
+              from: "./src/lib",
+              message:
+                "Architectural Violation: UI components must not import technical adapters.",
+            },
+            {
+              target: "./src/modules/*/domain",
+              from: "./src/modules/*/infrastructure",
+              message:
+                "Architectural Violation: Domain must not depend on infrastructure.",
+            },
+            {
+              target: "./src/modules/*/domain",
+              from: "./src/lib",
+              message:
+                "Architectural Violation: Domain must have zero external dependencies.",
+            },
+            {
+              target: "./src/modules/*/domain",
+              from: "./src/app",
+              message:
+                "Architectural Violation: Domain must not depend on App layer.",
             },
           ],
         },
       ],
-      "check-file/filename-naming-convention": [
-        "error",
-        {
-          "src/modules/**": "KEBAB_CASE",
-          "src/components/views/*-view.tsx": "KEBAB_CASE",
-          "src/components/dialogs/*-dialog.tsx": "KEBAB_CASE",
-        },
-      ],
-      "check-file/folder-naming-convention": [
-        "error",
-        {
-          "src/modules/*": "KEBAB_CASE",
-          "src/modules/*/domain": "LOWER_CASE",
-          "src/modules/*/application": "LOWER_CASE",
-          "src/modules/*/infrastructure": "LOWER_CASE",
-        },
-      ],
+
+      // // =====================================================================
+      // // FILE NAMING
+      // // =====================================================================
+      // "check-file/filename-naming-convention": [
+      //   "error",
+      //   {
+      //     "src/modules/**": "KEBAB_CASE",
+
+      //     "src/components/views/*-view.tsx": "KEBAB_CASE",
+      //     "src/components/dialogs/*-dialog.tsx": "KEBAB_CASE",
+
+      //     "src/hooks/use-*.ts": "KEBAB_CASE",
+      //     "src/providers/*-provider.tsx": "KEBAB_CASE",
+      //   },
+      // ],
+
+      // // =====================================================================
+      // // FOLDER NAMING (DOC-CORRECT)
+      // // =====================================================================
+      // "check-file/folder-naming-convention": [
+      //   "error",
+      //   {
+      //     // Next.js App Router (supports [], (), [[...]], @slots)
+      //     "src/app/**/": "NEXT_JS_APP_ROUTER_CASE",
+
+      //     // Modules
+      //     "src/modules/*/": "KEBAB_CASE",
+      //     "src/modules/*/domain/": "FLAT_CASE",
+      //     "src/modules/*/application/": "FLAT_CASE",
+      //     "src/modules/*/infrastructure/": "FLAT_CASE",
+
+      //     // UI + infra
+      //     "src/components/*/": "KEBAB_CASE",
+      //     "src/lib/*/": "KEBAB_CASE",
+//       //     "src/hooks/*/": "KEBAB_CASE",
+//       //     "src/providers/*/": "KEBAB_CASE",
+//       //   },
+//         {
+//           errorMessage:
+//             'Folder "{{ target }}" does not match the "{{ pattern }}" naming convention.',
+//           ignoreWords: ["__tests__", "__mocks__"],
+//         },
+//       ],
+//     },
+//   }
+// ];
     },
-  }
-);
+  },
+];

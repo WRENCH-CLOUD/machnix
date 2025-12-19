@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseJobRepository } from '@/app/modules/job-management/infrastructure/job.repository.supabase'
-import { GetAllJobsUseCase } from '@/app/modules/job-management/application/get-all-jobs.use-case'
+import { SupabaseJobRepository } from '@/modules/job-management/infrastructure/job.repository.supabase'
+import { GetAllJobsUseCase } from '@/modules/job-management/application/get-all-jobs.use-case'
 
 export async function GET() {
   try {

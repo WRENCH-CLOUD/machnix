@@ -1,39 +1,84 @@
-"use client"
+// "use client"
+//TODO: implement mechanic layout as same as the admin layout
+// import { type ReactNode, useEffect } from "react"
+// import { useRouter, usePathname } from "next/navigation"
+// import { useAuth } from "@/providers/auth-provider"
+// import Loader from "@/components/ui/loading"
 
-import { type ReactNode, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/providers/auth-provider"
-import Loader from "@/components/ui/loading"
+// export default function MechanicLayoutWrapper({
+//   children,
+// }: {
+//   children: ReactNode
+// }) {
+//   const pathname = usePathname()
+//   const router = useRouter()
+//   const { user, userRole, loading } = useAuth()
 
-export default function MechanicLayoutWrapper({ children }: { children: ReactNode }) {
-  const router = useRouter()
-  const { user, userRole, loading } = useAuth()
+//   /**
+//    * Hard authorization gate
+//    */
+//   useEffect(() => {
+//     if (loading) return
 
-  // Client-side authorization guard
-  useEffect(() => {
-    if (!loading && user && userRole !== 'mechanic') {
-      // Not authorized - redirect to no access
-      router.push('/auth/no-access')
-    }
-  }, [user, userRole, loading, router])
+//     // Not logged in
+//     if (!user) {
+//       router.replace("/login")
+//       return
+//     }
 
-  // Show loading while checking auth
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader 
-          title="Verifying access..."
-          subtitle="Please wait"
-          size="lg"
-        />
-      </div>
-    )
-  }
+//     // Logged in but wrong role
+//     if (userRole !== "platform_admin") {
+//       router.replace("/auth/no-access")
+//       return
+//     }
+//   }, [user, userRole, loading, router])
 
-  // Don't render if not authorized (middleware will handle no session case)
-  if (user && userRole !== 'mechanic') {
-    return null
-  }
+//   if (loading) {
+//     return (
+//       <div className="flex h-screen items-center justify-center bg-background">
+//         <Loader
+//           title="Verifying access..."
+//           subtitle="Please wait"
+//           size="lg"
+//         />
+//       </div>
+//     )
+//   }
 
-  return <>{children}</>
-}
+//   // Explicit deny
+//   if (!user || userRole !== "mechanic") {
+//     return null
+//   }
+
+//   const getActiveView = () => {
+//     if (pathname.includes("/tenants")) return "tenants"
+//     if (pathname.includes("/mechanics")) return "mechanics"
+//     if (pathname.includes("/settings")) return "settings"
+//     return "overview"
+//   }
+
+//   const viewTitles: Record<string, string> = {
+//     overview: "Overview",
+//     tenants: "Tenants",
+//     mechanics: "Mechanics",
+//     settings: "Settings",
+//   }
+
+//   return (
+//     <MechanicLayout
+//       activeView={getActiveView()}
+//       onViewChange={(view) => {
+//         const routes: Record<string, string> = {
+//           overview: "/admin",
+//           tenants: "/tenants",
+//           mechanics: "/mechanics",
+//           settings: "/settings",
+//         }
+//         router.push(routes[view])
+//       }}
+//       title={viewTitles[getActiveView()]}
+//     >
+//       {children}
+//     </MechanicLayout>
+//   )
+// }

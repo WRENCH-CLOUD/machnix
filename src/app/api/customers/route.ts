@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseCustomerRepository } from '@/app/modules/customer-management/infrastructure/customer.repository.supabase'
-import { GetAllCustomersUseCase } from '@/app/modules/customer-management/application/get-all-customers.use-case'
+import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
+import { GetAllCustomersUseCase } from '@/modules/customer/application/get-all-customers.use-case'
 
 export async function GET() {
   try {

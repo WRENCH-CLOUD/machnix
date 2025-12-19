@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseJobRepository } from '@/app/modules/job-management/infrastructure/job.repository.supabase'
-import { UpdateJobStatusUseCase } from '@/app/modules/job-management/application/update-job-status.use-case'
-import { JobStatus } from '@/app/modules/job-management/domain/job.entity'
+import { SupabaseJobRepository } from '@/modules/job-management/infrastructure/job.repository.supabase'
+import { UpdateJobStatusUseCase } from '@/modules/job-management/application/update-job-status.use-case'
+import { JobStatus } from '@/modules/job-management/domain/job.entity'
 
 export async function POST(
   request: NextRequest,

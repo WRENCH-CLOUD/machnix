@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseInvoiceRepository } from '@/app/modules/invoice-management/infrastructure/invoice.repository.supabase'
-import { GetAllInvoicesUseCase } from '@/app/modules/invoice-management/application/get-all-invoices.use-case'
+import { SupabaseInvoiceRepository } from '@/modules/invoice-management/infrastructure/invoice.repository.supabase'
+import { GetAllInvoicesUseCase } from '@/modules/invoice-management/application/get-all-invoices.use-case'
 
 export async function GET() {
   try {

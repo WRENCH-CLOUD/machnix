@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
 import { type GlobalAnalytics } from "@/app/modules/analytics.service"
 
-import { type TenantWithStats } from "@/app/modules/tenant-management"
+import { type TenantWithStats } from "@/modules/tenant"
 
 interface OverviewViewProps {
   tenants: TenantWithStats[]

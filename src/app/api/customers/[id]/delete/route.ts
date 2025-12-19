@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseCustomerRepository } from '@/app/modules/customer-management/infrastructure/customer.repository.supabase'
-import { DeleteCustomerUseCase } from '@/app/modules/customer-management/application/delete-customer.use-case'
+import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
+import { DeleteCustomerUseCase } from '@/modules/customer/application/delete-customer.use-case'
 
 export async function DELETE(
   request: NextRequest,

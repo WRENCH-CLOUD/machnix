@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseVehicleRepository } from '@/app/modules/vehicle-management/infrastructure/vehicle.repository.supabase'
-import { CreateVehicleUseCase } from '@/app/modules/vehicle-management/application/create-vehicle.use-case'
+import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
+import { CreateVehicleUseCase } from '@/modules/vehicle/application/create-vehicle.use-case'
 import { ensureTenantContext } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

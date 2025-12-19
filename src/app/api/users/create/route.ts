@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseUserRepository } from '@/app/modules/user-management/infrastructure/user.repository.supabase'
-import { CreateUserUseCase } from '@/app/modules/user-management/application/create-user.use-case'
+import { SupabaseUserRepository } from '@/modules/user/infrastructure/user.repository.supabase'
+import { CreateUserUseCase } from '@/modules/user/application/create-user.use-case'
 import { ensureTenantContext } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

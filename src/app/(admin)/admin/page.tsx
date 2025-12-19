@@ -9,7 +9,7 @@ import {
   GetAllTenantsWithStatsUseCase,
   GetTenantWithStatsUseCase,
   SupabaseTenantRepository 
-} from "@/app/modules/tenant-management"
+} from "@/modules/tenant"
 
 export default function AdminOverviewPage() {
   const [searchQuery, setSearchQuery] = useState("")

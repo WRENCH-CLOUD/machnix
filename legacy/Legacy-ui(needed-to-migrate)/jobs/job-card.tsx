@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { type JobStatus, statusConfig, mechanics } from "@/lib/mock-data"
-import type { UIJob } from "@/lib/job-transforms"
+import type { UIJob } from "@/modules/job-management/application/job-transforms.service"
 import { cn } from "@/lib/utils"
 
 interface JobCardProps {

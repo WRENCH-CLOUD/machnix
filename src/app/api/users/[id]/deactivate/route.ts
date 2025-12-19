@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseUserRepository } from '@/app/modules/user-management/infrastructure/user.repository.supabase'
-import { DeactivateUserUseCase } from '@/app/modules/user-management/application/deactivate-user.use-case'
+import { SupabaseUserRepository } from '@/modules/user/infrastructure/user.repository.supabase'
+import { DeactivateUserUseCase } from '@/modules/user/application/deactivate-user.use-case'
 
 export async function POST(
   request: NextRequest,

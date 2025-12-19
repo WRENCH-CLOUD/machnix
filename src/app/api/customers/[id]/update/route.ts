@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseCustomerRepository } from '@/app/modules/customer-management/infrastructure/customer.repository.supabase'
-import { UpdateCustomerUseCase } from '@/app/modules/customer-management/application/update-customer.use-case'
+import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
+import { UpdateCustomerUseCase } from '@/modules/customer/application/update-customer.use-case'
 
 export async function PUT(
   request: NextRequest,

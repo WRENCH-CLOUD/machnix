@@ -1,5 +1,5 @@
-import { JobRepository } from '../domain/job.repository'
-import { JobCardWithRelations } from '../domain/job.entity'
+import { JobRepository } from '../domain/job-repository'
+import { JobCardWithRelations } from '../domain/job-entity'
 
 /**
  * Get All Jobs Use Case

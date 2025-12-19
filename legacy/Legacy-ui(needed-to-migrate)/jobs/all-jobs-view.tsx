@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { type UIJob } from "@/lib/job-transforms"
+import { type UIJob } from "@/modules/job-management/application/job-transforms.service"
 import { type JobStatus, statusConfig } from "@/lib/mock-data"
 
 interface AllJobsViewProps {

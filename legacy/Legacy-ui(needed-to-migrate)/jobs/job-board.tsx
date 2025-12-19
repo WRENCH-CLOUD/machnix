@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { JobCard } from "./job-card"
 import { type JobStatus, statusConfig } from "@/lib/mock-data"
-import type { UIJob } from "@/lib/job-transforms"
+import type { UIJob } from "@/modules/job-management/application/job-transforms.service"
 import { cn } from "@/lib/utils"
 import {
   DndContext,

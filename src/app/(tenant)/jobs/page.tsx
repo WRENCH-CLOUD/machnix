@@ -8,7 +8,7 @@ import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details
 import { CreateJobWizard } from "legacy/Legacy-ui(needed-to-migrate)/jobs/create-job-wizard"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
-import { transformDatabaseJobToUI, type UIJob } from "@/lib/job-transforms"
+import { transformDatabaseJobToUI, type UIJob } from "@/modules/job-management/application/job-transforms.service"
 import { type JobStatus } from "@/lib/mock-data"
 
 export default function JobsPage() {

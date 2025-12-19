@@ -38,7 +38,7 @@ BEGIN
   END IF;
 END$$;
 
--- TABLES: PUBLIC (global reference + platform admins)
+TABLES: PUBLIC (global reference + platform admins)
 CREATE TABLE IF NOT EXISTS public.platform_admins (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   auth_user_id uuid NOT NULL UNIQUE,

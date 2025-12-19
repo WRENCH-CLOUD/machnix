@@ -1,5 +1,5 @@
-import { InvoiceRepository } from '@/app/modules/invoice-management/domain/invoice.repository'
-import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '@/app/modules/invoice-management/domain/invoice.entity'
+import { InvoiceRepository } from '@/modules/invoice-management/domain/invoice.repository'
+import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '@/modules/invoice-management/domain/invoice.entity'
 import { supabase, ensureTenantContext } from '@/lib/supabase/client'
 
 /**

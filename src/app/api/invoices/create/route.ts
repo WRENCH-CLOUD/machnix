@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseInvoiceRepository } from '@/app/modules/invoice-management/infrastructure/invoice.repository.supabase'
-import { CreateInvoiceUseCase } from '@/app/modules/invoice-management/application/create-invoice.use-case'
+import { SupabaseInvoiceRepository } from '@/modules/invoice-management/infrastructure/invoice.repository.supabase'
+import { CreateInvoiceUseCase } from '@/modules/invoice-management/application/create-invoice.use-case'
 import { ensureTenantContext } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

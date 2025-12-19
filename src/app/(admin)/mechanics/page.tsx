@@ -4,7 +4,7 @@ import { HardHat, Activity, Wrench } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect, useMemo } from "react"
 
-import { type TenantWithStats } from "@/app/modules/tenant-management"
+import { type TenantWithStats } from "@/modules/tenant"
 
 export default function MechanicsView() {
     const [tenants, setTenants] = useState<TenantWithStats[]>([])

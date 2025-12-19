@@ -1,45 +1,51 @@
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+"use client";
 
-export default async function ResolveAuthPage() {
-  // ✅ cookies() IS ASYNC
-  const cookieStore = await cookies()
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Loader from "@/components/ui/loading";
+import { resolveRedirect } from "@/lib/auth/resolve-redirect";
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-      },
-    }
-  )
+export default function AuthResolvePage() {
+  console.log("AUTH RESOLVE HIT");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const router = useRouter();
+  const hasRedirected = useRef(false);
 
-  if (!user) {
-    redirect('/login')
-  }
+  useEffect(() => {
+    if (hasRedirected.current) return;
 
-  const claims = user.app_metadata as {
-    role?: string
-    tenant_id?: string
-  }
+    const resolve = async () => {
+      const res = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
 
-  if (claims.role === 'platform_admin') {
-    redirect('/admin/dashboard')
-  }
+      if (!res.ok) {
+        hasRedirected.current = true;
+        router.replace("/login");
+        return;
+      }
 
-  if (claims.role === 'mechanic') {
-    redirect('/mechanic/dashboard')
-  }
+      const { user } = await res.json();
 
-  if (claims.tenant_id) {
-    redirect('/tenant/dashboard')
-  }
+      const target = resolveRedirect({
+        role: user.role,
+        tenantId: user.tenantId,
+      });
 
-  redirect('/auth/no-access')
+      hasRedirected.current = true;
+      router.replace(target);
+    };
+
+    resolve();
+  }, [router]);
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <Loader
+        title="Signing you in…"
+        subtitle="Resolving access"
+        size="lg"
+      />
+    </div>
+  );
 }

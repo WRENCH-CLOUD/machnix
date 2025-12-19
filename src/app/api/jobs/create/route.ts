@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseJobRepository } from '@/app/modules/job-management/infrastructure/job.repository.supabase'
-import { CreateJobUseCase } from '@/app/modules/job-management/application/create-job.use-case'
+import { SupabaseJobRepository } from '@/modules/job-management/infrastructure/job.repository.supabase'
+import { CreateJobUseCase } from '@/modules/job-management/application/create-job.use-case'
 import { ensureTenantContext } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

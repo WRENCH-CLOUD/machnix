@@ -5,27 +5,34 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import Loader from "@/components/ui/loading"
 
-export default function TenantLayoutWrapper({ children }: { children: ReactNode }) {
+export default function TenantLayoutWrapper({
+  children,
+}: {
+  children: ReactNode
+}) {
   const router = useRouter()
-  const { user, userRole, loading } = useAuth()
+  const { user, tenantId, loading } = useAuth()
 
-  // Client-side authorization guard
   useEffect(() => {
-    if (!loading && user) {
-      // Check if user has a tenant role
-      const tenantRoles = ['tenant_owner', 'tenant_admin', 'manager', 'frontdesk', 'employee']
-      if (!tenantRoles.includes(userRole || '')) {
-        // Not authorized - redirect to no access
-        router.push('/auth/no-access')
-      }
-    }
-  }, [user, userRole, loading, router])
+    if (loading) return
 
-  // Show loading while checking auth
+    // Not logged in
+    if (!user) {
+      router.replace("/login")
+      return
+    }
+
+    // Logged in but not a tenant
+    if (!tenantId) {
+      router.replace("/auth/no-access")
+      return
+    }
+  }, [user, tenantId, loading, router])
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader 
+        <Loader
           title="Verifying access..."
           subtitle="Please wait"
           size="lg"
@@ -34,9 +41,8 @@ export default function TenantLayoutWrapper({ children }: { children: ReactNode 
     )
   }
 
-  // Don't render if not authorized (middleware will handle no session case)
-  const tenantRoles = ['tenant_owner', 'tenant_admin', 'manager', 'frontdesk', 'employee']
-  if (user && !tenantRoles.includes(userRole || '')) {
+  // Hard stop
+  if (!user || !tenantId) {
     return null
   }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseCustomerRepository } from '@/app/modules/customer-management/infrastructure/customer.repository.supabase'
-import { CreateCustomerUseCase } from '@/app/modules/customer-management/application/create-customer.use-case'
+import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
+import { CreateCustomerUseCase } from '@/modules/customer/application/create-customer.use-case'
 import { ensureTenantContext } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

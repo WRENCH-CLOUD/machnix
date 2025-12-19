@@ -3,10 +3,16 @@
  * Converts field names and enriches with dummy data
  */
 
-import { enrichJobWithDummyData } from './dvi-dummy-data'
-import type { JobCardWithRelations } from '../app/modules/job-management/domain/job.entity'
-import { VehicleService } from '../app/modules/vehicle.service'
-import { EstimateService } from '../app/modules/estimate.service'
+import { container } from 'tsyringe'
+
+import { REPOSITORY_TOKENS } from '@/app/container/bindings'
+import type { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
+import type { JobCardWithRelations } from '@/modules/job-management/domain/job.entity'
+
+import { enrichJobWithDummyData } from '../../../lib/dvi-dummy-data'
+import type { JobcardWithRelations } from '../modules/job.service'
+import { VehicleService } from '../modules/vehicle.service'
+import { EstimateService } from '../modules/estimate.service'
 
 export interface UIJob {
   id: string
@@ -56,22 +62,13 @@ export interface UIJob {
  * Now async to support make/model lookups
  */
 export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Promise<UIJob> {
-  // Extract vehicle data and handle make/model lookup
-  const vehicle = dbJob.vehicle
-  
-  // Look up actual make and model names from public schema
-  let vehicleMake = 'Unknown Make'
-  let vehicleModel = 'Unknown Model'
-  
-  if (vehicle?.make_id) {
-    const make = await VehicleService.getMakeById(vehicle.make_id)
-    if (make) vehicleMake = make.name
-  }
-  
-  if (vehicle?.model_id) {
-    const model = await VehicleService.getModelById(vehicle.model_id)
-    if (model) vehicleModel = model.name
-  }
+  // Extract vehicle data and attempt to resolve naming inconsistencies between schemas
+  const vehicle = dbJob.vehicle ?? {}
+
+  const vehicleMake = vehicle.make ?? vehicle.make_name ?? 'Unknown Make'
+  const vehicleModel = vehicle.model ?? vehicle.model_name ?? 'Unknown Model'
+  const vehicleReg = vehicle.licensePlate ?? vehicle.license_plate ?? vehicle.reg_no ?? 'N/A'
+  const vehicleColor = vehicle.color ?? vehicle.colour ?? null
   
   // Transform to UI format
   const uiJob: any = {
@@ -89,8 +86,8 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
       make: vehicleMake,
       model: vehicleModel,
       year: vehicle?.year || null,
-      regNo: vehicle?.reg_no || 'N/A',
-      color: null, // TODO: add color field to vehicle table
+      regNo: vehicleReg,
+      color: vehicleColor,
     },
     mechanic: dbJob.mechanic ? {
       id: dbJob.mechanic.id,
@@ -109,16 +106,19 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
   }
 
   // Try to load estimate data for accurate totals
-  try {
-    const estimate = await EstimateService.getEstimateByJobcard(dbJob.id)
-    if (estimate) {
-      uiJob.partsTotal = estimate.parts_total || 0
-      uiJob.laborTotal = estimate.labor_total || 0
-      uiJob.tax = estimate.tax_amount || 0
+  const estimateRepository = resolveEstimateRepository()
+  if (estimateRepository) {
+    try {
+      const estimates = await estimateRepository.findByJobcardId(dbJob.id)
+      const estimate = estimates[0]
+      if (estimate) {
+        uiJob.partsTotal = estimate.partsTotal ?? 0
+        uiJob.laborTotal = estimate.laborTotal ?? 0
+        uiJob.tax = estimate.taxAmount ?? 0
+      }
+    } catch (error) {
+      console.debug(`[job-transforms] No estimate found for job ${dbJob.jobNumber}`, error)
     }
-  } catch (error) {
-    // Estimate not found or error - will use defaults from enrichJobWithDummyData
-    console.debug(`No estimate found for job ${dbJob.job_number}`)
   }
 
   // Enrich with dummy DVI data and other fields
@@ -143,7 +143,7 @@ function extractComplaints(details: any): string {
 /**
  * Transform UI job data back to database format for updates
  */
-export function transformUIJobToDatabase(uiJob: UIJob): Partial<JobcardWithRelations> {
+export function transformUIJobToDatabase(uiJob: UIJob): Record<string, any> {
   return {
     id: uiJob.id,
     job_number: uiJob.jobNumber,
@@ -152,5 +152,19 @@ export function transformUIJobToDatabase(uiJob: UIJob): Partial<JobcardWithRelat
       complaints: uiJob.complaints,
     },
     updated_at: new Date().toISOString(),
+  }
+}
+
+let cachedEstimateRepository: EstimateRepository | null = null
+
+function resolveEstimateRepository(): EstimateRepository | null {
+  if (cachedEstimateRepository) return cachedEstimateRepository
+
+  try {
+    cachedEstimateRepository = container.resolve<EstimateRepository>(REPOSITORY_TOKENS.estimate)
+    return cachedEstimateRepository
+  } catch (error) {
+    console.debug('[job-transforms] Failed to resolve EstimateRepository from container', error)
+    return null
   }
 }

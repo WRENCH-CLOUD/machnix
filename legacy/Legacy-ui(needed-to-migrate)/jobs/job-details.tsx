@@ -45,7 +45,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { type JobStatus, type Mechanic, statusConfig, type DVIItem, type Part } from "@/lib/mock-data"
-import type { UIJob } from "@/lib/job-transforms"
+import type { UIJob } from "@/modules/job-management/application/job-transforms.service"
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data"
 import { InvoiceService } from "@/app/modules/invoice.service"
 import { EstimateService } from "@/app/modules/estimate.service"

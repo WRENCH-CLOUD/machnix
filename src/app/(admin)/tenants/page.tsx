@@ -25,7 +25,7 @@ import {
   GetAllTenantsWithStatsUseCase,
   GetTenantWithStatsUseCase,
   SupabaseTenantRepository 
-} from "@/app/modules/tenant-management"
+} from "@/modules/tenant"
 import { Spinner } from "@/components/ui/spinner"
 import { TenantDetailsDialog } from "@/app/(admin)/components/tenant-details-dialog"
 import { CreateTenantDialog } from "@/app/(admin)/components/create-tenant-dialog"
