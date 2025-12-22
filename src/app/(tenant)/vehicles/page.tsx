@@ -2,7 +2,7 @@
 
 import { AppSidebar } from "@/components/common/app-sidebar";
 import { TopHeader } from "@/components/common/top-header";
-import { VehiclesView } from "legacy/Legacy-ui(needed-to-migrate)/vehicles/vehicles-view"; // TODO: Migrate this component to new ui and remove this import @Rohithgg
+import { VehiclesView } from "@/components/tenant/vehicles/vehicles-view";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

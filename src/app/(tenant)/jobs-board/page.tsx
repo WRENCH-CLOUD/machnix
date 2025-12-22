@@ -6,9 +6,11 @@ import { TopHeader } from "@/components/common/top-header"
 import { JobBoard } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-board"
 import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details"
 import { CreateJobWizard } from "legacy/Legacy-ui(needed-to-migrate)/jobs/create-job-wizard"
+// TODO: add JobBoard and JobDetails and CreateJobWizard from new components when ready
+import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
-import { transformDatabaseJobToUI, type UIJob } from "@/modules/job-management/application/job-transforms.service"
+import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { type JobStatus } from "@/lib/mock-data"
 
 export default function JobsPage() {
@@ -58,14 +60,23 @@ export default function JobsPage() {
   const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
     try {
       // Call API route - business logic is in the use case
-      const response = await fetch(`/api/jobs/${jobId}/update-status`, {
+      let response = await fetch(`/api/jobs/${jobId}/update-status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
       
       if (!response.ok) {
-        throw new Error('Failed to update job status')
+        // Fallback to PATCH if the specific route doesn't exist
+        response = await fetch(`/api/jobs/${jobId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update job status");
+        }
       }
       
       await loadJobs()
@@ -110,15 +121,15 @@ export default function JobsPage() {
       </div>
 
       {selectedJob && (
-        <JobDetails
+        <JobDetailsContainer
           job={selectedJob}
-          isMechanicMode={false}
+          isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}
-          onStatusChange={handleStatusChange}
           onJobUpdate={async () => {
             // Refresh the job list
             await loadJobs()
           }}
+          currentUser={user}
         />
       )}
 

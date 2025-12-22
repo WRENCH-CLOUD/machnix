@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DollarSign,
   X,
@@ -13,34 +13,37 @@ import {
   Banknote,
   Smartphone,
   Building2,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-interface UnpaidWarningModalProps {
-  isOpen: boolean
-  onClose: () => void
-  jobNumber?: string
-  outstandingBalance: number
-  invoiceId: string
-  onCancel: () => void
-  onMarkPaidAndComplete: (paymentMethod: string, referenceId?: string) => Promise<void>
+interface UnpaidWarningDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  jobNumber?: string;
+  outstandingBalance: number;
+  invoiceId: string;
+  onCancel: () => void;
+  onMarkPaidAndComplete: (
+    paymentMethod: string,
+    referenceId?: string
+  ) => Promise<void>;
 }
 
 const paymentMethodIcons: Record<string, any> = {
@@ -49,7 +52,7 @@ const paymentMethodIcons: Record<string, any> = {
   upi: Smartphone,
   bank_transfer: Building2,
   cheque: Banknote,
-}
+};
 
 const paymentMethodLabels: Record<string, string> = {
   cash: "Cash Payment",
@@ -57,9 +60,9 @@ const paymentMethodLabels: Record<string, string> = {
   upi: "UPI Payment",
   bank_transfer: "Bank Transfer",
   cheque: "Cheque Payment",
-}
+};
 
-export function UnpaidWarningModal({
+export function UnpaidWarningDialog({
   isOpen,
   onClose,
   jobNumber,
@@ -67,40 +70,35 @@ export function UnpaidWarningModal({
   invoiceId,
   onCancel,
   onMarkPaidAndComplete,
-}: UnpaidWarningModalProps) {
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash')
-  const [referenceId, setReferenceId] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isCompleted, setIsCompleted] = useState(false)
-
-  useEffect(() => {
-    if (!isOpen) {
-      setIsCompleted(false)
-      setIsProcessing(false)
-      setReferenceId('')
-    }
-  }, [isOpen])
+}: UnpaidWarningDialogProps) {
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [referenceId, setReferenceId] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const handleMarkPaidAndComplete = async () => {
     try {
-      setIsProcessing(true)
-      await onMarkPaidAndComplete(paymentMethod, referenceId || undefined)
-      setIsCompleted(true)
-      
+      setIsProcessing(true);
+      await onMarkPaidAndComplete(paymentMethod, referenceId || undefined);
+      setIsCompleted(true);
+
       // Auto close after success animation
       setTimeout(() => {
-        onClose()
-      }, 2500)
+        onClose();
+      }, 2500);
     } catch (error: any) {
-      console.error('[TransactionPop] Payment failed:', error?.message || error)
-      setIsProcessing(false)
+      console.error(
+        "[UnpaidWarningDialog] Payment failed:",
+        error?.message || error
+      );
+      setIsProcessing(false);
       // Let the modal stay open so user can see the error and try again
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
-  const PaymentIcon = paymentMethodIcons[paymentMethod] || Wallet
+  const PaymentIcon = paymentMethodIcons[paymentMethod] || Wallet;
 
   return (
     <TooltipProvider>
@@ -112,7 +110,7 @@ export function UnpaidWarningModal({
           className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={(e) => {
             if (!isProcessing && !isCompleted) {
-              onClose()
+              onClose();
             }
           }}
         >
@@ -131,7 +129,9 @@ export function UnpaidWarningModal({
                       <DollarSign className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">Payment Required</CardTitle>
+                      <CardTitle className="text-xl">
+                        Payment Required
+                      </CardTitle>
                       {jobNumber && (
                         <p className="text-sm text-muted-foreground mt-1">
                           Job #{jobNumber}
@@ -165,7 +165,11 @@ export function UnpaidWarningModal({
                           className="absolute inset-0 blur-2xl bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full"
                           initial={{ opacity: 0 }}
                           animate={{
-                            opacity: isCompleted ? [0, 1, 0.8] : isProcessing ? [0.5, 0.8, 0.5] : 0,
+                            opacity: isCompleted
+                              ? [0, 1, 0.8]
+                              : isProcessing
+                              ? [0.5, 0.8, 0.5]
+                              : 0,
                           }}
                           transition={{
                             duration: 1.5,
@@ -308,7 +312,6 @@ export function UnpaidWarningModal({
                         </motion.h2>
                       )}
                     </AnimatePresence>
-                    
                     <AnimatePresence mode="wait">
                       {isCompleted ? (
                         <motion.div
@@ -370,7 +373,9 @@ export function UnpaidWarningModal({
                     >
                       {/* Amount Display */}
                       <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                        <span className="text-sm font-medium text-muted-foreground">Amount Due</span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Amount Due
+                        </span>
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-bold text-amber-500">
                             ₹{outstandingBalance.toLocaleString()}
@@ -381,36 +386,46 @@ export function UnpaidWarningModal({
                       {/* Payment Method Selection */}
                       <div className="space-y-2">
                         <Label htmlFor="payment-method">Payment Method</Label>
-                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                        <Select
+                          value={paymentMethod}
+                          onValueChange={setPaymentMethod}
+                        >
                           <SelectTrigger id="payment-method" className="h-12">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(paymentMethodLabels).map(([value, label]) => {
-                              const Icon = paymentMethodIcons[value]
-                              return (
-                                <SelectItem key={value} value={value}>
-                                  <div className="flex items-center gap-2">
-                                    <Icon className="w-4 h-4" />
-                                    {label}
-                                  </div>
-                                </SelectItem>
-                              )
-                            })}
+                            {Object.entries(paymentMethodLabels).map(
+                              ([value, label]) => {
+                                const Icon = paymentMethodIcons[value];
+                                return (
+                                  <SelectItem key={value} value={value}>
+                                    <div className="flex items-center gap-2">
+                                      <Icon className="w-4 h-4" />
+                                      {label}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              }
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Reference ID */}
                       <div className="space-y-2">
-                        <Label htmlFor="reference-id" className="flex items-center gap-1">
+                        <Label
+                          htmlFor="reference-id"
+                          className="flex items-center gap-1"
+                        >
                           Reference / Transaction ID
                           <Tooltip>
                             <TooltipTrigger>
                               <InfoIcon className="w-3 h-3 text-muted-foreground" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="text-xs">Optional reference number for tracking</p>
+                              <p className="text-xs">
+                                Optional reference number for tracking
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </Label>
@@ -435,8 +450,8 @@ export function UnpaidWarningModal({
                         <Button
                           variant="outline"
                           onClick={() => {
-                            onCancel()
-                            onClose()
+                            onCancel();
+                            onClose();
                           }}
                           className="w-full h-12"
                         >
@@ -445,7 +460,8 @@ export function UnpaidWarningModal({
                       </div>
 
                       <p className="text-xs text-center text-muted-foreground">
-                        This will record the payment and mark the job as completed
+                        This will record the payment and mark the job as
+                        completed
                       </p>
                     </motion.div>
                   )}
@@ -462,24 +478,32 @@ export function UnpaidWarningModal({
                         ease: [0.22, 1, 0.36, 1],
                       }}
                     >
-                      <div className={cn(
-                        "w-full rounded-xl p-4 border backdrop-blur-md transition-all duration-300",
-                        isCompleted 
-                          ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                          : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50"
-                      )}>
+                      <div
+                        className={cn(
+                          "w-full rounded-xl p-4 border backdrop-blur-md transition-all duration-300",
+                          isCompleted
+                            ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                            : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50"
+                        )}
+                      >
                         <div className="space-y-3">
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center shadow-lg border transition-colors",
-                              isCompleted
-                                ? "bg-emerald-500 border-emerald-600"
-                                : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700"
-                            )}>
-                              <PaymentIcon className={cn(
-                                "w-5 h-5",
-                                isCompleted ? "text-white" : "text-zinc-900 dark:text-zinc-100"
-                              )} />
+                            <div
+                              className={cn(
+                                "w-10 h-10 rounded-lg flex items-center justify-center shadow-lg border transition-colors",
+                                isCompleted
+                                  ? "bg-emerald-500 border-emerald-600"
+                                  : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700"
+                              )}
+                            >
+                              <PaymentIcon
+                                className={cn(
+                                  "w-5 h-5",
+                                  isCompleted
+                                    ? "text-white"
+                                    : "text-zinc-900 dark:text-zinc-100"
+                                )}
+                              />
                             </div>
                             <div className="flex-1">
                               <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -508,5 +532,5 @@ export function UnpaidWarningModal({
         </motion.div>
       </AnimatePresence>
     </TooltipProvider>
-  )
+  );
 }
