@@ -7,12 +7,12 @@ import { container } from 'tsyringe'
 
 import { REPOSITORY_TOKENS } from '@/app/container/bindings'
 import type { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
-import type { JobCardWithRelations } from '@/modules/job-management/domain/job.entity'
+import type { JobCardWithRelations } from '@/modules/job/domain/job.entity'
 
 import { enrichJobWithDummyData } from '../../../lib/dvi-dummy-data'
-import type { JobcardWithRelations } from '../modules/job.service'
-import { VehicleService } from '../modules/vehicle.service'
-import { EstimateService } from '../modules/estimate.service'
+import type { JobcardWithRelations } from '../modules/job.service'//TODO: this function does not exsist create and update the import
+import { VehicleService } from '../modules/vehicle.service'//TODO: this function does not exsist create and update the import
+import { EstimateService } from '../modules/estimate.service'//TODO: this function does not exsist create and update the import
 
 export interface UIJob {
   id: string
@@ -59,7 +59,7 @@ export interface UIJob {
 
 /**
  * Transform database jobcard to UI format
- * Now async to support make/model lookups
+ * Now async to support make/model lookupsama
  */
 export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Promise<UIJob> {
   // Extract vehicle data and attempt to resolve naming inconsistencies between schemas

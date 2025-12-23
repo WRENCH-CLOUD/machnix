@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
-import { JobBoard } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-board"
-import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details"
-import { CreateJobWizard } from "legacy/Legacy-ui(needed-to-migrate)/jobs/create-job-wizard"
+import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog"
+import { JobBoard } from "@/components/tenant/jobs/job-board" //TODO: this need to be created first
+
 // TODO: add JobBoard and JobDetails and CreateJobWizard from new components when ready
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { useAuth } from "@/providers/auth-provider"

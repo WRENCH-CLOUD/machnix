@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react"
-import { LoginView } from "@/app/(auth)/components/login-view"
+import { LoginView } from "@/components/auth-ui/login-view"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"

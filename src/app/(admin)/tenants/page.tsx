@@ -43,7 +43,7 @@ import {
   GetAllTenantsWithStatsUseCase,
   GetTenantWithStatsUseCase,
   SupabaseTenantRepository,
-} from "@/app/modules/tenant-management";
+} from "@/modules/tenant"
 import { Spinner } from "@/components/ui/spinner";
 import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
 import { CreateTenantDialog } from "@/components/admin/create-tenant-dialog";
