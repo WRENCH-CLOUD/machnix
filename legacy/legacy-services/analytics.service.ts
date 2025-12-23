@@ -185,7 +185,6 @@ export class AnalyticsService {
   /**
    * Get global analytics across all tenants (Platform Admin only)
    */
-  // TODO: REVIEW THIS very costly query, disabled for now 
   // static async getGlobalAnalytics(): Promise<GlobalAnalytics> {
   //   // Get all payments with tenant info
   //   const { data: allPayments, error: payError } = await supabase

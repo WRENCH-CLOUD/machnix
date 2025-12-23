@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseEstimateRepository } from "@/app/modules/estimate-management/infrastructure/estimate.repository.supabase";
-import { RemoveEstimateItemUseCase } from "@/app/modules/estimate-management/application/remove-estimate-item.use-case";
-import { UpdateEstimateItemUseCase } from "@/app/modules/estimate-management/application/update-estimate-item.use-case";
+import { SupabaseEstimateRepository } from "@/app/modules/estimate/infrastructure/estimate.repository.supabase";
+import { RemoveEstimateItemUseCase } from "@/app/modules/estimate/application/remove-estimate-item.use-case";
+import { UpdateEstimateItemUseCase } from "@/app/modules/estimate/application/update-estimate-item.use-case";
 
 export async function DELETE(
   request: NextRequest,
