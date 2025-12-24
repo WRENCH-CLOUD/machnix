@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { LoginView } from "@/components/auth-ui/login-view"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
 export default function LoginPage() {
   const { signIn } = useAuth()
 
+  const router = useRouter()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
