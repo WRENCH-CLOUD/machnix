@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { type UIJob } from "@/lib/job-transforms";
+import { type UIJob } from "@/lib/job-transforms";// TODO: this is useless maybe remove
 import { enrichJobWithDummyData } from "@/lib/dvi-dummy-data";
 
 interface JobOverviewProps {

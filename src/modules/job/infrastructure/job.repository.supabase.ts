@@ -1,5 +1,5 @@
-import { JobRepository } from '@/modules/job-management/domain/job.repository'
-import { JobCard, JobCardWithRelations, JobStatus } from '@/modules/job-management/domain/job.entity'
+import { JobRepository } from '@/modules/job/domain/job.repository'
+import { JobCard, JobCardWithRelations, JobStatus } from '@/modules/job/domain/job.entity'
 import { supabase, ensureTenantContext } from '@/lib/supabase/client'
 
 /**

@@ -1,5 +1,5 @@
-import { JobRepository } from '../domain/job-repository'
-import { JobCard, JobStatus } from '../domain/job-entity'
+import { JobRepository } from '../domain/job.repository'
+import { JobCard, JobStatus } from '../domain/job.entity'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
 /**
  * Update Job Status Use Case

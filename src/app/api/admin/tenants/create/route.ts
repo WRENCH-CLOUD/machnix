@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { CreateTenantWithOwnerUseCase } from '@/modules/tenant/application/create-tenant-with-owner-usecase'
-import { TenantRepository } from '@/modules/tenant/infrastructure/tenant.repository'
+import { CreateTenantWithOwnerUseCase, TenantRepository } from '@/modules/tenant'
 import { SupabaseAuthRepository } from '@/modules/access/infrastructure/auth.repository.supabase'
 import { JwtClaimsService } from '@/modules/access/application/jwt-claim.service'
 import { SupabaseTenantUserRepository } from '@/modules/access/infrastructure/tenant-user.repository.supabase'
@@ -18,8 +17,8 @@ export async function POST(request: NextRequest) {
 
     // Create use case with all dependencies
     const usecase = new CreateTenantWithOwnerUseCase(
-      new TenantRepository(),
-      new SupabaseAuthRepository(),
+      new TenantRepository(),//FIXME: there is module but it is not binded in container
+      new SupabaseAuthRepository(),//FIXME: there is module but it is not binded in container
       new JwtClaimsService(),
       new SupabaseTenantUserRepository(),
       supabaseAdmin

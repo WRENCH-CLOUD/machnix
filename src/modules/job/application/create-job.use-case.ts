@@ -1,5 +1,5 @@
-import { JobRepository } from '../domain/job-repository'
-import { JobCard, JobStatus } from '../domain/job-entity'
+import { JobRepository } from '../domain/job.repository'
+import { JobCard, JobStatus } from '../domain/job.entity'
 
 export interface CreateJobDTO {
   customerId: string
