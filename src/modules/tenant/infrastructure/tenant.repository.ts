@@ -1,12 +1,13 @@
 import { Tenant } from '../domain/tenant.entity'
-import { TenantStats } from '../domain/tenant-stats.entity'
+import { TenantOverview } from '../domain/tenant-stats.entity'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>
   findBySlug(slug: string): Promise<Tenant | null>
   findAll(): Promise<Tenant[]>
-  getStats(tenantId: string): Promise<TenantStats>
+  getStats(tenantId: string): Promise<TenantOverview>
   isSlugAvailable(slug: string): Promise<boolean>
+  getAllWithStats(): Promise<TenantOverview[]>;
   create(input: {
     name: string
     slug: string

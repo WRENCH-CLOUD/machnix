@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "src/lib/supabase/client";
-
+import {createClient } from "@/lib/supabase/server";
 export async function POST(req: Request) {
   const { email, password } = await req.json();
+  
+  console.log("Login attempt with:", email, password);
 
-  // Use Supabase client with cookie support for SSR
-  console.log("API LOGIN HIT");
-
+  const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -15,14 +14,20 @@ export async function POST(req: Request) {
 
   if (error || !data.session) {
     return NextResponse.json(
-      { error: error?.message ?? "Login failed" },
+      { error },
       { status: 401 }
     );
   }
 
   const meta = data.session.user.app_metadata;
-
+  console.log("User metadata:", meta);
   return NextResponse.json({
+    session: {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_in: data.session.expires_in,
+      token_type: data.session.token_type,
+    },
     user: {
       id: data.session.user.id,
       email: data.session.user.email,

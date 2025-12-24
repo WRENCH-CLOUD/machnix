@@ -73,46 +73,7 @@ export class SupabaseTenantRepository implements TenantRepository {
 
   async getStats(tenantId: string): Promise<TenantStats> {
     // Get customer count
-    const { count: customerCount } = await supabase
-      .schema("tenant")
-      .from("customers")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId);
-
-    // Get active jobs count
-    const { count: activeJobsCount } = await supabase
-      .schema("tenant")
-      .from("jobcards")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .in("status", ["pending", "in_progress", "on_hold"]);
-
-    // Get completed jobs count
-    const { count: completedJobsCount } = await supabase
-      .schema("tenant")
-      .from("jobcards")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("status", "completed");
-
-    // Get mechanic count
-    const { count: mechanicCount } = await supabase
-      .schema("tenant")
-      .from("mechanics")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("is_active", true);
-
-    // Get total revenue from payments
-    const { data: payments } = await supabase
-      .schema("tenant")
-      .from("payments")
-      .select("amount")
-      .eq("tenant_id", tenantId);
-
-    const totalRevenue =
-      payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
-
+    const {customerCount , activeJobsCount , completedJobsCount , totalRevenue } = await supabase.schema("tenant").from(tenant_admin_overview)
     return {
       customer_count: customerCount || 0,
       active_jobs: activeJobsCount || 0,

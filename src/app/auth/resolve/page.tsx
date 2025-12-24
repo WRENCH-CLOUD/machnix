@@ -6,8 +6,6 @@ import Loader from "@/components/ui/loading";
 import { resolveRedirect } from "@/lib/auth/resolve-redirect";
 
 export default function AuthResolvePage() {
-  console.log("AUTH RESOLVE HIT");
-
   const router = useRouter();
   const hasRedirected = useRef(false);
 
@@ -41,11 +39,7 @@ export default function AuthResolvePage() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-background">
-      <Loader
-        title="Signing you in…"
-        subtitle="Resolving access"
-        size="lg"
-      />
+      <Loader title="Signing you in…" subtitle="Resolving access" size="lg" />
     </div>
   );
 }

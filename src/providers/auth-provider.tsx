@@ -21,7 +21,7 @@ function extractClaims(session: Session | null) {
     return { role: null, tenantId: null };
   }
 
-  const meta = session.user.app_metadata as any;
+  const meta = session.user.app_metadata ;
 
   return {
     role: meta?.role ?? null,
@@ -37,48 +37,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const applySession = (session: Session | null) => {
-    setSession(session);
-    setUser(session?.user ?? null);
+  setSession(session);
+  setUser(session?.user ?? null);
 
-    const { role, tenantId } = extractClaims(session);
-    setUserRole(role);
-    setTenantId(tenantId);
+  const { role, tenantId } = extractClaims(session);
+  setUserRole(role);
+  setTenantId(tenantId);
 
-    if (tenantId) {
-      setTenantContext(tenantId);
-    }
-  };
+  if (tenantId) setTenantContext(tenantId);
+};
 
-  useEffect(() => {
-    // 🔑 INITIAL LOAD
-    setLoading(true);
-    supabase.auth.getSession().then(({ data }) => {
-      applySession(data.session);
-      setLoading(false);
-    });
+useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    applySession(data.session);
+    setLoading(false);
+  });
 
-    // 🔑 AUTH STATE CHANGES (login / logout / refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoading(true);              // ✅ ADD THIS
+  const { data: { subscription } } =
+    supabase.auth.onAuthStateChange((_event, session) => {
       applySession(session);
-      setLoading(false);             // ✅ ADD THIS
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => subscription.unsubscribe();
+}, []);
+
 
   const signIn = async (email: string, password: string) => {
+    console.log("AUTH SIGN IN CALLED");
+
+    // Use server-side login to set HttpOnly cookies, then sync client session
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
 
+    const contentType = res.headers.get("content-type") || "";
+
     if (!res.ok) {
-      throw new Error("Invalid credentials");
+      let errorMessage = "Invalid credentials";
+
+      if (contentType.includes("application/json")) {
+        try {
+          const err: any = await res.json();
+          errorMessage = err?.error?.message || err?.error || errorMessage;
+        } catch (e) {
+          console.error("Failed to parse error JSON from /api/auth/login", e);
+        }
+      } else {
+        try {
+          const text = await res.text();
+          console.error("Login failed with non-JSON response:", text?.slice(0, 200));
+        } catch (e) {
+          console.error("Failed to read error text from /api/auth/login", e);
+        }
+      }
+
+      throw new Error(errorMessage);
     }
+
+    let payload: any;
+    if (contentType.includes("application/json")) {
+      payload = await res.json();
+    } else {
+      // Unexpected non-JSON response
+      const text = await res.text();
+      console.error("Unexpected non-JSON success response from /api/auth/login:", text?.slice(0, 200));
+      throw new Error("Login failed due to server error. Please try again.");
+    }
+
+    const { session } = payload;
+
+    // Sync client-side Supabase session so client SDK is authenticated
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+
+    console.log("CLIENT SESSION SYNC", { error, session: data?.session?.user?.id });
+    if (error) throw error;
   };
 
   const signOut = async () => {

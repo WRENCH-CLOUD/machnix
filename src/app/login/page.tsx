@@ -8,48 +8,28 @@ import { supabase } from "@/lib/supabase/client"
 export default function LoginPage() {
   const { signIn } = useAuth()
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    console.log("HANDLE SUBMIT HIT!@!!!!");
+
+    setError("");
+    setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-      // await signIn(email, password)
-      // DO NOTHING ELSE
-      // Middleware + server routing will handle redirect
-      const user = data.user
-    const meta = user?.app_metadata as any
+      console.log("LOGIN SUBMIT" , { email, password });
 
-    if (meta?.role === 'platform_admin') {
-      router.replace('/admin')
-      return
-    }
+      await signIn(email, password);
 
-    if (meta?.role === 'mechanic') {
-      router.replace('/mechanic')
-      return
-    }
-
-    if (meta?.tenant_id) {
-      router.replace('/tenant')
-      return
-    }
-
-    router.replace('/auth/no-access')
-    if (error) {
-        throw error
-      }
-
+      
+      
+      router.replace("/auth/resolve");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
     } finally {
