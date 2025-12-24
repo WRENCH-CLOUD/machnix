@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import {supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ user: null }, { status: 401 });
   }
 
-  const meta = user.app_metadata ;
+  const meta = user.app_metadata;
 
   return NextResponse.json({
     user: {

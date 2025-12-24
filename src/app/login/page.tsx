@@ -19,6 +19,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
+    console.log("HANDLE SUBMIT HIT!@!!!!");
 
     setError("");
     setIsLoading(true);
@@ -28,7 +29,8 @@ export default function LoginPage() {
 
       await signIn(email, password);
 
-      // 🔑 SINGLE redirect responsibility
+      
+      
       router.replace("/auth/resolve");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials");

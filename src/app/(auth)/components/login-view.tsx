@@ -109,6 +109,7 @@ export function LoginView({
                       onChange={(e) => onEmailChange(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -125,11 +126,13 @@ export function LoginView({
                       onChange={(e) => onPasswordChange(e.target.value)}
                       className="pl-10 pr-10"
                       required
+                      autoComplete="current-password"
                     />
                     <button
-                      type="submit"
+                      type="button"
                       onClick={onTogglePassword}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
