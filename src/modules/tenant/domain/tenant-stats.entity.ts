@@ -1,13 +1,21 @@
 import { Tenant } from './tenant.entity'
 
 /**
- * Extended tenant entity with computed statistics
- * Pure domain model - no database concerns
+ * Stats-only model for tenant aggregates
  */
-export interface TenantOverview extends Tenant {
+export interface TenantStats {
   customer_count: number
   active_jobs: number
   completed_jobs: number
   mechanic_count: number
   total_revenue: number
 }
+
+/**
+ * Extended tenant entity with computed statistics
+ * Pure domain model - no database concerns
+ */
+export interface TenantWithStats extends Tenant, TenantStats {}
+
+// Backwards-compatible alias used in some parts of the codebase
+export type TenantOverview = TenantWithStats

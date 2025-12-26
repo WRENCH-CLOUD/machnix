@@ -40,9 +40,9 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
   type TenantWithStats,
-  GetAllTenantsWithStatsUseCase,
-  GetTenantWithStatsUseCase,
-  SupabaseTenantRepository,
+  // GetAllTenantsWithStatsUseCase,
+  // GetTenantWithStatsUseCase,
+  // SupabaseTenantRepository,
 } from "@/modules/tenant"
 import { Spinner } from "@/components/ui/spinner";
 import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
@@ -73,11 +73,14 @@ export default function TenantsPage() {
       setLoading(true);
       setError(null);
 
-      const repository = new SupabaseTenantRepository();
-      const useCase = new GetAllTenantsWithStatsUseCase(repository);
-      const data = await useCase.execute();
+      // Fetch from admin API
+      const response = await fetch('/api/admin/tenants');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenants');
+      }
+      const { tenants } = await response.json();
 
-      setTenants(data);
+      setTenants(tenants as TenantWithStats[]);
     } catch (err) {
       console.error("Failed to load tenants:", err);
       setError("Failed to load tenants. Please try again.");
@@ -93,10 +96,13 @@ export default function TenantsPage() {
     setTenantDetailsError(null);
 
     try {
-      const repository = new SupabaseTenantRepository();
-      const useCase = new GetTenantWithStatsUseCase(repository);
-      const data = await useCase.execute(tenantId);
-      setSelectedTenant(data);
+      // Fetch single tenant details from admin API
+      const response = await fetch(`/api/admin/tenants/${tenantId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenant details');
+      }
+      const { tenant } = await response.json();
+      setSelectedTenant(tenant as TenantWithStats);
     } catch (err) {
       console.error("Failed to load tenant details:", err);
       setTenantDetailsError("Failed to load tenant details");

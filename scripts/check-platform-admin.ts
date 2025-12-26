@@ -21,7 +21,8 @@ const logger = {
   error: (...args: any[]) => process.stderr.write(args.map(String).join(' ') + '\n'),
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+// Use nullish coalescing consistently to avoid mixing "??" with "||"
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
@@ -33,7 +34,8 @@ if (!SUPABASE_ANON_KEY) {
   logger.warn('Warning: NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. The anon test will be skipped.')
 }
 
-const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+// Prefer explicit token behavior in Node scripts
+const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
 
 async function checkPlatformAdmin() {
   try {
@@ -57,15 +59,28 @@ async function checkPlatformAdmin() {
       process.exit(0)
     }
 
-    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+    // Use the same SUPABASE_URL and disable autoRefreshToken for Node
+    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
 
     logger.info('\n🔑 Signing in (anon client) as admin to test RLS...')
     const email = process.env.CHECK_ADMIN_EMAIL || 'admin@mechanix.com'
     const password = process.env.CHECK_ADMIN_PASSWORD || 'admin123'
 
-    const signInRes = await anonClient.auth.signInWithPassword({ email, password })
+    let signInRes
+    try {
+      signInRes = await anonClient.auth.signInWithPassword({ email, password })
+    } catch (e) {
+      logger.error('❌ Sign-in threw an exception (anon client):', String(e))
+      logger.error('   Check SUPABASE_URL and ANON key are from the same project.')
+      process.exit(3)
+    }
+
     if (signInRes.error) {
       logger.error('❌ Sign-in failed (anon client):', JSON.stringify(signInRes.error))
+      logger.error('   If status=500/unexpected_failure, verify:')
+      logger.error('   - SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY point to the same project')
+      logger.error('   - Email/password auth is enabled and password policy allows the provided password')
+      logger.error('   - The user exists and email is confirmed (this script sets email_confirm: true in creation)')
       process.exit(3)
     }
 

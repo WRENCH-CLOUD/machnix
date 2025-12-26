@@ -1,5 +1,5 @@
 export type TenantStatus = 'active' | 'suspended'
-export type TenantPlan = 'free' | 'pro' | 'enterprise'
+export type TenantPlan = 'starter' | 'pro' | 'enterprise'
 
 export interface Tenant {
   id: string

@@ -3,6 +3,7 @@ import { AuthRepository } from '../../access/infrastructure/auth.repository'
 import { JwtClaimsService } from '../../access/application/jwt-claim.service'
 import { TenantUserRepository } from '../../access/infrastructure/tenant-user.repository'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { JWT_ROLES } from '../../access/application/jwt-claims'
 
 interface CreateTenantWithOwnerInput {
   tenantName: string
@@ -69,7 +70,7 @@ export class CreateTenantWithOwnerUseCase {
         email: adminEmail,
         emailVerified: false,
         phone: adminPhone,
-        password: Math.random().toString(36).slice(-8), // temp password
+        password: 'Welcome123!', // default password
         metadata: {
           name: adminName,
           tenant_id: tenant.id,
@@ -83,10 +84,12 @@ export class CreateTenantWithOwnerUseCase {
       authUserId = authUser.id
 
       // 6. Set JWT claims (CRITICAL for RLS)
+      // Use standardized JWT role value for the tenant owner
+      // Import JWT_ROLES from the JWT claims config
       await this.jwtClaims.setTenantUserClaims(
         this.supabaseAdmin,
         authUser.id,
-        'tenant_owner',
+        JWT_ROLES.TENANT_OWNER,
         tenant.id
       )
 

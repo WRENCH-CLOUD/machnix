@@ -80,7 +80,7 @@ useEffect(() => {
 
       if (contentType.includes("application/json")) {
         try {
-          const err: any = await res.json();
+          const err= await res.json();
           errorMessage = err?.error?.message || err?.error || errorMessage;
         } catch (e) {
           console.error("Failed to parse error JSON from /api/auth/login", e);
@@ -97,26 +97,15 @@ useEffect(() => {
       throw new Error(errorMessage);
     }
 
-    let payload: any;
-    if (contentType.includes("application/json")) {
-      payload = await res.json();
-    } else {
-      // Unexpected non-JSON response
-      const text = await res.text();
-      console.error("Unexpected non-JSON success response from /api/auth/login:", text?.slice(0, 200));
-      throw new Error("Login failed due to server error. Please try again.");
+    // On success, do NOT consume tokens. Fetch the client session (cookie-backed).
+    // This keeps tokens out of JS memory and Local Storage.
+    const { data: sessionData, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Failed to fetch session after login:", error);
+      throw error;
     }
 
-    const { session } = payload;
-
-    // Sync client-side Supabase session so client SDK is authenticated
-    const { data, error } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
-
-    console.log("CLIENT SESSION SYNC", { error, session: data?.session?.user?.id });
-    if (error) throw error;
+    applySession(sessionData.session);
   };
 
   const signOut = async () => {

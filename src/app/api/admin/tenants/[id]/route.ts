@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { ensurePlatformAdmin } from '@/lib/auth/is-platform-admin'
+import { GetTenantWithStatsUseCase, UpdateTenantUseCase, DeleteTenantUseCase } from '@/modules/tenant'
+import { AdminSupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.admin'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabaseAdmin = getSupabaseAdmin()
-    const tenantId = params.id
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { success: false, error: auth.message || 'Forbidden' },
+        { status: auth.status ?? 403 }
+      )
+    }
 
+    const tenantId = params.id
     if (!tenantId) {
       return NextResponse.json(
         { error: 'Tenant ID is required' },
@@ -16,78 +25,19 @@ export async function GET(
       )
     }
 
-    // Fetch tenant
-    const { data: tenant, error: tenantError } = await supabaseAdmin
-      .schema('tenant')
-      .from('tenants')
-      .select('*')
-      .eq('id', tenantId)
-      .single()
+    const supabaseAdmin = getSupabaseAdmin()
+    const repo = new AdminSupabaseTenantRepository(supabaseAdmin)
+    const usecase = new GetTenantWithStatsUseCase(repo)
 
-    if (tenantError || !tenant) {
-      console.error('[TENANT_DETAILS] Error fetching tenant:', tenantError)
+    const tenant = await usecase.execute(tenantId)
+    if (!tenant) {
       return NextResponse.json(
         { error: 'Tenant not found' },
         { status: 404 }
       )
     }
 
-    // Get customer count
-    const { count: customerCount } = await supabaseAdmin
-      .schema('tenant')
-      .from('customers')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-
-    // Get active jobs count
-    const { count: activeJobsCount } = await supabaseAdmin
-      .schema('tenant')
-      .from('jobcards')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .in('status', ['pending', 'in_progress', 'on_hold'])
-
-    // Get completed jobs count
-    const { count: completedJobsCount } = await supabaseAdmin
-      .schema('tenant')
-      .from('jobcards')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('status', 'completed')
-
-    // Get mechanic count
-    const { count: mechanicCount } = await supabaseAdmin
-      .schema('tenant')
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('role', 'mechanic')
-      .eq('is_active', true)
-
-    // Get total revenue from invoices
-    const { data: invoices } = await supabaseAdmin
-      .schema('tenant')
-      .from('invoices')
-      .select('total_amount')
-      .eq('tenant_id', tenantId)
-      .eq('status', 'paid')
-
-    const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
-
-    const tenantWithStats = {
-      ...tenant,
-      customer_count: customerCount || 0,
-      active_jobs: activeJobsCount || 0,
-      completed_jobs: completedJobsCount || 0,
-      mechanic_count: mechanicCount || 0,
-      total_revenue: totalRevenue,
-    }
-
-    return NextResponse.json({
-      success: true,
-      tenant: tenantWithStats,
-    })
-
+    return NextResponse.json({ success: true, tenant })
   } catch (error) {
     console.error('[TENANT_DETAILS] Unexpected error:', error)
     return NextResponse.json(
@@ -96,6 +46,84 @@ export async function GET(
         details: 'Please check server logs for more information'
       },
       { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { success: false, error: auth.message || 'Forbidden' },
+        { status: auth.status ?? 403 }
+      )
+    }
+
+    const tenantId = params.id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
+    }
+
+    const body = await request.json()
+
+    const supabaseAdmin = getSupabaseAdmin()
+    const repo = new AdminSupabaseTenantRepository(supabaseAdmin)
+    const usecase = new UpdateTenantUseCase(repo)
+
+    const updated = await usecase.execute(tenantId, body)
+    return NextResponse.json({ success: true, tenant: updated })
+  } catch (error) {
+    console.error('[TENANT_UPDATE] Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to update tenant'
+    const status = message.includes('not found') ? 404 : message.includes('Slug is already in use') ? 409 : 500
+    return NextResponse.json(
+      {
+        error: message,
+        details: 'Please check server logs for more information',
+      },
+      { status }
+    )
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { success: false, error: auth.message || 'Forbidden' },
+        { status: auth.status ?? 403 }
+      )
+    }
+
+    const tenantId = params.id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
+    }
+
+    const supabaseAdmin = getSupabaseAdmin()
+    const repo = new AdminSupabaseTenantRepository(supabaseAdmin)
+    const usecase = new DeleteTenantUseCase(repo)
+
+    await usecase.execute(tenantId)
+    return NextResponse.json({ success: true, message: 'Tenant deleted successfully' })
+  } catch (error) {
+    console.error('[TENANT_DELETE] Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to delete tenant'
+    const status = message.includes('not found') ? 404 : 500
+    return NextResponse.json(
+      {
+        error: message,
+        details: 'Please check server logs for more information',
+      },
+      { status }
     )
   }
 }
