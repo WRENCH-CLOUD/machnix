@@ -27,11 +27,14 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123' // change in rea
 const ADMIN_NAME = process.env.ADMIN_NAME ?? 'Super Admin'
 const ADMIN_PHONE = process.env.ADMIN_PHONE ?? ''
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+// Add Supabase types to avoid 'any'
+import type { User, AuthApiError } from '@supabase/supabase-js'
+
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Missing environment variables. Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.')
+  console.error('Missing environment variables. Ensure SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY are set.')
   process.exit(1)
 }
 
@@ -39,25 +42,22 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
 })
 
-// Small helper to set app_metadata (role) via admin API
-async function setPlatformAdminClaims(supabaseAdmin: SupabaseClient, userId: string) {
+// Small helper to set app_metadata (role) via admin API (typed)
+async function setPlatformAdminClaims(supabaseAdmin: SupabaseClient, userId: string): Promise<{ success: boolean; error?: AuthApiError | Error }> {
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      app_metadata: {
-        role: 'platform_admin'
-      }
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      app_metadata: { role: 'platform_admin' }
     })
     if (error) return { success: false, error }
-    return { success: true, data }
+    return { success: true }
   } catch (err) {
-    return { success: false, error: err }
+    return { success: false, error: err as Error }
   }
 }
 
 async function run() {
   try {
     console.log('ℹ️  Creating platform admin — using service role (must be local/secure)')
-    // 1) Attempt to create the auth user
     const { data: createData, error: createError } = await supabase.auth.admin.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
@@ -70,15 +70,19 @@ async function run() {
     if (createError) {
       console.warn('⚠️  createUser error:', createError.message)
       // if user already exists, attempt to find it
-      if ((createError as any).message?.includes?.('already registered') || (createError as any).status === 400) {
+      const alreadyRegistered =
+        typeof createError.message === 'string' && createError.message.toLowerCase().includes('already registered')
+      const statusIs400 = (createError as AuthApiError).status === 400
+
+      if (alreadyRegistered || statusIs400) {
         console.log('ℹ️  User appears to already exist — searching by email...')
-        const listResp = await supabase.auth.admin.listUsers()
-        if (listResp.error) {
-          console.error('❌ Could not list users:', listResp.error.message || listResp.error)
+        const { data: listData, error: listErr } = await supabase.auth.admin.listUsers()
+        if (listErr) {
+          console.error('❌ Could not list users:', listErr.message || listErr)
           process.exit(1)
         }
-        const users = (listResp.data as any)?.users ?? []
-        const existing = users.find((u: any) => u.email === ADMIN_EMAIL)
+        const users: User[] = listData?.users ?? []
+        const existing = users.find((u) => u.email === ADMIN_EMAIL)
         if (!existing) {
           console.error('❌ Could not find existing user after createUser error')
           process.exit(1)
@@ -90,7 +94,7 @@ async function run() {
         process.exit(1)
       }
     } else {
-      if (!createData || !createData.user) {
+      if (!createData?.user) {
         console.error('❌ createUser returned no user data', createData)
         process.exit(1)
       }
@@ -138,7 +142,7 @@ async function run() {
         is_active: true,
         metadata: { created_via: 'disposable_script', created_at: new Date().toISOString(), initial_admin: true }
       }])
-      .select()
+      .select('id')
       .single()
 
     if (insertErr) {
@@ -146,7 +150,7 @@ async function run() {
       process.exit(1)
     }
 
-    console.log('✅ platform_admins row inserted with id:', (inserted as any).id)
+    console.log('✅ platform_admins row inserted with id:', inserted?.id)
     console.log('🎉 Platform admin created successfully — userId:', userId)
     console.log('ℹ️  IMPORTANT: Have the new user sign in (or refresh token) to pick up the new app_metadata in JWTs.')
 

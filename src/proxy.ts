@@ -13,17 +13,24 @@ export async function proxy(request: NextRequest) {
         setAll: (cookies) => {
           cookies.forEach(({ name, value }) =>
             request.cookies.set(name, value)
-          );
+          )
 
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request })
 
-          cookies.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          cookies.forEach(({ name, value, options }) => {
+            const mergedOptions = {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/',
+              ...options,
+            }
+            response.cookies.set(name, value, mergedOptions)
+          })
         },
       },
     }
-  );
+  )
 
   const {
     data: { user },

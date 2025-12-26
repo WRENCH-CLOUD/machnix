@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { CreateTenantWithOwnerUseCase, TenantRepository } from '@/modules/tenant'
+import { CreateTenantWithOwnerUseCase } from '@/modules/tenant'
 import { SupabaseAuthRepository } from '@/modules/access/infrastructure/auth.repository.supabase'
 import { JwtClaimsService } from '@/modules/access/application/jwt-claim.service'
 import { SupabaseTenantUserRepository } from '@/modules/access/infrastructure/tenant-user.repository.supabase'
+import { ensurePlatformAdmin } from '@/lib/auth/is-platform-admin'
+import { AdminSupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.admin'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { success: false, error: auth.message || 'Forbidden' },
+        { status: auth.status ?? 403 }
+      )
+    }
+
     // Initialize admin client
     const supabaseAdmin = getSupabaseAdmin()
 
@@ -17,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     // Create use case with all dependencies
     const usecase = new CreateTenantWithOwnerUseCase(
-      new TenantRepository(),//FIXME: there is module but it is not binded in container
-      new SupabaseAuthRepository(),//FIXME: there is module but it is not binded in container
+      new AdminSupabaseTenantRepository(supabaseAdmin),
+      new SupabaseAuthRepository(),
       new JwtClaimsService(),
       new SupabaseTenantUserRepository(),
       supabaseAdmin

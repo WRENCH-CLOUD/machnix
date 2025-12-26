@@ -7,9 +7,9 @@ import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
 import { OverviewView } from "@/components/admin/overview-view";
 import {
   type TenantWithStats,
-  GetAllTenantsWithStatsUseCase,
-  GetTenantWithStatsUseCase,
-  SupabaseTenantRepository 
+  // GetAllTenantsWithStatsUseCase,
+  // GetTenantWithStatsUseCase,
+  // SupabaseTenantRepository 
 } from "@/modules/tenant"
 
 export default function AdminOverviewPage() {
@@ -42,13 +42,15 @@ export default function AdminOverviewPage() {
 
       console.log("[AdminPage] Starting to load tenants...");
 
-      // Use the module's use case
-      const repository = new SupabaseTenantRepository();
-      const useCase = new GetAllTenantsWithStatsUseCase(repository);
-      const data = await useCase.execute();
+      // Fetch tenants via admin API
+      const response = await fetch('/api/admin/tenants');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenants');
+      }
+      const { tenants } = await response.json();
 
-      console.log("[AdminPage] Loaded tenants:", data.length);
-      setTenants(data);
+      console.log("[AdminPage] Loaded tenants:", tenants.length);
+      setTenants(tenants as TenantWithStats[]);
     } catch (err) {
       console.error("[AdminPage] Failed to load tenants:", err);
       setError("Failed to load tenants. Please try again.");
@@ -80,10 +82,13 @@ export default function AdminOverviewPage() {
     setTenantDetailsError(null);
 
     try {
-      const repository = new SupabaseTenantRepository();
-      const useCase = new GetTenantWithStatsUseCase(repository);
-      const data = await useCase.execute(tenantId);
-      setSelectedTenant(data);
+      // Fetch tenant details via admin API
+      const response = await fetch(`/api/admin/tenants/${tenantId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenant details');
+      }
+      const { tenant } = await response.json();
+      setSelectedTenant(tenant as TenantWithStats);
     } catch (err) {
       console.error("Failed to load tenant details:", err);
       setTenantDetailsError("Failed to load tenant details");

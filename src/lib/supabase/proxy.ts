@@ -21,7 +21,18 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const mergedOptions = {
+              // Enforce HttpOnly and secure defaults
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/',
+              // Preserve any attributes from Supabase (expires, maxAge, domain, etc.)
+              ...options,
+            }
+            supabaseResponse.cookies.set(name, value, mergedOptions)
+          })
         },
       },
     }

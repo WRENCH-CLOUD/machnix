@@ -12,6 +12,11 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 export const metadata: Metadata = {
   title: "Mechanix - Garage Management System",
   description: "Professional multi-tenant garage management system for automotive service businesses",
+  icons: {
+    // Prefer using existing assets in /public; you can add favicon.ico for full compatibility
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
 }
 
 export const viewport: Viewport = {

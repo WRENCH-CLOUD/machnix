@@ -21,13 +21,10 @@ export async function POST(req: Request) {
 
   const meta = data.session.user.app_metadata;
   console.log("User metadata:", meta);
+
+  // Return only minimal user info; tokens are NOT returned.
+  // Supabase SSR client already set HttpOnly cookies via next/headers cookies adapter.
   return NextResponse.json({
-    session: {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      expires_in: data.session.expires_in,
-      token_type: data.session.token_type,
-    },
     user: {
       id: data.session.user.id,
       email: data.session.user.email,
