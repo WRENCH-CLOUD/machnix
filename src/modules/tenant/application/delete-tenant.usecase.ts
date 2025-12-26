@@ -1,19 +1,20 @@
-import { TenantRepository } from '../infrastructure/tenant.repository'
-import { AuthRepository } from '../../access/infrastructure/auth.repository'
-import { JwtClaimsService } from '../../access/application/jwt-claim.service'
-import { TenantUserRepository } from '../../access/infrastructure/tenant-user.repository'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { TenantRepository } from "../infrastructure/tenant.repository";
+import { AuthRepository } from "../../access/infrastructure/auth.repository";
+import { JwtClaimsService } from "../../access/application/jwt-claim.service";
+import { TenantUserRepository } from "../../access/infrastructure/tenant-user.repository";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 interface CreateTenantWithOwnerInput {
-  tenantName: string
-  tenantSlug: string
-  adminName: string
-  adminEmail: string
-  adminPhone?: string
-  subscription: 'starter' | 'pro' | 'enterprise'
-  notes?: string
+  tenantName: string;
+  tenantSlug: string;
+  adminName: string;
+  adminEmail: string;
+  adminPhone?: string;
+  subscription: "starter" | "pro" | "enterprise";
+  notes?: string;
 }
 
+// TODO: this function is wrong
 export class CreateTenantWithOwnerUseCase {
   constructor(
     private readonly tenantRepo: TenantRepository,
@@ -35,24 +36,24 @@ export class CreateTenantWithOwnerUseCase {
 
     // 1. Validate
     if (!tenantName || !tenantSlug || !adminEmail || !adminName) {
-      throw new Error('Missing required fields')
+      throw new Error("Missing required fields");
     }
 
     // 2. Slug uniqueness
-    const slugAvailable = await this.tenantRepo.isSlugAvailable(tenantSlug)
+    const slugAvailable = await this.tenantRepo.isSlugAvailable(tenantSlug);
     if (!slugAvailable) {
-      throw new Error('Tenant slug already exists')
+      throw new Error("Tenant slug already exists");
     }
 
     // 3. Email uniqueness
-    const emailExists = await this.authRepo.emailExists(adminEmail)
+    const emailExists = await this.authRepo.emailExists(adminEmail);
     if (emailExists) {
-      throw new Error('Admin email already registered')
+      throw new Error("Admin email already registered");
     }
 
     // Rollback handles
-    let tenantId: string | null = null
-    let authUserId: string | null = null
+    let tenantId: string | null = null;
+    let authUserId: string | null = null;
 
     try {
       // 4. Create tenant
@@ -60,9 +61,9 @@ export class CreateTenantWithOwnerUseCase {
         name: tenantName,
         slug: tenantSlug,
         subscription,
-        status: 'active',
-      })
-      tenantId = tenant.id
+        status: "active",
+      });
+      tenantId = tenant.id;
 
       // 5. Create auth user
       const authUser = await this.authRepo.createUser({
@@ -74,21 +75,21 @@ export class CreateTenantWithOwnerUseCase {
           name: adminName,
           tenant_id: tenant.id,
         },
-      })
+      });
 
       if (!authUser || !authUser.id) {
-        throw new Error('Failed to create auth user')
+        throw new Error("Failed to create auth user");
       }
 
-      authUserId = authUser.id
+      authUserId = authUser.id;
 
       // 6. Set JWT claims (CRITICAL for RLS)
       await this.jwtClaims.setTenantUserClaims(
         this.supabaseAdmin,
         authUser.id,
-        'tenant_owner',
+        "tenant_owner",
         tenant.id
-      )
+      );
 
       // 7. Create tenant.users mapping
       await this.tenantUserRepo.create({
@@ -97,8 +98,8 @@ export class CreateTenantWithOwnerUseCase {
         name: adminName,
         email: adminEmail,
         phone: adminPhone,
-        role: 'tenant_owner',
-      })
+        role: "tenant_owner",
+      });
 
       // 8. Success
       return {
@@ -111,19 +112,18 @@ export class CreateTenantWithOwnerUseCase {
           id: authUser.id,
           email: adminEmail,
         },
-      }
+      };
     } catch (error) {
       // 9. Rollback (SAGA-style)
       if (authUserId) {
-        await this.authRepo.deleteUser(authUserId)
+        await this.authRepo.deleteUser(authUserId);
       }
 
       if (tenantId) {
-        await this.tenantRepo.delete(tenantId)
+        await this.tenantRepo.delete(tenantId);
       }
 
-      throw error
+      throw error;
     }
   }
 }
-
