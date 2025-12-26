@@ -20,4 +20,3 @@ export class DeleteTenantUseCase {
     await this.tenantRepository.delete(id)
   }
 }
-

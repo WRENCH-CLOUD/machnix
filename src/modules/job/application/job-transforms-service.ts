@@ -8,12 +8,7 @@ import { container } from 'tsyringe'
 import { REPOSITORY_TOKENS } from '@/app/container/bindings'
 import type { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import type { JobCardWithRelations } from '@/modules/job/domain/job.entity'
-
 import { enrichJobWithDummyData } from '../../../lib/dvi-dummy-data'
-import type { JobcardWithRelations } from '../modules/job.service'//TODO: this function does not exsist create and update the import
-import { VehicleService } from '../modules/vehicle.service'//TODO: this function does not exsist create and update the import
-import { EstimateService } from '../modules/estimate.service'//TODO: this function does not exsist create and update the import
-
 export interface UIJob {
   id: string
   jobNumber: string
