@@ -57,6 +57,8 @@ export interface MechanicJobCardProps {
   isCompleted?: boolean;
 }
 
+export function MechanicJobCard({ job, onClick, isCompleted }: MechanicJobCardProps) {
+  const info = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.received
   return (
     <motion.div whileTap={{ scale: 0.98 }} onClick={onClick}>
       <Card
@@ -67,17 +69,14 @@ export interface MechanicJobCardProps {
       >
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            {/* Vehicle Icon */}
             <div
               className={cn(
                 "w-14 h-14 rounded-xl flex items-center justify-center shrink-0",
-                statusInfo.bgColor
+                info.bgColor
               )}
             >
-              <Car className={cn("w-7 h-7", statusInfo.color)} />
+              <Car className={cn("w-7 h-7", info.color)} />
             </div>
-
-            {/* Job Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold text-foreground">
@@ -92,34 +91,27 @@ export interface MechanicJobCardProps {
                   </Badge>
                 )}
               </div>
-
               <p className="text-sm font-mono text-muted-foreground mb-2">
                 {job.vehicle.regNo}
               </p>
-
               <div className="flex items-center justify-between">
                 <Badge
                   className={cn(
                     "text-xs font-medium",
-                    statusInfo.bgColor,
-                    statusInfo.color,
+                    info.bgColor,
+                    info.color,
                     "border-0"
                   )}
                 >
-                  {statusInfo.label}
+                  {info.label}
                 </Badge>
-
                 <span className="text-xs text-muted-foreground">
                   {job.jobNumber}
                 </span>
               </div>
             </div>
-
-            {/* Chevron */}
             <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-4" />
           </div>
-
-          {/* Complaint Preview */}
           <div className="mt-3 pt-3 border-t border-border">
             <p className="text-sm text-muted-foreground line-clamp-2">
               {job.complaints}
@@ -128,5 +120,5 @@ export interface MechanicJobCardProps {
         </CardContent>
       </Card>
     </motion.div>
-  );
+  )
 }

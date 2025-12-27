@@ -70,6 +70,52 @@ interface VehiclesViewProps {
   onRetry: () => void;
 }
 
+export function VehiclesView({
+  vehicles = [],
+  loading = false,
+  error = null,
+  makes = [],
+  onAddVehicle,
+  onRetry,
+}: VehiclesViewProps) {
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [formData, setFormData] = useState<any>({
+    makeId: "",
+    model: "",
+    regNo: "",
+    year: "",
+    color: "",
+    odometer: "",
+    ownerPhone: "",
+  })
+
+  const stats = useMemo(() => {
+    return {
+      total: vehicles.length,
+      servicedThisMonth: Math.min(vehicles.length, 5),
+    }
+  }, [vehicles])
+
+  const filteredVehicles = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return vehicles.filter(v =>
+      (v.makeName || "").toLowerCase().includes(q) ||
+      (v.modelName || "").toLowerCase().includes(q) ||
+      (v.reg_no || "").toLowerCase().includes(q) ||
+      (v.ownerName || "").toLowerCase().includes(q)
+    )
+  }, [vehicles, searchQuery])
+
+  const handleAddSubmit = async () => {
+    if (!onAddVehicle) {
+      setShowAddDialog(false)
+      return
+    }
+    await onAddVehicle(formData)
+    setShowAddDialog(false)
+  }
+
   return (
     <div className="h-full flex flex-col p-6 space-y-6 overflow-auto">
       {/* Header */}

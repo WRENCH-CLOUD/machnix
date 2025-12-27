@@ -87,9 +87,7 @@ export function redirectByRole(request: NextRequest, user: any) {
       break
 
     case "tenant":
-      url.pathname = tenantId
-        ? `/tenant/${tenantId}/dashboard`
-        : "/tenant/setup"
+      url.pathname = "/dashboard"
       break
 
     default:

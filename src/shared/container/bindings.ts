@@ -14,11 +14,11 @@ import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/cu
 import type { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 
-import type { InvoiceRepository } from '@/modules/invoice-management/domain/invoice.repository'
-import { SupabaseInvoiceRepository } from '@/modules/invoice-management/infrastructure/invoice.repository.supabase'
+import type { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
+import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 
-import type { JobRepository } from '@/modules/job-management/domain/job.repository'
-import { SupabaseJobRepository } from '@/modules/job-management/infrastructure/job.repository.supabase'
+import type { JobRepository } from '@/modules/job/domain/job.repository'
+import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 
 import type { UserRepository } from '@/modules/user/domain/user.repository'
 import { SupabaseUserRepository } from '@/modules/user/infrastructure/user.repository.supabase'

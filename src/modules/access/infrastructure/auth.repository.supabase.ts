@@ -1,25 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { AuthRepository, CreateUserInput, AuthUser } from "./auth.repository";
-import bcypript from "bcryptjs";
 export class SupabaseAuthRepository implements AuthRepository {
   private supabase = getSupabaseAdmin();
 
   async createUser(input: CreateUserInput): Promise<AuthUser> {
-    let hashedPassword: string;
-    try {
-      
-        hashedPassword = await bcypript.hash(input.password, 10);
-
-    } catch (error) {
-      
-        console.error("Error hashing password:", error);
-      
-        throw new Error("Failed to hash password");
-    } 
-
     const { data, error } = await this.supabase.auth.admin.createUser({
       email: input.email,
-      password: hashedPassword,
+      password: input.password,
       phone: input.phone,
       user_metadata: input.metadata,
       email_confirm: true,

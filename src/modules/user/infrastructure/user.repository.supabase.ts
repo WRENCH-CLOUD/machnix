@@ -1,6 +1,7 @@
 import { UserRepository } from '../domain/user.repository'
 import { User, Mechanic, UserRole } from '../domain/user.entity'
-import { supabase, ensureTenantContext } from '@/lib/supabase/client'
+import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 type DbUser = any // Database row type
 
@@ -8,6 +9,18 @@ type DbUser = any // Database row type
  * Supabase implementation of UserRepository
  */
 export class SupabaseUserRepository implements UserRepository {
+  private supabase: SupabaseClient;
+  private tenantId?: string;
+
+  constructor(supabase?: SupabaseClient, tenantId?: string) {
+    this.supabase = supabase || defaultSupabase;
+    this.tenantId = tenantId;
+  }
+
+  private getContextTenantId(): string {
+    return this.tenantId || ensureTenantContext();
+  }
+
   private toDomain(row: DbUser): User {
     return {
       id: row.id,
@@ -49,14 +62,13 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async findAll(): Promise<User[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .select('*')
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('name', { ascending: true })
 
     if (error) throw error
@@ -64,15 +76,14 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async findByRole(role: UserRole): Promise<User[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('role', role as any)
-      .is('deleted_at', null)
       .order('name', { ascending: true })
 
     if (error) throw error
@@ -80,32 +91,41 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async findAllMechanics(): Promise<Mechanic[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
-      .from('users')
+      .from('mechanics')
       .select('*')
       .eq('tenant_id', tenantId)
-      .eq('role', 'mechanic' as any)
-      .eq('is_active', true)
-      .is('deleted_at', null)
       .order('name', { ascending: true })
 
     if (error) throw error
-    return (data || []).map(row => this.toMechanic(row))
+    
+    return (data || []).map(row => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      authUserId: '', // Not linked to auth user in this table
+      name: row.name,
+      email: row.email || '',
+      phone: row.phone || '',
+      role: 'mechanic',
+      isActive: true,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.created_at),
+      specialty: row.skills ? row.skills.join(', ') : undefined
+    }))
   }
 
   async findById(id: string): Promise<User | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .select('*')
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .single()
 
     if (error) {
@@ -117,15 +137,14 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async findByAuthUserId(authUserId: string): Promise<User | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .select('*')
       .eq('auth_user_id', authUserId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .maybeSingle()
 
     if (error) throw error
@@ -133,15 +152,14 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase())
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .maybeSingle()
 
     if (error) throw error
@@ -149,7 +167,7 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async create(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .insert(this.toDatabase(user))
@@ -161,7 +179,7 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async update(id: string, updates: Partial<User>): Promise<User> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
     const dbUpdates: Record<string, any> = {}
     if (updates.name !== undefined) dbUpdates.name = updates.name
@@ -172,13 +190,12 @@ export class SupabaseUserRepository implements UserRepository {
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive
     if (updates.lastLogin !== undefined) dbUpdates.last_login = updates.lastLogin?.toISOString()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('users')
       .update(dbUpdates)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .select()
       .single()
 
@@ -199,12 +216,12 @@ export class SupabaseUserRepository implements UserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema('tenant')
       .from('users')
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
 

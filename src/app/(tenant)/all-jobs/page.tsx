@@ -1,27 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AppSidebar } from "@/components/common/app-sidebar"
-import { TopHeader } from "@/components/common/top-header"
-import { AllJobsView } from "legacy/Legacy-ui(needed-to-migrate)/jobs/all-jobs-view"
-import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details"
+import { AllJobsView } from "@/components/tenant/views/all-jobs-view"
+import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
-import { transformDatabaseJobToUI, type UIJob } from "@/modules/job-management/application/job-transforms.service"
+import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { type JobStatus } from "@/lib/mock-data"
+import { api } from "@/lib/supabase/client"
 
 export default function AllJobsPage() {
-  const { user, loading: authLoading, tenantId } = useAuth()
-  const router = useRouter()
+  const { user, tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
   const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login")
-    }
-  }, [user, authLoading, router])
 
   useEffect(() => {
     if (user && tenantId) {
@@ -33,7 +25,7 @@ export default function AllJobsPage() {
     try {
       setLoading(true)
       // Call API route - business logic is in the use case
-      const response = await fetch('/api/jobs')
+      const response = await api.get('/api/jobs')
       if (!response.ok) {
         throw new Error('Failed to fetch jobs')
       }
@@ -56,11 +48,7 @@ export default function AllJobsPage() {
   const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
     try {
       // Call API route - business logic is in the use case
-      const response = await fetch(`/api/jobs/${jobId}/update-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
+      const response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
       
       if (!response.ok) {
         throw new Error('Failed to update job status')
@@ -81,38 +69,27 @@ export default function AllJobsPage() {
     }
   }
 
-  if (authLoading || loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+  if (loading) {
+    return null; // Layout handles auth loading, page handles data loading
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar activeView="all-jobs" onViewChange={(view) => router.push(`/${view}`)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopHeader
-          tenantName="Mechanix Garage"
-          onCreateJob={() => router.push("/jobs")}
-        />
-        <main className="flex-1 overflow-auto p-6">
-          <AllJobsView
-            jobs={jobs}
-            onJobClick={handleJobClick}
-          />
-        </main>
-      </div>
+    <>
+      <AllJobsView
+        jobs={jobs}
+        onJobClick={handleJobClick}
+      />
 
       {selectedJob && (
-        <JobDetails
+        <JobDetailsContainer
           job={selectedJob}
-          isMechanicMode={false}
+          isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}
-          onStatusChange={handleStatusChange}
           onJobUpdate={async () => {
-            // Refresh the job list
             await loadJobs()
           }}
         />
       )}
-    </div>
+    </>
   )
 }

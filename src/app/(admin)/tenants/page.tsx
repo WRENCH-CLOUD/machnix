@@ -45,8 +45,8 @@ import {
   // SupabaseTenantRepository,
 } from "@/modules/tenant"
 import { Spinner } from "@/components/ui/spinner";
-import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
-import { CreateTenantDialog } from "@/components/admin/create-tenant-dialog";
+import { TenantDetailsDialog } from "@/features/admin/tenant-details-dialog";
+import { CreateTenantDialog } from "@/features/admin/create-tenant-dialog";
 
 export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");

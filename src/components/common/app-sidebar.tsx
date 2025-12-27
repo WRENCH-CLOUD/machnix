@@ -27,7 +27,7 @@ interface AppSidebarProps {
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "jobs", label: "Job Board", icon: ClipboardList },
+  { id: "jobs-board", label: "Job Board", icon: ClipboardList },
   { id: "all-jobs", label: "All Jobs", icon: List },
   { id: "customers", label: "Customers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: Car },

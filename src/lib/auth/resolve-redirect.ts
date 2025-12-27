@@ -4,6 +4,6 @@ export function resolveRedirect(user: {
 }) {
   if (user.role === "platform_admin") return "/admin"
   if (user.role === "mechanic") return "/mechanic"
-  if (user.tenantId) return "/tenant"
+  if (user.tenantId) return "/dashboard"
   return "/auth/no-access"
 }

@@ -1,11 +1,24 @@
 import { CustomerRepository } from '../domain/customer.repository'
 import { Customer, CustomerWithVehicles } from '../domain/customer.entity'
-import { supabase, ensureTenantContext } from '@/lib/supabase/client'
+import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Supabase implementation of CustomerRepository
  */
 export class SupabaseCustomerRepository implements CustomerRepository {
+  private supabase: SupabaseClient;
+  private tenantId?: string;
+
+  constructor(supabase?: SupabaseClient, tenantId?: string) {
+    this.supabase = supabase || defaultSupabase;
+    this.tenantId = tenantId;
+  }
+
+  private getContextTenantId(): string {
+    return this.tenantId || ensureTenantContext();
+  }
+
   /**
    * Transform database row to domain entity
    */
@@ -50,9 +63,9 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async findAll(): Promise<CustomerWithVehicles[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select(`
@@ -60,7 +73,6 @@ export class SupabaseCustomerRepository implements CustomerRepository {
         vehicles:vehicles(*)
       `)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('name', { ascending: true })
 
     if (error) throw error
@@ -68,9 +80,9 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async findById(id: string): Promise<CustomerWithVehicles | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select(`
@@ -79,7 +91,6 @@ export class SupabaseCustomerRepository implements CustomerRepository {
       `)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .single()
 
     if (error) {
@@ -91,14 +102,13 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async search(query: string): Promise<Customer[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .or(`name.ilike.%${query}%,phone.ilike.%${query}%,email.ilike.%${query}%`)
       .order('name', { ascending: true })
 
@@ -107,17 +117,16 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async searchByPhone(phone: string): Promise<Customer | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
     // Clean up phone number
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .or(`phone.eq.${phone},phone.eq.${cleanPhone},phone.ilike.%${cleanPhone}%`)
       .limit(1)
       .maybeSingle()
@@ -127,7 +136,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async create(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .insert(this.toDatabase(customer))
@@ -139,22 +148,14 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async update(id: string, updates: Partial<Customer>): Promise<Customer> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const dbUpdates: any = {}
-    if (updates.name !== undefined) dbUpdates.name = updates.name
-    if (updates.phone !== undefined) dbUpdates.phone = updates.phone
-    if (updates.email !== undefined) dbUpdates.email = updates.email
-    if (updates.address !== undefined) dbUpdates.address = updates.address
-    if (updates.notes !== undefined) dbUpdates.notes = updates.notes
-
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
-      .update(dbUpdates)
+      .update(updates as any)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .select()
       .single()
 
@@ -163,12 +164,12 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema('tenant')
       .from('customers')
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
 

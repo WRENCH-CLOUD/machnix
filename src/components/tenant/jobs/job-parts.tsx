@@ -37,6 +37,7 @@ interface JobPartsProps {
   jobStatus: JobStatus;
   onAddItem: (part: Part) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
+  onGenerateEstimatePdf: () => void;
 }
 
 export function JobParts({
@@ -45,6 +46,7 @@ export function JobParts({
   jobStatus,
   onAddItem,
   onRemoveItem,
+  onGenerateEstimatePdf,
 }: JobPartsProps) {
   // Local state for new parts being added
   const [parts, setParts] = useState<Part[]>([]);
@@ -345,31 +347,44 @@ export function JobParts({
           </CardContent>
         </Card>
 
-        {/* Totals */}
         <Card>
           <CardContent className="pt-6">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Parts Subtotal</span>
-                <span>₹{partsSubtotal.toLocaleString()}</span>
+            <div className="space-y-4 text-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Parts Subtotal</span>
+                  <span>₹{partsSubtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Labor Subtotal</span>
+                  <span>₹{laborSubtotal.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>₹{subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GST (18%)</span>
+                  <span>₹{tax.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total</span>
+                  <span>₹{total.toLocaleString()}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Labor Subtotal</span>
-                <span>₹{laborSubtotal.toLocaleString()}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>₹{subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">GST (18%)</span>
-                <span>₹{tax.toLocaleString()}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span>₹{total.toLocaleString()}</span>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 bg-transparent"
+                  onClick={onGenerateEstimatePdf}
+                  disabled={!estimate || estimateItems.length === 0}
+                >
+                  <Check className="w-3 h-3" />
+                  Generate Estimate PDF
+                </Button>
               </div>
             </div>
           </CardContent>

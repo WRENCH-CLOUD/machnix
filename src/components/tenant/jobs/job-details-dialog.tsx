@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { type JobStatus, statusConfig } from "@/lib/mock-data";
-import { type UIJob } from "@/lib/job-transforms";
+import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
@@ -43,6 +43,7 @@ interface JobDetailsDialogProps {
   estimateItems: any[];
   onAddEstimateItem: (part: Part) => Promise<void>;
   onRemoveEstimateItem: (itemId: string) => Promise<void>;
+  onGenerateEstimatePdf: () => void;
 
   // Invoice props
   invoice: any;
@@ -70,6 +71,7 @@ export function JobDetailsDialog({
   estimateItems,
   onAddEstimateItem,
   onRemoveEstimateItem,
+  onGenerateEstimatePdf,
   invoice,
   loadingInvoice,
   onRetryInvoice,
@@ -298,6 +300,7 @@ export function JobDetailsDialog({
                   jobStatus={currentStatus}
                   onAddItem={onAddEstimateItem}
                   onRemoveItem={onRemoveEstimateItem}
+                  onGenerateEstimatePdf={onGenerateEstimatePdf}
                 />
               </TabsContent>
 

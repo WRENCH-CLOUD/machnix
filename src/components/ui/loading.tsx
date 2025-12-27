@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface LoaderProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -45,11 +45,16 @@ export default function Loader({
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-center gap-8 p-8",
+                "flex flex-col items-center justify-center gap-8 p-8 min-h-[200px]",
                 className
             )}
             {...props}
         >
+            <div className="text-center space-y-2">
+                <h3 className={cn("text-foreground", config.titleClass)}>{title}</h3>
+                <p className={cn("text-muted-foreground", config.subtitleClass)}>{subtitle}</p>
+            </div>
+            
             {/* Enhanced Monochrome Loader */}
             <motion.div
                 className={cn("relative", config.container)}

@@ -6,6 +6,7 @@ export interface TenantRepository {
   findBySlug(slug: string): Promise<Tenant | null>
   findAll(): Promise<Tenant[]>
   getStats(tenantId: string): Promise<TenantStats>
+  getRecentJobs(tenantId: string, limit?: number): Promise<any[]>
   isSlugAvailable(slug: string): Promise<boolean>
   create(input: {
     name: string

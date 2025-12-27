@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseJobRepository } from '@/modules/job-management/infrastructure/job.repository.supabase'
-import { UpdateJobStatusUseCase } from '@/modules/job-management/application/update-job-status.use-case'
-import { JobStatus } from '@/modules/job-management/domain/job.entity'
+import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
+import { UpdateJobStatusUseCase } from '@/modules/job/application/update-job-status.use-case'
+import { JobStatus } from '@/modules/job/domain/job.entity'
+import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } } | { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await (context.params as any)
+    const id = (resolvedParams as { id: string }).id
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
+
     const body = await request.json()
     const { status } = body as { status: JobStatus }
     
@@ -18,10 +35,13 @@ export async function POST(
       )
     }
     
-    const repository = new SupabaseJobRepository()
+    const repository = new SupabaseJobRepository(supabase, tenantId)
     const useCase = new UpdateJobStatusUseCase(repository)
-    
-    const job = await useCase.execute(params.id, status)
+    const cmd: jobStatusCommand = {
+      job_id: id as any,
+      status,
+    }
+    const job = await useCase.execute(cmd)
     
     return NextResponse.json(job)
   } catch (error: any) {
@@ -32,4 +52,3 @@ export async function POST(
     )
   }
 }
-

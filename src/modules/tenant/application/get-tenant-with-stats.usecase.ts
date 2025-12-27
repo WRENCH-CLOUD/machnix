@@ -8,7 +8,7 @@ import { TenantWithStats } from '../domain/tenant-stats.entity'
 export class GetTenantWithStatsUseCase {
   constructor(private readonly tenantRepository: TenantRepository) {}
 
-  async execute(tenantId: string): Promise<TenantWithStats | null> {
+  async execute(tenantId: string): Promise<any | null> {
     // Fetch tenant
     const tenant = await this.tenantRepository.findById(tenantId)
 
@@ -18,10 +18,14 @@ export class GetTenantWithStatsUseCase {
 
     // Fetch stats
     const stats = await this.tenantRepository.getStats(tenantId)
+    
+    // Fetch recent jobs
+    const recentJobs = await this.tenantRepository.getRecentJobs(tenantId)
 
     return {
       ...tenant,
       ...stats,
+      recentJobs
     }
   }
 }

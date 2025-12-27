@@ -1,11 +1,24 @@
-import { InvoiceRepository } from '@/modules/invoice-management/domain/invoice.repository'
-import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '@/modules/invoice-management/domain/invoice.entity'
-import { supabase, ensureTenantContext } from '@/lib/supabase/client'
+import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
+import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '@/modules/invoice/domain/invoice.entity'
+import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Supabase implementation of InvoiceRepository
  */
 export class SupabaseInvoiceRepository implements InvoiceRepository {
+  private supabase: SupabaseClient;
+  private tenantId?: string;
+
+  constructor(supabase?: SupabaseClient, tenantId?: string) {
+    this.supabase = supabase || defaultSupabase;
+    this.tenantId = tenantId;
+  }
+
+  private getContextTenantId(): string {
+    return this.tenantId || ensureTenantContext();
+  }
+
   private toDomain(row: any): Invoice {
     return {
       id: row.id,
@@ -62,9 +75,9 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async findAll(): Promise<InvoiceWithRelations[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .select(`
@@ -75,7 +88,6 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
         payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -83,9 +95,9 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async findByStatus(status: InvoiceStatus): Promise<InvoiceWithRelations[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .select(`
@@ -97,7 +109,6 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -105,9 +116,9 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async findById(id: string): Promise<InvoiceWithRelations | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .select(`
@@ -117,29 +128,23 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
         estimate:estimates(*),
         payments:payment_transactions(*)
       `)
-      .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
+      .eq('id', id)
       .single()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
-
-    return data ? this.toDomainWithRelations(data) : null
+    if (error) return null
+    return this.toDomainWithRelations(data)
   }
 
   async findByCustomerId(customerId: string): Promise<Invoice[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .select('*')
       .eq('customer_id', customerId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -147,15 +152,14 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async findByJobcardId(jobcardId: string): Promise<Invoice[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .select('*')
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -163,7 +167,7 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async create(invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): Promise<Invoice> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .insert(this.toDatabase(invoice))
@@ -175,7 +179,7 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async update(id: string, updates: Partial<Invoice>): Promise<Invoice> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
     const dbUpdates: any = {}
     if (updates.status !== undefined) dbUpdates.status = updates.status
@@ -189,13 +193,12 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate?.toISOString()
     if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
       .update(dbUpdates)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .select()
       .single()
 
@@ -215,7 +218,7 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
     }
 
     // Create payment transaction
-    const { error: paymentError } = await supabase
+    const { error: paymentError } = await this.supabase
       .schema('tenant')
       .from('payment_transactions')
       .insert({
@@ -251,12 +254,12 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema('tenant')
       .from('invoices')
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
 

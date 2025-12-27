@@ -8,6 +8,9 @@ export interface CreateJobDTO {
   notes?: string
   assignedMechanicId?: string
   details?: Record<string, any>
+  serviceType?: string
+  priority?: string
+  estimatedCompletion?: string
 }
 
 /**
@@ -32,6 +35,15 @@ export class CreateJobUseCase {
     const randomNum = Math.floor(1000 + Math.random() * 9000)
     const jobNumber = `JOB-${dateStr}-${randomNum}`
 
+    const details = {
+      ...(dto.details || {}),
+      complaints: dto.description,
+      description: dto.description,
+      serviceType: dto.serviceType,
+      priority: dto.priority,
+      estimatedCompletion: dto.estimatedCompletion,
+    }
+
     return this.repository.create({
       tenantId,
       jobNumber,
@@ -41,7 +53,7 @@ export class CreateJobUseCase {
       description: dto.description,
       notes: dto.notes,
       assignedMechanicId: dto.assignedMechanicId,
-      details: dto.details || {},
+      details,
       createdBy,
     })
   }

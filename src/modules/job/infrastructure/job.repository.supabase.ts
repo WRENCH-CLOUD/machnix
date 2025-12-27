@@ -1,12 +1,27 @@
 import { JobRepository } from '@/modules/job/domain/job.repository'
 import { JobCard, JobCardWithRelations, JobStatus } from '@/modules/job/domain/job.entity'
-import { supabase, ensureTenantContext } from '@/lib/supabase/client'
+import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Supabase implementation of JobRepository
  */
 export class SupabaseJobRepository implements JobRepository {
+  private supabase: SupabaseClient;
+  private tenantId?: string;
+
+  constructor(supabase?: SupabaseClient, tenantId?: string) {
+    this.supabase = supabase || defaultSupabase;
+    this.tenantId = tenantId;
+  }
+
+  private getContextTenantId(): string {
+    return this.tenantId || ensureTenantContext();
+  }
+
   private toDomain(row: any): JobCard {
+    const details = row.details || {}
+
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -16,15 +31,15 @@ export class SupabaseJobRepository implements JobRepository {
       status: row.status as JobStatus,
       createdBy: row.created_by,
       assignedMechanicId: row.assigned_mechanic_id,
-      description: row.description,
-      notes: row.notes,
-      details: row.details || {},
-      startedAt: row.started_at ? new Date(row.started_at) : undefined,
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      description: details.description,
+      notes: details.notes,
+      details,
+      startedAt: details.startedAt ? new Date(details.startedAt) : undefined,
+      completedAt: details.completedAt ? new Date(details.completedAt) : undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
-      deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
-      deletedBy: row.deleted_by,
+      deletedAt: undefined,
+      deletedBy: undefined,
     }
   }
 
@@ -38,6 +53,27 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   private toDatabase(job: Omit<JobCard, 'id' | 'createdAt' | 'updatedAt'>): any {
+    const baseDetails = job.details || {}
+    const details: any = {
+      ...baseDetails,
+    }
+
+    if (job.description) {
+      details.description = job.description
+    }
+
+    if (job.notes) {
+      details.notes = job.notes
+    }
+
+    if (job.startedAt) {
+      details.startedAt = job.startedAt.toISOString()
+    }
+
+    if (job.completedAt) {
+      details.completedAt = job.completedAt.toISOString()
+    }
+
     return {
       tenant_id: job.tenantId,
       job_number: job.jobNumber,
@@ -46,28 +82,23 @@ export class SupabaseJobRepository implements JobRepository {
       status: job.status,
       created_by: job.createdBy,
       assigned_mechanic_id: job.assignedMechanicId,
-      description: job.description,
-      notes: job.notes,
-      details: job.details,
-      started_at: job.startedAt?.toISOString(),
-      completed_at: job.completedAt?.toISOString(),
+      details,
     }
   }
 
   async findAll(): Promise<JobCardWithRelations[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select(`
         *,
         customer:customers(*),
         vehicle:vehicles(*),
-        mechanic:users(*)
+        mechanic:mechanics(*)
       `)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -75,20 +106,19 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async findByStatus(status: JobStatus): Promise<JobCardWithRelations[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select(`
         *,
         customer:customers(*),
         vehicle:vehicles(*),
-        mechanic:users(*)
+        mechanic:mechanics(*)
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -96,20 +126,19 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async findById(id: string): Promise<JobCardWithRelations | null> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select(`
         *,
         customer:customers(*),
         vehicle:vehicles(*),
-        mechanic:users(*)
+        mechanic:mechanics(*)
       `)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .single()
 
     if (error) {
@@ -121,15 +150,14 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async findByCustomerId(customerId: string): Promise<JobCard[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select('*')
-      .eq('customer_id', customerId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
+      .eq('customer_id', customerId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -137,15 +165,14 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async findByVehicleId(vehicleId: string): Promise<JobCard[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select('*')
-      .eq('vehicle_id', vehicleId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
+      .eq('vehicle_id', vehicleId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -153,15 +180,14 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async findByMechanicId(mechanicId: string): Promise<JobCard[]> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select('*')
-      .eq('assigned_mechanic_id', mechanicId)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
+      .eq('assigned_mechanic_id', mechanicId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -169,7 +195,7 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async create(job: Omit<JobCard, 'id' | 'createdAt' | 'updatedAt'>): Promise<JobCard> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .insert(this.toDatabase(job))
@@ -180,25 +206,55 @@ export class SupabaseJobRepository implements JobRepository {
     return this.toDomain(data)
   }
 
-  async update(id: string, updates: Partial<JobCard>): Promise<JobCard> {
-    const tenantId = ensureTenantContext()
+  async update(id: string, job: Partial<JobCard>): Promise<JobCard> {
+    const tenantId = this.getContextTenantId()
 
-    const dbUpdates: any = {}
-    if (updates.status !== undefined) dbUpdates.status = updates.status
-    if (updates.assignedMechanicId !== undefined) dbUpdates.assigned_mechanic_id = updates.assignedMechanicId
-    if (updates.description !== undefined) dbUpdates.description = updates.description
-    if (updates.notes !== undefined) dbUpdates.notes = updates.notes
-    if (updates.details !== undefined) dbUpdates.details = updates.details
-    if (updates.startedAt !== undefined) dbUpdates.started_at = updates.startedAt?.toISOString()
-    if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt?.toISOString()
+    const existing = await this.findById(id)
+    if (!existing) {
+      throw new Error('Job not found')
+    }
 
-    const { data, error } = await supabase
+    const mergedDetailsBase = job.details !== undefined ? job.details : existing.details
+    const mergedDetails: any = {
+      ...mergedDetailsBase,
+    }
+
+    const description = job.description !== undefined ? job.description : existing.description
+    const notes = job.notes !== undefined ? job.notes : existing.notes
+    const startedAt = job.startedAt !== undefined ? job.startedAt : existing.startedAt
+    const completedAt = job.completedAt !== undefined ? job.completedAt : existing.completedAt
+
+    if (description) {
+      mergedDetails.description = description
+    }
+
+    if (notes) {
+      mergedDetails.notes = notes
+    }
+
+    if (startedAt) {
+      mergedDetails.startedAt = startedAt.toISOString()
+    }
+
+    if (completedAt) {
+      mergedDetails.completedAt = completedAt.toISOString()
+    }
+
+    const updates: any = {
+      status: job.status !== undefined ? job.status : existing.status,
+      assigned_mechanic_id: job.assignedMechanicId !== undefined
+        ? job.assignedMechanicId
+        : existing.assignedMechanicId,
+      created_by: existing.createdBy,
+      details: mergedDetails,
+    }
+
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
-      .update(dbUpdates)
+      .update(updates)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .select()
       .single()
 
@@ -207,16 +263,28 @@ export class SupabaseJobRepository implements JobRepository {
   }
 
   async updateStatus(id: string, status: JobStatus): Promise<JobCard> {
-    return this.update(id, { status })
+    const tenantId = this.getContextTenantId()
+
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('jobcards')
+      .update({ status })
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return this.toDomain(data)
   }
 
   async delete(id: string): Promise<void> {
-    const tenantId = ensureTenantContext()
+    const tenantId = this.getContextTenantId()
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
 

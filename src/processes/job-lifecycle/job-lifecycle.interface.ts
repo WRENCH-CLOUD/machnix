@@ -1,8 +1,8 @@
-import { JobCard, JobCardWithRelations } from "@/modules/job-management/domain/job.entity";
+import { JobCard, JobCardWithRelations } from "@/modules/job/domain/job.entity";
 import { assignMechanicCommand, createJobCommand, initiatePaymentCommand, jobStatusCommand, updateEstimateCommand } from "./job-lifecycle.types";
-import { CreateJobUseCase } from "@/modules/job-management/application/create-job.use-case";
-import { JobRepository } from "@/modules/job-management/domain/job.repository";
-import { UpdateJobStatusUseCase } from "@/modules/job-management/application/update-job-status.use-case";
+import { CreateJobUseCase } from "@/modules/job/application/create-job.use-case";
+import { JobRepository } from "@/modules/job/domain/job.repository";
+import { UpdateJobStatusUseCase } from "@/modules/job/application/update-job-status.use-case";
 export interface jobLifecycle{
     //creation of job
     createJob(data: createJobCommand):Promise<JobCard>;

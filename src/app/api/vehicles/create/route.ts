@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { CreateVehicleUseCase } from '@/modules/vehicle/application/create-vehicle.use-case'
 import { createClient } from '@/lib/supabase/server'
-import { JWT_CLAIM_TENANT_ID } from '@/lib/auth/jwt-claims'
-
-async function getTenantIdFromRequest(request: NextRequest): Promise<string> {
-  const fromHeader = request.headers.get('x-tenant-id')
-  if (fromHeader) return fromHeader
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthenticated')
-  const tenantId = (user.app_metadata?.[JWT_CLAIM_TENANT_ID] as string) || null
-  if (!tenantId) throw new Error('Missing tenant context in auth claims')
-  return tenantId
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const tenantId = await getTenantIdFromRequest(request)
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
+
     const body = await request.json()
 
-    const repository = new SupabaseVehicleRepository()
+    const repository = new SupabaseVehicleRepository(supabase, tenantId)
     const useCase = new CreateVehicleUseCase(repository)
 
     const vehicle = await useCase.execute(body, tenantId)

@@ -5,7 +5,7 @@ export class jobLifecycleRules {
     paymentStatus: string,
     jobStatus: string
   ): void {
-    if (paymentStatus !== "COMPLETED" && jobStatus !== "COMPLETED") {
+    if (paymentStatus !== "COMPLETED") {
       throw new Error(
         "Payment cannot be completed unless the status is COMPLETED."
       );
@@ -16,14 +16,11 @@ export class jobLifecycleRules {
     jobStatus: string,
     paymentStatus: string
   ): void {
-    if (jobStatus !== "COMPLETED" || paymentStatus === "Paid") {
+    if (jobStatus !== "COMPLETED" || paymentStatus !== "COMPLETED") {
       throw new Error(   
         "Job cannot be closed unless both job status and payment status are COMPLETED."
       );
     }
   }
-
-  
-
 
 }

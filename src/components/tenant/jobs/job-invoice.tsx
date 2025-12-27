@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { type JobStatus } from "@/lib/mock-data";
-import { type UIJob } from "@/lib/job-transforms";
+import { type UIJob } from "@/modules/job/application/job-transforms-service";
 
 interface JobInvoiceProps {
   job: UIJob;
@@ -65,8 +65,8 @@ export function JobInvoice({
               <CreditCard className="w-12 h-12 text-muted-foreground mx-auto" />
               <p className="text-sm text-muted-foreground">
                 {job.status === "ready" || job.status === "completed"
-                  ? "Invoice not found. It should have been auto-generated."
-                  : 'Invoice will be generated when job status is "Ready for Payment"'}
+                  ? "Invoice not found. It will be created when payment is recorded."
+                  : "Invoice will be created when payment is recorded."}
               </p>
             </div>
             {(job.status === "ready" || job.status === "completed") && (

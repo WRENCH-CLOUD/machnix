@@ -60,7 +60,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 function mapTenantRoleToJwtRole(tenantRole: string): string {
   const mapping: Record<string, string> = {
     'admin': JWT_ROLES.TENANT_ADMIN,
-    'tenant': JWT_ROLES.TENANT_OWNER,  // 'tenant' in DB = tenant_owner in JWT
+    'tenant': JWT_ROLES.TENANT,
     'mechanic': JWT_ROLES.MECHANIC,
     'employee': JWT_ROLES.EMPLOYEE,
     'frontdesk': JWT_ROLES.FRONTDESK,

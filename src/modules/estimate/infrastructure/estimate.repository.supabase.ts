@@ -4,12 +4,25 @@ import {
   EstimateWithRelations,
   EstimateStatus,
 } from "../domain/estimate.entity";
-import { supabase, ensureTenantContext } from "@/lib/supabase/client";
+import { supabase as defaultSupabase, ensureTenantContext } from "@/lib/supabase/client";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Supabase implementation of EstimateRepository
  */
 export class SupabaseEstimateRepository implements EstimateRepository {
+  private supabase: SupabaseClient;
+  private tenantId?: string;
+
+  constructor(supabase?: SupabaseClient, tenantId?: string) {
+    this.supabase = supabase || defaultSupabase;
+    this.tenantId = tenantId;
+  }
+
+  private getContextTenantId(): string {
+    return this.tenantId || ensureTenantContext();
+  }
+
   private toDomain(row: any): Estimate {
     return {
       id: row.id,
@@ -75,9 +88,9 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async findAll(): Promise<EstimateWithRelations[]> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .select(
@@ -90,7 +103,6 @@ export class SupabaseEstimateRepository implements EstimateRepository {
       `
       )
       .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -98,9 +110,9 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async findByStatus(status: EstimateStatus): Promise<EstimateWithRelations[]> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .select(
@@ -114,7 +126,6 @@ export class SupabaseEstimateRepository implements EstimateRepository {
       )
       .eq("tenant_id", tenantId)
       .eq("status", status)
-      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -122,9 +133,9 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async findById(id: string): Promise<EstimateWithRelations | null> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .select(
@@ -138,7 +149,6 @@ export class SupabaseEstimateRepository implements EstimateRepository {
       )
       .eq("id", id)
       .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
       .single();
 
     if (error) {
@@ -150,15 +160,14 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async findByCustomerId(customerId: string): Promise<Estimate[]> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .select("*")
       .eq("customer_id", customerId)
       .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -166,15 +175,14 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async findByJobcardId(jobcardId: string): Promise<Estimate[]> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .select("*")
       .eq("jobcard_id", jobcardId)
       .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -184,7 +192,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   async create(
     estimate: Omit<Estimate, "id" | "createdAt" | "updatedAt">
   ): Promise<Estimate> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .insert(this.toDatabase(estimate))
@@ -196,7 +204,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async update(id: string, updates: Partial<Estimate>): Promise<Estimate> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
     const dbUpdates: any = {};
     if (updates.status !== undefined) dbUpdates.status = updates.status;
@@ -226,13 +234,12 @@ export class SupabaseEstimateRepository implements EstimateRepository {
     if (updates.rejectionReason !== undefined)
       dbUpdates.rejection_reason = updates.rejectionReason;
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimates")
       .update(dbUpdates)
       .eq("id", id)
       .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
       .select()
       .single();
 
@@ -266,12 +273,12 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const tenantId = ensureTenantContext();
+    const tenantId = this.getContextTenantId();
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema("tenant")
       .from("estimates")
-      .update({ deleted_at: new Date().toISOString() } as any)
+      .delete()
       .eq("id", id)
       .eq("tenant_id", tenantId);
 
@@ -279,7 +286,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   async addItem(estimateId: string, item: any): Promise<any> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .insert({
@@ -330,7 +337,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
     if (updates.laborCost !== undefined)
       dbUpdates.labor_cost = updates.laborCost;
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .update(dbUpdates)
@@ -359,14 +366,14 @@ export class SupabaseEstimateRepository implements EstimateRepository {
 
   async removeItem(itemId: string): Promise<void> {
     // Get estimate ID first for recalculation
-    const { data: item } = await supabase
+    const { data: item } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .select("estimate_id")
       .eq("id", itemId)
       .single();
 
-    const { error } = await supabase
+    const { error } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .delete()
@@ -380,7 +387,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
   }
 
   private async recalculateTotals(estimateId: string): Promise<void> {
-    const { data: items } = await supabase
+    const { data: items } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .select("qty, unit_price, labor_cost")
@@ -388,26 +395,27 @@ export class SupabaseEstimateRepository implements EstimateRepository {
 
     if (!items) return;
 
-    const parts_total = items.reduce(
-      (sum, item) => sum + item.qty * item.unit_price,
-      0
-    );
-    const labor_total = items.reduce(
-      (sum, item) => sum + (item.labor_cost || 0),
-      0
-    );
-    const subtotal = parts_total + labor_total;
-    const tax_amount = subtotal * 0.18; // 18% GST fixed for now as per legacy
-    const total_amount = subtotal + tax_amount;
+    let laborTotal = 0;
+    let partsTotal = 0;
 
-    await supabase
+    items.forEach((item) => {
+      partsTotal += item.qty * item.unit_price;
+      laborTotal += item.labor_cost || 0;
+    });
+
+    const subtotal = laborTotal + partsTotal;
+    const taxAmount = subtotal * 0.18;
+    const totalAmount = subtotal + taxAmount;
+
+    await this.supabase
       .schema("tenant")
       .from("estimates")
       .update({
-        parts_total,
-        labor_total,
-        tax_amount,
-        total_amount,
+        labor_total: laborTotal,
+        parts_total: partsTotal,
+        subtotal,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
       })
       .eq("id", estimateId);
   }

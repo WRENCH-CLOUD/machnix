@@ -51,6 +51,14 @@ export const JWT_ROLES = {
   PLATFORM_ADMIN: 'platform_admin',
   
   /**
+   * Tenant (owner) - Standardized tenant-level admin role
+   * Used by: Primary owner/admin of a tenant organization
+   * RLS Check: (auth.jwt() ->> 'role') = 'tenant'
+   * Scope: Single tenant via tenant_id claim
+   */
+  TENANT: 'tenant',
+  
+  /**
    * Tenant owner - Owner of a specific tenant
    * Used by: Primary owner of a tenant organization
    * RLS Check: (auth.jwt() ->> 'role') = 'tenant_owner'
@@ -120,7 +128,7 @@ export const PRIVILEGED_ROLES: JwtRole[] = [
  * Roles that have full administrative access within their tenant
  */
 export const TENANT_ADMIN_ROLES: JwtRole[] = [
-  JWT_ROLES.TENANT_OWNER,
+  JWT_ROLES.TENANT,
   JWT_ROLES.TENANT_ADMIN,
 ]
 
@@ -128,7 +136,7 @@ export const TENANT_ADMIN_ROLES: JwtRole[] = [
  * Roles that can manage resources (jobs, customers, etc.) within tenant
  */
 export const TENANT_MANAGER_ROLES: JwtRole[] = [
-  JWT_ROLES.TENANT_OWNER,
+  JWT_ROLES.TENANT,
   JWT_ROLES.TENANT_ADMIN,
   JWT_ROLES.MANAGER,
 ]
@@ -137,7 +145,7 @@ export const TENANT_MANAGER_ROLES: JwtRole[] = [
  * All roles that belong to a tenant (have tenant_id claim)
  */
 export const TENANT_ROLES: JwtRole[] = [
-  JWT_ROLES.TENANT_OWNER,
+  JWT_ROLES.TENANT,
   JWT_ROLES.TENANT_ADMIN,
   JWT_ROLES.MANAGER,
   JWT_ROLES.MECHANIC,

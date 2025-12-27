@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -93,85 +94,52 @@ export function CreateTenantDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Tenant</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              {/* Reuse legacy-style icon from admin create tenant dialog */}
+            </span>
+            <span>Create New Tenant</span>
+          </DialogTitle>
           <DialogDescription>
-            Add a new garage to the platform
+            Create a new tenant organization with admin user.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tenantName">Garage Name *</Label>
-              <Input
-                id="tenantName"
-                value={formData.tenantName}
-                onChange={(e) =>
-                  setFormData({ ...formData, tenantName: e.target.value })
-                }
-                placeholder="ABC Motors"
-                required
-              />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span>Tenant Information</span>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tenantSlug">Slug *</Label>
-              <Input
-                id="tenantSlug"
-                value={formData.tenantSlug}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenantSlug: e.target.value.toLowerCase(),
-                  })
-                }
-                placeholder="abc-motors"
-                required
-              />
-            </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tenantName">Garage Name *</Label>
+                <Input
+                  id="tenantName"
+                  value={formData.tenantName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tenantName: e.target.value })
+                  }
+                  placeholder="ABC Motors"
+                  required
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adminName">Admin Name *</Label>
-              <Input
-                id="adminName"
-                value={formData.adminName}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminName: e.target.value })
-                }
-                placeholder="John Doe"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="adminEmail">Admin Email *</Label>
-              <Input
-                id="adminEmail"
-                type="email"
-                value={formData.adminEmail}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminEmail: e.target.value })
-                }
-                placeholder="john@example.com"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adminPhone">Admin Phone</Label>
-              <Input
-                id="adminPhone"
-                type="tel"
-                value={formData.adminPhone}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminPhone: e.target.value })
-                }
-                placeholder="+91 9876543210"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="tenantSlug">Slug *</Label>
+                <Input
+                  id="tenantSlug"
+                  value={formData.tenantSlug}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      tenantSlug: e.target.value.toLowerCase(),
+                    })
+                  }
+                  placeholder="abc-motors"
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -183,26 +151,77 @@ export function CreateTenantDialog({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                  <SelectItem value="starter">Starter - Basic features</SelectItem>
+                  <SelectItem value="pro">Pro - Advanced features</SelectItem>
+                  <SelectItem value="enterprise">Enterprise - Full access</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span>Admin User Details</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminName">Admin Name *</Label>
+                <Input
+                  id="adminName"
+                  value={formData.adminName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, adminName: e.target.value })
+                  }
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adminEmail">Admin Email *</Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={formData.adminEmail}
+                  onChange={(e) =>
+                    setFormData({ ...formData, adminEmail: e.target.value })
+                  }
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminPhone">Admin Phone</Label>
+                <Input
+                  id="adminPhone"
+                  type="tel"
+                  value={formData.adminPhone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, adminPhone: e.target.value })
+                  }
+                  placeholder="+91 9876543210"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <Input
+            <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
               placeholder="Any additional notes..."
+              rows={3}
             />
           </div>
 

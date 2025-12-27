@@ -5,14 +5,13 @@ export class SupabaseTenantUserRepository implements TenantUserRepository {
   private supabase = getSupabaseAdmin()
 
   async create(input) {
-    const dbRole = input.role === 'tenant_owner' ? 'tenant' : input.role
     const { error } = await this.supabase
       .schema('tenant')
       .from('users')
       .insert({
         tenant_id: input.tenantId,
         auth_user_id: input.authUserId,
-        role: dbRole,
+        role: input.role,
         name: input.name,
         email: input.email,
         phone: input.phone ?? null,

@@ -21,11 +21,12 @@ function extractClaims(session: Session | null) {
     return { role: null, tenantId: null };
   }
 
-  const meta = session.user.app_metadata ;
+  const appMeta = session.user.app_metadata;
+  const userMeta = session.user.user_metadata;
 
   return {
-    role: meta?.role ?? null,
-    tenantId: meta?.tenant_id ?? null,
+    role: appMeta?.role ?? userMeta?.role ?? null,
+    tenantId: appMeta?.tenant_id ?? userMeta?.tenant_id ?? null,
   };
 }
 
@@ -37,10 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const applySession = (session: Session | null) => {
+  console.log("[AuthProvider] ApplySession:", { hasSession: !!session, user: session?.user?.email });
   setSession(session);
   setUser(session?.user ?? null);
 
   const { role, tenantId } = extractClaims(session);
+  console.log("[AuthProvider] Claims:", { role, tenantId });
   setUserRole(role);
   setTenantId(tenantId);
 
@@ -48,18 +51,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 };
 
 useEffect(() => {
-  supabase.auth.getSession().then(({ data }) => {
-    applySession(data.session);
-    setLoading(false);
-  });
+    let mounted = true;
+    console.log("[AuthProvider] Initializing...");
 
-  const { data: { subscription } } =
-    supabase.auth.onAuthStateChange((_event, session) => {
-      applySession(session);
-    });
+    const initAuth = async () => {
+      try {
+        // 1. Try client-side session first
+        const { data: { session: clientSession } } = await supabase.auth.getSession();
+        
+        if (clientSession) {
+          console.log("[AuthProvider] Client-side session found");
+          if (mounted) applySession(clientSession);
+        } else {
+          // 2. Fallback to server-side session check
+          console.log("[AuthProvider] No client session, checking server-side...");
+          const res = await fetch("/api/auth/me");
+          if (res.ok) {
+            const { user: serverUser } = await res.json();
+            if (serverUser && mounted) {
+              console.log("[AuthProvider] Server-side user found:", serverUser.email);
+              // Construct a minimal session-like object for applySession
+              // or handle serverUser directly
+              setUser(serverUser as any);
+              setTenantId(serverUser.tenantId);
+              setUserRole(serverUser.role);
+              if (serverUser.tenantId) setTenantContext(serverUser.tenantId);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[AuthProvider] Initialization error:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-  return () => subscription.unsubscribe();
-}, []);
+    initAuth();
+
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (!mounted) return;
+        console.log("[AuthProvider] Auth state change:", event, !!session);
+        applySession(session);
+        setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
 
   const signIn = async (email: string, password: string) => {
@@ -81,7 +122,7 @@ useEffect(() => {
       if (contentType.includes("application/json")) {
         try {
           const err= await res.json();
-          errorMessage = err?.error?.message || err?.error || errorMessage;
+          errorMessage = err?.error?.message || errorMessage;
         } catch (e) {
           console.error("Failed to parse error JSON from /api/auth/login", e);
         }
@@ -109,6 +150,11 @@ useEffect(() => {
   };
 
   const signOut = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
     await supabase.auth.signOut();
     applySession(null);
   };

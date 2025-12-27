@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseInvoiceRepository } from "@/app/modules/invoice-management/infrastructure/invoice.repository.supabase";
-import { GetInvoiceByJobIdUseCase } from "@/app/modules/invoice-management/application/get-invoice-by-job-id.use-case";
+import { SupabaseInvoiceRepository } from "@/modules/invoice/infrastructure/invoice.repository.supabase";
+import { GetInvoiceByJobIdUseCase } from "@/modules/invoice/application/get-invoice-by-job-id.use-case";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const repository = new SupabaseInvoiceRepository();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
+    }
+
+    const repository = new SupabaseInvoiceRepository(supabase, tenantId);
     const useCase = new GetInvoiceByJobIdUseCase(repository);
 
     const invoice = await useCase.execute(params.jobId);

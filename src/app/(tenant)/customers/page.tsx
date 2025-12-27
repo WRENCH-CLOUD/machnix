@@ -1,13 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AppSidebar } from "@/components/common/app-sidebar";
-import { TopHeader } from "@/components/common/top-header";
-import { CustomersView } from "@/components/tenant/customers/customers-view";
+import { CustomersView } from "@/components/tenant/views/customers-view";
 import { useAuth } from "@/providers/auth-provider";
-import { useRouter } from "next/navigation";
-import { CreateCustomerUseCase } from "@/modules/customer/application/create-customer.use-case";
-import { SupabaseCustomerRepository } from "@/modules/customer/infrastructure/customer.repository.supabase";
 
 interface CustomerWithStats {
   id: string;
@@ -20,19 +15,13 @@ interface CustomerWithStats {
 }
 
 export default function CustomersPage() {
-  const { user, loading: authLoading, tenantId } = useAuth();
-  const router = useRouter();
+  const { tenantId } = useAuth();
   const [customers, setCustomers] = useState<CustomerWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/");
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
+    // Only load if we have a tenantId
     if (tenantId) {
       loadCustomers();
     }
@@ -73,52 +62,40 @@ export default function CustomersPage() {
     }
   };
 
-  const handleAddCustomer = () => {
-    const createCustomerUseCase = new CreateCustomerUseCase(
-      new SupabaseCustomerRepository()
-    );
-    createCustomerUseCase.execute(
-      // TODO: change to dynamic input data
-      {
-        name: "John Doe",
-        phone: "1234567890",
-        email: "john.doe@example.com",
-        address: "123 Main St",
-      },
-      tenantId
-    );
-    console.log("Add customer");
+  const handleAddCustomer = async () => {
+    try {
+      const response = await fetch("/api/customers/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "John Doe",
+          phone: "1234567890",
+          email: "john.doe@example.com",
+          address: "123 Main St",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add customer");
+      }
+
+      console.log("Customer added successfully");
+      await loadCustomers();
+    } catch (err) {
+      console.error("Error adding customer:", err);
+      setError("Failed to add customer");
+    }
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar
-        activeView="customers"
-        onViewChange={(view) => router.push(`/${view}`)}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopHeader
-          tenantName="Mechanix Garage"
-          onCreateJob={() => router.push("/jobs/create")}
-        />
-        <main className="flex-1 overflow-auto p-6">
-          <CustomersView
-            customers={customers}
-            loading={loading}
-            error={error}
-            onAddCustomer={handleAddCustomer}
-            onRefresh={loadCustomers}
-          />
-        </main>
-      </div>
-    </div>
+    <CustomersView
+      customers={customers}
+      loading={loading}
+      error={error}
+      onAddCustomer={handleAddCustomer}
+      onRefresh={loadCustomers}
+    />
   );
 }

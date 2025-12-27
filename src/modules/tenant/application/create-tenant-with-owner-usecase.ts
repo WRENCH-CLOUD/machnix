@@ -89,7 +89,7 @@ export class CreateTenantWithOwnerUseCase {
       await this.jwtClaims.setTenantUserClaims(
         this.supabaseAdmin,
         authUser.id,
-        JWT_ROLES.TENANT_OWNER,
+        JWT_ROLES.TENANT,
         tenant.id
       )
 

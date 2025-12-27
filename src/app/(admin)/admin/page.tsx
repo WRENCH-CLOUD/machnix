@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 // TODO: update path of the missing function GlobalAnalytics i guess need to be created @sagun-py0909
 import { GlobalAnalytics } from "@/modules/analytics";
-import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
+import { TenantDetailsDialog } from "@/features/admin/tenant-details-dialog";
 import { OverviewView } from "@/components/admin/overview-view";
 import {
   type TenantWithStats,

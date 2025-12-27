@@ -1,38 +1,34 @@
 "use client"
 
-import { TenantDashboard } from "legacy/Legacy-ui(needed-to-migrate)/dashboard/tenant-dashboard"
-import { AppSidebar } from "@/components/common/app-sidebar"
-import { TopHeader } from "@/components/common/top-header"
+import { TenantDashboard, type DashboardStats } from "@/components/tenant/views/tenant-dashboard-view"
 import { useAuth } from "@/providers/auth-provider"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+  const { tenantId } = useAuth()
+  const [stats, setStats] = useState<DashboardStats | undefined>()
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/")
+    if (tenantId) {
+      fetchStats()
     }
-  }, [user, loading, router])
+  }, [tenantId])
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+  const fetchStats = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/tenant/stats')
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar activeView="dashboard" onViewChange={(view) => router.push(`/${view}`)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopHeader
-          tenantName="Mechanix Garage"
-          onCreateJob={() => router.push("/jobs/create")}
-        />
-        <main className="flex-1 overflow-auto p-6">
-          <TenantDashboard />
-        </main>
-      </div>
-    </div>
-  )
+  return <TenantDashboard stats={stats} />
 }
