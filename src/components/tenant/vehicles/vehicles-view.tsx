@@ -47,7 +47,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 // TODO: scptical about this needed revision
-// TODO: somehow need to import this to where lol???!!! @sagun25
+// TODO: somehow need to import this to where lol???!!! @sagun-py25
 export interface Vehicle {
   id: string;
   makeName: string;
@@ -68,7 +68,7 @@ interface VehiclesViewProps {
   makes?: { id: string; name: string }[];
   onAddVehicle: (data: any) => Promise<void>;
   onRetry: () => void;
-}
+};
 
   return (
     <div className="h-full flex flex-col p-6 space-y-6 overflow-auto">

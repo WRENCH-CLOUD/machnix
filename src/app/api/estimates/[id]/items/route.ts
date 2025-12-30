@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseEstimateRepository } from "@/app/modules/estimate-management/infrastructure/estimate.repository.supabase";
-import { AddEstimateItemUseCase } from "@/app/modules/estimate-management/application/add-estimate-item.use-case";
+import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
+import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
 
 export async function POST(
   request: NextRequest,

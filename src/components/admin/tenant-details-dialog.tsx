@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Dialog,
@@ -6,12 +6,18 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Spinner } from "@/components/ui/spinner"
-import { type TenantWithStats } from "@/app/modules/tenant-management"
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
+import { type TenantWithStats } from "@/modules/tenant";
 import {
   Building2,
   Users,
@@ -23,30 +29,35 @@ import {
   Clock,
   TrendingUp,
   Activity,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TenantDetailsDialogProps {
-  tenant: TenantWithStats | null
-  loading: boolean
-  error: string | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  tenant: TenantWithStats | null;
+  loading: boolean;
+  error: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange }: TenantDetailsDialogProps) {
-
+export function TenantDetailsDialog({
+  tenant,
+  loading,
+  error,
+  open,
+  onOpenChange,
+}: TenantDetailsDialogProps) {
   const statusColors: Record<string, string> = {
     active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
     suspended: "bg-red-500/10 text-red-500 border-red-500/20",
     trial: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  }
+  };
 
   const subscriptionColors: Record<string, string> = {
     starter: "bg-slate-500/10 text-slate-400",
     pro: "bg-primary/10 text-primary",
     enterprise: "bg-purple-500/10 text-purple-500",
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,23 +89,34 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
               <div className="space-y-1">
                 <h3 className="text-lg font-semibold">{tenant.name}</h3>
                 {tenant.slug && (
-                  <p className="text-sm text-muted-foreground">Slug: {tenant.slug}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Slug: {tenant.slug}
+                  </p>
                 )}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  Created {new Date(tenant.createdAt).toLocaleDateString("en-IN", {
+                  Created{" "}
+                  {new Date(tenant.createdAt).toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "long",
-                    year: "numeric"
+                    year: "numeric",
                   })}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <Badge variant="outline" className={statusColors[tenant.status || 'active']}>
-                  {(tenant.status || 'active').charAt(0).toUpperCase() + (tenant.status || 'active').slice(1)}
+                <Badge
+                  variant="outline"
+                  className={statusColors[tenant.status || "active"]}
+                >
+                  {(tenant.status || "active").charAt(0).toUpperCase() +
+                    (tenant.status || "active").slice(1)}
                 </Badge>
-                <Badge className={subscriptionColors[tenant.subscription || 'pro']}>
-                  {(tenant.subscription || 'pro').charAt(0).toUpperCase() + (tenant.subscription || 'pro').slice(1)} Plan
+                <Badge
+                  className={subscriptionColors[tenant.subscription || "pro"]}
+                >
+                  {(tenant.subscription || "pro").charAt(0).toUpperCase() +
+                    (tenant.subscription || "pro").slice(1)}{" "}
+                  Plan
                 </Badge>
               </div>
             </div>
@@ -110,7 +132,9 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       <Users className="w-4 h-4 text-primary" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold">{tenant.customer_count || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {tenant.customer_count || 0}
+                  </div>
                   <div className="text-xs text-muted-foreground">Customers</div>
                 </CardContent>
               </Card>
@@ -122,8 +146,12 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       <Wrench className="w-4 h-4 text-amber-500" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold">{tenant.active_jobs || 0}</div>
-                  <div className="text-xs text-muted-foreground">Active Jobs</div>
+                  <div className="text-2xl font-bold">
+                    {tenant.active_jobs || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Active Jobs
+                  </div>
                 </CardContent>
               </Card>
 
@@ -134,8 +162,12 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold">{tenant.completed_jobs || 0}</div>
-                  <div className="text-xs text-muted-foreground">Completed Jobs</div>
+                  <div className="text-2xl font-bold">
+                    {tenant.completed_jobs || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Completed Jobs
+                  </div>
                 </CardContent>
               </Card>
 
@@ -146,7 +178,9 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       <Activity className="w-4 h-4 text-purple-500" />
                     </div>
                   </div>
-                  <div className="text-2xl font-bold">{tenant.mechanic_count || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {tenant.mechanic_count || 0}
+                  </div>
                   <div className="text-xs text-muted-foreground">Mechanics</div>
                 </CardContent>
               </Card>
@@ -163,21 +197,37 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Total Revenue</span>
+                    <span className="text-sm text-muted-foreground">
+                      Total Revenue
+                    </span>
                     <span className="text-2xl font-bold text-emerald-500">
                       ₹{((tenant.total_revenue || 0) / 100000).toFixed(2)}L
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Revenue per Job</span>
+                    <span className="text-sm text-muted-foreground">
+                      Revenue per Job
+                    </span>
                     <span className="font-medium">
-                      ₹{tenant.completed_jobs ? Math.round((tenant.total_revenue || 0) / tenant.completed_jobs).toLocaleString('en-IN') : '0'}
+                      ₹
+                      {tenant.completed_jobs
+                        ? Math.round(
+                            (tenant.total_revenue || 0) / tenant.completed_jobs
+                          ).toLocaleString("en-IN")
+                        : "0"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Revenue per Customer</span>
+                    <span className="text-sm text-muted-foreground">
+                      Revenue per Customer
+                    </span>
                     <span className="font-medium">
-                      ₹{tenant.customer_count ? Math.round((tenant.total_revenue || 0) / tenant.customer_count).toLocaleString('en-IN') : '0'}
+                      ₹
+                      {tenant.customer_count
+                        ? Math.round(
+                            (tenant.total_revenue || 0) / tenant.customer_count
+                          ).toLocaleString("en-IN")
+                        : "0"}
                     </span>
                   </div>
                 </div>
@@ -195,28 +245,45 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Current Plan</span>
-                    <Badge className={subscriptionColors[tenant.subscription || 'pro']}>
-                      {(tenant.subscription || 'pro').charAt(0).toUpperCase() + (tenant.subscription || 'pro').slice(1)}
+                    <span className="text-sm text-muted-foreground">
+                      Current Plan
+                    </span>
+                    <Badge
+                      className={
+                        subscriptionColors[tenant.subscription || "pro"]
+                      }
+                    >
+                      {(tenant.subscription || "pro").charAt(0).toUpperCase() +
+                        (tenant.subscription || "pro").slice(1)}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge variant="outline" className={statusColors[tenant.status || 'active']}>
-                      {(tenant.status || 'active').charAt(0).toUpperCase() + (tenant.status || 'active').slice(1)}
+                    <span className="text-sm text-muted-foreground">
+                      Status
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={statusColors[tenant.status || "active"]}
+                    >
+                      {(tenant.status || "active").charAt(0).toUpperCase() +
+                        (tenant.status || "active").slice(1)}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Member Since</span>
+                    <span className="text-sm text-muted-foreground">
+                      Member Since
+                    </span>
                     <span className="font-medium">
                       {new Date(tenant.createdAt).toLocaleDateString("en-IN", {
                         month: "short",
-                        year: "numeric"
+                        year: "numeric",
                       })}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Tenant ID</span>
+                    <span className="text-sm text-muted-foreground">
+                      Tenant ID
+                    </span>
                     <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
                       {tenant.id}
                     </span>
@@ -236,22 +303,37 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Job Completion Rate</span>
+                    <span className="text-sm text-muted-foreground">
+                      Job Completion Rate
+                    </span>
                     <span className="font-medium">
-                      {tenant.completed_jobs && (tenant.active_jobs || 0) + tenant.completed_jobs > 0
-                        ? Math.round((tenant.completed_jobs / ((tenant.active_jobs || 0) + tenant.completed_jobs)) * 100)
-                        : 0}%
+                      {tenant.completed_jobs &&
+                      (tenant.active_jobs || 0) + tenant.completed_jobs > 0
+                        ? Math.round(
+                            (tenant.completed_jobs /
+                              ((tenant.active_jobs || 0) +
+                                tenant.completed_jobs)) *
+                              100
+                          )
+                        : 0}
+                      %
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Total Jobs Processed</span>
+                    <span className="text-sm text-muted-foreground">
+                      Total Jobs Processed
+                    </span>
                     <span className="font-medium">
                       {(tenant.active_jobs || 0) + (tenant.completed_jobs || 0)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Average Mechanics</span>
-                    <span className="font-medium">{tenant.mechanic_count || 0}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Average Mechanics
+                    </span>
+                    <span className="font-medium">
+                      {tenant.mechanic_count || 0}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -260,5 +342,5 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
         ) : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

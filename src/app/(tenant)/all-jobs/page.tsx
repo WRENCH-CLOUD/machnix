@@ -1,103 +1,110 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { AppSidebar } from "@/components/common/app-sidebar"
-import { TopHeader } from "@/components/common/top-header"
-import { AllJobsView } from "legacy/Legacy-ui(needed-to-migrate)/jobs/all-jobs-view"
-import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog"
-import { useAuth } from "@/providers/auth-provider"
-import { useRouter } from "next/navigation"
-import { transformDatabaseJobToUI, type UIJob } from "@/modules/job-management/application/job-transforms.service"
-import { type JobStatus } from "@/lib/mock-data"
+import { useState, useEffect } from "react";
+import { AppSidebar } from "@/components/common/app-sidebar";
+import { TopHeader } from "@/components/common/top-header";
+import { AllJobsView } from "legacy/Legacy-ui(needed-to-migrate)/jobs/all-jobs-view";
+import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
+import { useAuth } from "@/providers/auth-provider";
+import { useRouter } from "next/navigation";
+import { transformDatabaseJobToUI } from "@/modules/job/application/job-transforms-service";
+import { type JobStatus } from "@/lib/mock-data";
 
 export default function AllJobsPage() {
-  const { user, loading: authLoading, tenantId } = useAuth()
-  const router = useRouter()
-  const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
-  const [jobs, setJobs] = useState<UIJob[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading, tenantId } = useAuth();
+  const router = useRouter();
+  const [selectedJob, setSelectedJob] = useState<UIJob | null>(null);
+  const [jobs, setJobs] = useState<UIJob[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (user && tenantId) {
-      loadJobs()
+      loadJobs();
     }
-  }, [user, tenantId])
+  }, [user, tenantId]);
 
   const loadJobs = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // Call API route - business logic is in the use case
-      const response = await fetch('/api/jobs')
+      const response = await fetch("/api/jobs");
       if (!response.ok) {
-        throw new Error('Failed to fetch jobs')
+        throw new Error("Failed to fetch jobs");
       }
-      const dbJobs = await response.json()
+      const dbJobs = await response.json();
       const transformedJobs = await Promise.all(
         dbJobs.map((job: any) => transformDatabaseJobToUI(job))
-      )
-      setJobs(transformedJobs)
+      );
+      setJobs(transformedJobs);
     } catch (err) {
-      console.error('Error loading jobs:', err)
+      console.error("Error loading jobs:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleJobClick = async (job: UIJob) => {
-    setSelectedJob(job)
-  }
+    setSelectedJob(job);
+  };
 
-  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
+  const handleStatusChange = async (
+    jobId: string,
+    newStatus: JobStatus
+  ): Promise<void> => {
     try {
       // Call API route - business logic is in the use case
       const response = await fetch(`/api/jobs/${jobId}/update-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
-      })
-      
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to update job status')
+        throw new Error("Failed to update job status");
       }
-      
-      await loadJobs()
-      
+
+      await loadJobs();
+
       // Update selected job if it's the one being changed
       if (selectedJob?.id === jobId) {
-        const updatedJobs = jobs.find(j => j.id === jobId)
+        const updatedJobs = jobs.find((j) => j.id === jobId);
         if (updatedJobs) {
-          setSelectedJob({ ...updatedJobs, status: newStatus })
+          setSelectedJob({ ...updatedJobs, status: newStatus });
         }
       }
     } catch (err) {
-      console.error('Error updating job status:', err)
-      throw err
+      console.error("Error updating job status:", err);
+      throw err;
     }
-  }
+  };
 
   if (authLoading || loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   return (
     <div className="flex h-screen bg-background">
-      <AppSidebar activeView="all-jobs" onViewChange={(view) => router.push(`/${view}`)} />
+      <AppSidebar
+        activeView="all-jobs"
+        onViewChange={(view) => router.push(`/${view}`)}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader
-          tenantName="Mechanix Garage"
+          tenantName="Mechanix Garage" //FIXME: static??
           onCreateJob={() => router.push("/jobs")}
         />
         <main className="flex-1 overflow-auto p-6">
-          <AllJobsView
-            jobs={jobs}
-            onJobClick={handleJobClick}
-          />
+          <AllJobsView jobs={jobs} onJobClick={handleJobClick} />
         </main>
       </div>
 
@@ -109,10 +116,10 @@ export default function AllJobsPage() {
           onStatusChange={handleStatusChange}
           onJobUpdate={async () => {
             // Refresh the job list
-            await loadJobs()
+            await loadJobs();
           }}
         />
       )}
     </div>
-  )
+  );
 }

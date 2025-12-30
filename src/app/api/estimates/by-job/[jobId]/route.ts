@@ -1,8 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseEstimateRepository } from "@/app/modules/estimate-management/infrastructure/estimate.repository.supabase";
-import { GetEstimateByJobIdUseCase } from "@/app/modules/estimate-management/application/get-estimate-by-job-id.use-case";
+import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
+import { GetEstimateByJobIdUseCase } from "@/modules/estimate/application/get-estimate-by-job-id.use-case";
 
 export async function GET(
   request: NextRequest,
