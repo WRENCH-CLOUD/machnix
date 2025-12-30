@@ -1,6 +1,6 @@
 "use client"
 
-import { TenantDashboard } from "legacy/Legacy-ui(needed-to-migrate)/dashboard/tenant-dashboard"
+import { TenantDashboard } from "@/components/tenant/dashboard/tenant-dashboard"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { useAuth } from "@/providers/auth-provider"

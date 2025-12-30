@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { AllJobsView } from "legacy/Legacy-ui(needed-to-migrate)/jobs/all-jobs-view"
-import { JobDetails } from "legacy/Legacy-ui(needed-to-migrate)/jobs/job-details"
+import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job-management/application/job-transforms.service"
@@ -102,7 +102,7 @@ export default function AllJobsPage() {
       </div>
 
       {selectedJob && (
-        <JobDetails
+        <JobDetailsDialog
           job={selectedJob}
           isMechanicMode={false}
           onClose={() => setSelectedJob(null)}
