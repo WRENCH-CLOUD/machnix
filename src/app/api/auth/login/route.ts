@@ -3,8 +3,6 @@ import {createClient } from "@/lib/supabase/server";
 export async function POST(req: Request) {
   const { email, password } = await req.json();
   
-  console.log("Login attempt with:", email, password);
-
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -14,7 +12,7 @@ export async function POST(req: Request) {
 
   if (error || !data.session) {
     return NextResponse.json(
-      { error },
+      { error: { message: error?.message || "Authentication failed" } },
       { status: 401 }
     );
   }
