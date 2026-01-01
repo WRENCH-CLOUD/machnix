@@ -1,27 +1,14 @@
 import { UserRepository } from '../domain/user.repository'
 import { User, Mechanic, UserRole } from '../domain/user.entity'
-import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 
 type DbUser = any // Database row type
 
 /**
  * Supabase implementation of UserRepository
  */
-export class SupabaseUserRepository implements UserRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
-  private toDomain(row: DbUser): User {
+export class SupabaseUserRepository extends BaseSupabaseRepository<User, DbUser> implements UserRepository {
+  protected toDomain(row: DbUser): User {
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -47,7 +34,7 @@ export class SupabaseUserRepository implements UserRepository {
     }
   }
 
-  private toDatabase(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): DbUser {
+  protected toDatabase(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): DbUser {
     return {
       tenant_id: user.tenantId,
       auth_user_id: user.authUserId,

@@ -1,28 +1,15 @@
 import { CustomerRepository } from '../domain/customer.repository'
 import { Customer, CustomerWithVehicles } from '../domain/customer.entity'
-import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 
 /**
  * Supabase implementation of CustomerRepository
  */
-export class SupabaseCustomerRepository implements CustomerRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
+export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer> implements CustomerRepository {
   /**
    * Transform database row to domain entity
    */
-  private toDomain(row: any): Customer {
+  protected toDomain(row: any): Customer {
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -51,7 +38,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   /**
    * Transform domain entity to database insert format
    */
-  private toDatabase(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): any {
+  protected toDatabase(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): any {
     return {
       tenant_id: customer.tenantId,
       name: customer.name,

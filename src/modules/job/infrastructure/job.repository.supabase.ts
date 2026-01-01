@@ -1,25 +1,12 @@
 import { JobRepository } from '@/modules/job/domain/job.repository'
 import { JobCard, JobCardWithRelations, JobStatus } from '@/modules/job/domain/job.entity'
-import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 
 /**
  * Supabase implementation of JobRepository
  */
-export class SupabaseJobRepository implements JobRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
-  private toDomain(row: any): JobCard {
+export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> implements JobRepository {
+  protected toDomain(row: any): JobCard {
     const details = row.details || {}
 
     return {
@@ -52,7 +39,7 @@ export class SupabaseJobRepository implements JobRepository {
     }
   }
 
-  private toDatabase(job: Omit<JobCard, 'id' | 'createdAt' | 'updatedAt'>): any {
+  protected toDatabase(job: Omit<JobCard, 'id' | 'createdAt' | 'updatedAt'>): any {
     const baseDetails = job.details || {}
     const details: any = {
       ...baseDetails,
