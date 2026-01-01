@@ -6,9 +6,9 @@ import { SupabaseClient } from '@supabase/supabase-js'
  * Provides common functionality for tenant-aware data access.
  * 
  * @template TEntity - The domain entity type
- * @template TDbRow - The database row type (defaults to any)
+ * @template TDbRow - The database row type (defaults to Record<string, unknown>)
  */
-export abstract class BaseSupabaseRepository<TEntity, TDbRow = any> {
+export abstract class BaseSupabaseRepository<TEntity, TDbRow = Record<string, unknown>> {
   protected supabase: SupabaseClient
   protected tenantId?: string
 
@@ -32,7 +32,7 @@ export abstract class BaseSupabaseRepository<TEntity, TDbRow = any> {
 
   /**
    * Transform a domain entity to a database row for insert operations.
-   * Must be implemented by derived classes if create operations are needed.
+   * Must be implemented by derived classes.
    */
   protected abstract toDatabase(entity: Omit<TEntity, 'id' | 'createdAt' | 'updatedAt'>): TDbRow
 }
