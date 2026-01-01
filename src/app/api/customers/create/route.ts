@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { CreateCustomerUseCase } from '@/modules/customer/application/create-customer.use-case'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const createCustomerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().optional(),
+  email: z.string().email("Invalid email format").optional().or(z.literal('')),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,17 +27,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const validatedBody = createCustomerSchema.parse(body)
     
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new CreateCustomerUseCase(repository)
     
-    const customer = await useCase.execute(body, tenantId)
+    const customer = await useCase.execute(validatedBody, tenantId)
     
     return NextResponse.json(customer, { status: 201 })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 })
+    }
     console.error('Error creating customer:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to create customer' },
+      { error: error instanceof Error ? error.message : 'Failed to create customer' },
       { status: 400 }
     )
   }
