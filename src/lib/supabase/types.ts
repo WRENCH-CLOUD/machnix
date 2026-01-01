@@ -383,6 +383,7 @@ export type Database = {
           jobcard_id: string
           notes: string | null
           status: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -393,6 +394,7 @@ export type Database = {
           jobcard_id: string
           notes?: string | null
           status?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -403,9 +405,18 @@ export type Database = {
           jobcard_id?: string
           notes?: string | null
           status?: string | null
+          tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dvi_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dvi_photos: {
         Row: {
@@ -414,6 +425,7 @@ export type Database = {
           dvi_item_id: string
           id: string
           storage_path: string
+          tenant_id: string
           uploaded_by: string | null
           url: string
         }
@@ -423,6 +435,7 @@ export type Database = {
           dvi_item_id: string
           id?: string
           storage_path: string
+          tenant_id: string
           uploaded_by?: string | null
           url: string
         }
@@ -432,10 +445,19 @@ export type Database = {
           dvi_item_id?: string
           id?: string
           storage_path?: string
+          tenant_id?: string
           uploaded_by?: string | null
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dvi_photos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dvi_templates: {
         Row: {
