@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -178,6 +179,7 @@ export function CustomersView({
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
+          type="search"
           placeholder="Search by name, phone, or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -215,13 +217,20 @@ export function CustomersView({
 
       {/* Empty State */}
       {!loading && !error && filteredCustomers.length === 0 && (
-        <div className="text-center py-12">
-          <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">
-            {searchQuery
-              ? "No customers found matching your search"
-              : "No customers yet. Add your first customer to get started."}
-          </p>
+        <div className="p-8">
+          <Empty>
+            <EmptyMedia variant="icon">
+              <User className="size-6" />
+            </EmptyMedia>
+            <EmptyContent>
+              <EmptyTitle>No customers found</EmptyTitle>
+              <EmptyDescription>
+                {searchQuery
+                  ? "No customers found matching your search criteria."
+                  : "No customers yet. Add your first customer to get started."}
+              </EmptyDescription>
+            </EmptyContent>
+          </Empty>
         </div>
       )}
 
@@ -254,7 +263,7 @@ export function CustomersView({
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Customer Actions">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>

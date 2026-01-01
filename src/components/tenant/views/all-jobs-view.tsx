@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { type JobStatus, statusConfig } from "@/lib/mock-data";
 
@@ -219,6 +220,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            type="search"
             placeholder="Search jobs, customers, vehicles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -245,12 +247,13 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
       </div>
 
       <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden">
-        <Table>
+        <Table aria-label="All Jobs">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("jobNumber")}
+                aria-sort={sortField === "jobNumber" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
               >
                 <div className="flex items-center">
                   Job # <SortIndicator field="jobNumber" />
@@ -259,6 +262,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("customer")}
+                aria-sort={sortField === "customer" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
               >
                 <div className="flex items-center">
                   Customer <SortIndicator field="customer" />
@@ -267,6 +271,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("vehicle")}
+                aria-sort={sortField === "vehicle" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
               >
                 <div className="flex items-center">
                   Vehicle <SortIndicator field="vehicle" />
@@ -276,6 +281,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("status")}
+                aria-sort={sortField === "status" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
               >
                 <div className="flex items-center">
                   Status <SortIndicator field="status" />
@@ -284,6 +290,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
               <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("createdAt")}
+                aria-sort={sortField === "createdAt" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
               >
                 <div className="flex items-center">
                   Created <SortIndicator field="createdAt" />
@@ -393,8 +400,18 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
           </TableBody>
         </Table>
         {filteredAndSortedJobs.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            No jobs found matching your criteria
+          <div className="p-8">
+            <Empty>
+              <EmptyMedia variant="icon">
+                <Filter className="size-6" />
+              </EmptyMedia>
+              <EmptyContent>
+                <EmptyTitle>No jobs found</EmptyTitle>
+                <EmptyDescription>
+                  Try adjusting your search or filters to find what you're looking for.
+                </EmptyDescription>
+              </EmptyContent>
+            </Empty>
           </div>
         )}
       </div>
