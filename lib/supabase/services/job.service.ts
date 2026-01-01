@@ -117,6 +117,22 @@ export class JobService {
   }
 
   /**
+   * Update job status
+   */
+  static async updateStatus(jobId: string, status: string, userId?: string): Promise<Jobcard> {
+    // We could log the status change activity here using userId
+    return this.updateJob(jobId, { status })
+  }
+
+  /**
+   * Assign mechanic to job
+   */
+  static async assignMechanic(jobId: string, mechanicId: string, userId?: string): Promise<Jobcard> {
+    // We could log the assignment activity here using userId
+    return this.updateJob(jobId, { assigned_mechanic_id: mechanicId })
+  }
+
+  /**
    * Delete a jobcard
    */
   static async deleteJob(jobId: string): Promise<void> {

@@ -16,9 +16,54 @@ import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
 import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
 import { useAuth } from "@/lib/auth-provider"
 import { JobService, MechanicService } from "@/lib/supabase/services"
-import type { JobWithRelations } from "@/lib/supabase/services/job.service"
-import { type JobStatus } from "@/lib/mock-data"
+import type { JobcardWithRelations as JobWithRelations } from "@/lib/supabase/services/job.service"
+import { type JobStatus, type JobCard as JobCardType } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Transformer function to adapt DB job to UI job card
+const transformJobToCard = (job: JobWithRelations): JobCardType => {
+  return {
+    id: job.id,
+    jobNumber: job.job_number,
+    customer: {
+      id: job.customer?.id || '',
+      name: job.customer?.name || 'Unknown',
+      phone: job.customer?.phone || '',
+      email: job.customer?.email || '',
+      address: job.customer?.address || '',
+    },
+    vehicle: {
+      id: job.vehicle?.id || '',
+      make: job.vehicle?.make?.name || '',
+      model: job.vehicle?.model?.name || '',
+      year: job.vehicle?.year || 0,
+      regNo: job.vehicle?.reg_no || '',
+      color: '', // Not in DB vehicle table
+      vin: job.vehicle?.vin || '',
+    },
+    mechanic: job.mechanic ? {
+      id: job.mechanic.id,
+      name: job.mechanic.name,
+      avatar: '', // Not in DB mechanic table
+      specialty: job.mechanic.skills?.[0] || 'General',
+      phone: job.mechanic.phone || '',
+    } : undefined,
+    status: (job.status as JobStatus) || 'received',
+    dviPending: false, // Default
+    dviTemplate: undefined,
+    dviItems: [],
+    parts: [], // part_usages not mapped to full parts yet
+    activities: [],
+    laborTotal: 0,
+    partsTotal: 0,
+    tax: 0,
+    createdAt: new Date(job.created_at),
+    updatedAt: new Date(job.updated_at),
+    estimatedCompletion: undefined,
+    complaints: (job.details as any)?.complaints || '',
+    notes: (job.details as any)?.notes || '',
+  }
+}
 
 function AppContent() {
   const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
@@ -129,14 +174,18 @@ function AppContent() {
   }
 
   // Default frontdesk view
-  const handleJobClick = async (job: JobWithRelations) => {
+  const handleJobClick = async (jobCard: JobCardType) => {
+    // Find the original job object
+    const originalJob = jobs.find(j => j.id === jobCard.id)
+    if (!originalJob) return
+
     // Fetch full job details
     try {
-      const fullJob = await JobService.getJobById(job.id)
+      const fullJob = await JobService.getJobById(jobCard.id)
       setSelectedJob(fullJob)
     } catch (err) {
       console.error('Error loading job details:', err)
-      setSelectedJob(job) // Fallback to the job we have
+      setSelectedJob(originalJob) // Fallback to the job we have
     }
   }
 
@@ -218,8 +267,8 @@ function AppContent() {
         <main className="flex-1 overflow-hidden">
           {activeView === "dashboard" && (
             <JobBoard
-              jobs={jobs as any} // TODO: Fix type mismatch
-              onJobClick={handleJobClick as any}
+              jobs={jobs.map(transformJobToCard)}
+              onJobClick={handleJobClick}
               isMechanicMode={false}
               onStatusChange={handleStatusChange}
               onMechanicChange={handleMechanicChange}
@@ -227,7 +276,7 @@ function AppContent() {
             />
           )}
 
-          {activeView === "jobs" && <AllJobsView jobs={jobs as any} onJobClick={handleJobClick as any} />}
+          {activeView === "jobs" && <AllJobsView jobs={jobs.map(transformJobToCard)} onJobClick={handleJobClick} />}
 
           {activeView === "customers" && <CustomersView />}
 
@@ -266,7 +315,7 @@ function AppContent() {
       <AnimatePresence>
         {selectedJob && (
           <JobDetails
-            job={selectedJob as any} // TODO: Fix type mismatch
+            job={transformJobToCard(selectedJob)}
             onClose={() => setSelectedJob(null)}
             isMechanicMode={false}
             onStatusChange={handleStatusChange}
