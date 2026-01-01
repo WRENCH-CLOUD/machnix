@@ -1,14 +1,36 @@
 import "reflect-metadata"
 import type { ReactNode } from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter, Geist_Mono } from "next/font/google"
+import localFont from "next/font/local"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/providers/auth-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
+// Use local fonts for reliable builds (avoids network dependency on Google Fonts)
+const inter = localFont({
+  src: [
+    {
+      path: "./fonts/Inter-VariableFont_opsz,wght.ttf",
+      style: "normal",
+    },
+  ],
+  variable: "--font-inter",
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+  display: "swap",
+})
+
+const geistMono = localFont({
+  src: [
+    {
+      path: "./fonts/GeistMono-VariableFont_wght.ttf",
+      style: "normal",
+    },
+  ],
+  variable: "--font-mono",
+  fallback: ["ui-monospace", "SFMono-Regular", "SF Mono", "Menlo", "Consolas", "monospace"],
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: "Mechanix - Garage Management System",
