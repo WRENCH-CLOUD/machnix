@@ -11,6 +11,7 @@ import {
   Calendar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 export interface DashboardStats {
   customer_count: number;
@@ -121,7 +122,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
           </CardHeader>
           <CardContent>
             <div className="relative w-full overflow-auto">
-              <table className="w-full text-sm text-left">
+              <table className="w-full text-sm text-left" aria-label="Recent Jobs">
                 <thead className="text-xs text-muted-foreground uppercase border-b border-border/50">
                   <tr>
                     <th className="px-4 py-3 font-medium">Job ID</th>
@@ -143,8 +144,18 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                   ))}
                   {recentJobs.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                        No recent jobs found
+                      <td colSpan={4} className="px-4 py-8">
+                        <Empty>
+                          <EmptyMedia variant="icon">
+                            <ClipboardList className="size-6" />
+                          </EmptyMedia>
+                          <EmptyContent>
+                            <EmptyTitle>No recent jobs</EmptyTitle>
+                            <EmptyDescription>
+                              New jobs will appear here once created.
+                            </EmptyDescription>
+                          </EmptyContent>
+                        </Empty>
                       </td>
                     </tr>
                   )}
@@ -182,14 +193,26 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                   <span>General Service</span>
                   <span className="font-medium">65%</span>
                 </div>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={65}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
                   <div className="h-full bg-blue-500 w-[65%]" />
                 </div>
                 <div className="flex justify-between text-xs pt-1">
                   <span>Body Work</span>
                   <span className="font-medium">20%</span>
                 </div>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={20}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
                   <div className="h-full bg-purple-500 w-[20%]" />
                 </div>
               </div>
