@@ -222,8 +222,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
       } catch (err) {
         console.error('Error in post-signup setup:', err)
-        // Clean up: delete the auth user if tenant/user creation failed
-        await supabase.auth.admin.deleteUser(data.user.id).catch(console.error)
+        // Note: We cannot delete the auth user from client-side as it requires service role key
+        // The orphaned user will need to be cleaned up manually or via a background job
+        // Alternatively, they can sign in again and the setup will be retried
+        console.error('User creation partially failed. User may need to retry signup.')
         throw err
       }
     }

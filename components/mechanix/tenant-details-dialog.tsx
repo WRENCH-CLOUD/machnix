@@ -9,19 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { getTenantWithStats, type TenantWithStats } from "@/lib/supabase/services"
+import { type TenantWithStats } from "@/lib/supabase/services"
 import {
   Building2,
   Users,
-  Wrench,
   DollarSign,
   Calendar,
   CheckCircle2,
-  XCircle,
-  Clock,
   TrendingUp,
   Activity,
 } from "lucide-react"
@@ -50,11 +47,18 @@ export function TenantDetailsDialog({ tenantId, open, onOpenChange }: TenantDeta
     try {
       setLoading(true)
       setError(null)
-      const data = await getTenantWithStats(tenantId)
-      setTenant(data)
+      
+      const response = await fetch(`/api/admin/tenants/${tenantId}`)
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch tenant details')
+      }
+      
+      setTenant(result.tenant)
     } catch (err) {
       console.error('Failed to load tenant details:', err)
-      setError('Failed to load tenant details')
+      setError(err instanceof Error ? err.message : 'Failed to load tenant details')
     } finally {
       setLoading(false)
     }

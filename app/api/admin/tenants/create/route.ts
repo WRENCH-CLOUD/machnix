@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { verifyPlatformAdmin } from '@/lib/supabase/auth-helpers'
 
 interface CreateTenantRequest {
   tenantName: string
@@ -13,6 +14,15 @@ interface CreateTenantRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify platform admin authorization
+    const authResult = await verifyPlatformAdmin()
+    if (!authResult.isAuthorized) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.userId ? 403 : 401 }
+      )
+    }
+
     // Initialize admin client
     const supabaseAdmin = getSupabaseAdmin()
 

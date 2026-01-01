@@ -33,7 +33,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-provider"
-import { getAllTenants, type TenantWithStats } from "@/lib/supabase/services"
+import { type TenantWithStats } from "@/lib/supabase/services"
 import { Spinner } from "@/components/ui/spinner"
 import { TenantDetailsDialog } from "./tenant-details-dialog"
 import { CreateTenantDialog } from "./create-tenant-dialog"
@@ -67,7 +67,7 @@ export function AdminDashboard() {
   const [showTenantDetails, setShowTenantDetails] = useState(false)
   const [showCreateTenant, setShowCreateTenant] = useState(false)
 
-  // Fetch tenants from Supabase
+  // Fetch tenants via API route (with proper authentication)
   useEffect(() => {
     loadTenants()
   }, [])
@@ -76,11 +76,18 @@ export function AdminDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getAllTenants()
-      setTenants(data)
+      
+      const response = await fetch('/api/admin/tenants')
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch tenants')
+      }
+      
+      setTenants(result.tenants || [])
     } catch (err) {
       console.error('Failed to load tenants:', err)
-      setError('Failed to load tenants. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to load tenants. Please try again.')
     } finally {
       setLoading(false)
     }
