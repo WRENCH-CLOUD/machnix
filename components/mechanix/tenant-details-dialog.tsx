@@ -16,6 +16,7 @@ import { type TenantWithStats } from "@/lib/supabase/services"
 import {
   Building2,
   Users,
+  Wrench,
   DollarSign,
   Calendar,
   CheckCircle2,
