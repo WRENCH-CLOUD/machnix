@@ -39,9 +39,25 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // ---------------------------
-  // BYPASS MIDDLEWARE FOR API ROUTES
+  // SECURITY HEADERS
+  // ---------------------------
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  // ---------------------------
+  // API ROUTES PROTECTION
   // ---------------------------
   if (pathname.startsWith("/api")) {
+    const PUBLIC_API_ROUTES = [
+      "/api/auth/login",
+      "/api/auth/logout",
+      "/api/auth/me",
+    ];
+
+    if (!user && !PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return response;
   }
 
@@ -69,7 +85,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Exclude API endpoints and static assets from middleware
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Exclude static assets from middleware, but INCLUDE API routes
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

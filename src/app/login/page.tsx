@@ -23,8 +23,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      console.log("LOGIN SUBMIT" , { email, password });
-
       await signIn(email, password);
 
       

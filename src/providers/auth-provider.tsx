@@ -38,12 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const applySession = (session: Session | null) => {
-  console.log("[AuthProvider] ApplySession:", { hasSession: !!session, user: session?.user?.email });
   setSession(session);
   setUser(session?.user ?? null);
 
   const { role, tenantId } = extractClaims(session);
-  console.log("[AuthProvider] Claims:", { role, tenantId });
   setUserRole(role);
   setTenantId(tenantId);
 
@@ -52,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 useEffect(() => {
     let mounted = true;
-    console.log("[AuthProvider] Initializing...");
 
     const initAuth = async () => {
       try {
@@ -60,16 +57,13 @@ useEffect(() => {
         const { data: { session: clientSession } } = await supabase.auth.getSession();
         
         if (clientSession) {
-          console.log("[AuthProvider] Client-side session found");
           if (mounted) applySession(clientSession);
         } else {
           // 2. Fallback to server-side session check
-          console.log("[AuthProvider] No client session, checking server-side...");
           const res = await fetch("/api/auth/me");
           if (res.ok) {
             const { user: serverUser } = await res.json();
             if (serverUser && mounted) {
-              console.log("[AuthProvider] Server-side user found:", serverUser.email);
               // Construct a minimal session-like object for applySession
               // or handle serverUser directly
               setUser(serverUser as any);
@@ -91,7 +85,6 @@ useEffect(() => {
     const { data: { subscription } } =
       supabase.auth.onAuthStateChange((event, session) => {
         if (!mounted) return;
-        console.log("[AuthProvider] Auth state change:", event, !!session);
         applySession(session);
         setLoading(false);
       });
@@ -104,8 +97,6 @@ useEffect(() => {
 
 
   const signIn = async (email: string, password: string) => {
-    console.log("AUTH SIGN IN CALLED");
-
     // Use server-side login to set HttpOnly cookies, then sync client session
     const res = await fetch("/api/auth/login", {
       method: "POST",
