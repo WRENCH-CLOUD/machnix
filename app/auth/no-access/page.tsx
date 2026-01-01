@@ -31,7 +31,7 @@ export default function NoAccessPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground text-center">
-            Your account has been authenticated, but you haven't been assigned to any tenant or role.
+            Your account has been authenticated, but you haven&apos;t been assigned to any tenant or role.
             Please contact your system administrator to request access.
           </p>
           <Button onClick={handleSignOut} variant="outline" className="w-full">

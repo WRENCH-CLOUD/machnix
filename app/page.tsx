@@ -16,16 +16,17 @@ import { AdminDashboard } from "@/components/mechanix/admin-dashboard"
 import { MechanicDashboard } from "@/components/mechanix/mechanic-dashboard"
 import { useAuth } from "@/lib/auth-provider"
 import { JobService, MechanicService } from "@/lib/supabase/services"
-import type { JobWithRelations } from "@/lib/supabase/services/job.service"
+import type { JobcardWithRelations } from "@/lib/supabase/services/job.service"
 import { type JobStatus } from "@/lib/mock-data"
 import { Skeleton } from "@/components/ui/skeleton"
+import { transformJobToJobCard } from "@/lib/transformers"
 
 function AppContent() {
   const { user, session, tenantId, userRole, loading: authLoading } = useAuth()
   const [activeView, setActiveView] = useState("dashboard")
   const [showCreateJob, setShowCreateJob] = useState(false)
-  const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null)
-  const [jobs, setJobs] = useState<JobWithRelations[]>([])
+  const [selectedJob, setSelectedJob] = useState<JobcardWithRelations | null>(null)
+  const [jobs, setJobs] = useState<JobcardWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -129,7 +130,7 @@ function AppContent() {
   }
 
   // Default frontdesk view
-  const handleJobClick = async (job: JobWithRelations) => {
+  const handleJobClick = async (job: JobcardWithRelations) => {
     // Fetch full job details
     try {
       const fullJob = await JobService.getJobById(job.id)
@@ -218,8 +219,12 @@ function AppContent() {
         <main className="flex-1 overflow-hidden">
           {activeView === "dashboard" && (
             <JobBoard
-              jobs={jobs as any} // TODO: Fix type mismatch
-              onJobClick={handleJobClick as any}
+              jobs={jobs.map(transformJobToJobCard)}
+              onJobClick={(job) => {
+                // Find original job object
+                const originalJob = jobs.find(j => j.id === job.id)
+                if (originalJob) handleJobClick(originalJob)
+              }}
               isMechanicMode={false}
               onStatusChange={handleStatusChange}
               onMechanicChange={handleMechanicChange}
@@ -266,7 +271,7 @@ function AppContent() {
       <AnimatePresence>
         {selectedJob && (
           <JobDetails
-            job={selectedJob as any} // TODO: Fix type mismatch
+            job={transformJobToJobCard(selectedJob)}
             onClose={() => setSelectedJob(null)}
             isMechanicMode={false}
             onStatusChange={handleStatusChange}

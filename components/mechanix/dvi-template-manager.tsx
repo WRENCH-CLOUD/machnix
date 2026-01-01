@@ -365,7 +365,7 @@ function TemplateEditor({
         <div className="text-center py-8 text-muted-foreground">Loading...</div>
       ) : categories.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No categories yet. Click "Add Category" to get started.
+          No categories yet. Click &quot;Add Category&quot; to get started.
         </div>
       ) : (
         <div className="space-y-4">
