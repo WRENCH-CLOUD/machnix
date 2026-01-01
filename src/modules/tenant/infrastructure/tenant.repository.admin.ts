@@ -121,4 +121,31 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
 
     if (error) throw error
   }
+
+  async getRecentJobs(tenantId: string, limit: number = 5): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select(`
+        id,
+        job_number,
+        status,
+        created_at,
+        customer:customers(name),
+        vehicle:vehicles(reg_no)
+      `)
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+
+    return (data || []).map(job => ({
+      id: job.job_number || job.id,
+      customer: job.customer?.name || 'Unknown',
+      vehicle: job.vehicle?.reg_no || 'Unknown',
+      status: job.status,
+      priority: 'Medium' // Default since it's not in schema
+    }))
+  }
 }
