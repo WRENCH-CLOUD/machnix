@@ -1,25 +1,12 @@
 import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '@/modules/invoice/domain/invoice.entity'
-import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 
 /**
  * Supabase implementation of InvoiceRepository
  */
-export class SupabaseInvoiceRepository implements InvoiceRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
-  private toDomain(row: any): Invoice {
+export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> implements InvoiceRepository {
+  protected toDomain(row: any): Invoice {
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -54,7 +41,7 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
     }
   }
 
-  private toDatabase(invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): any {
+  protected toDatabase(invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): any {
     return {
       tenant_id: invoice.tenantId,
       customer_id: invoice.customerId,

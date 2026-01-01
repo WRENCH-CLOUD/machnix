@@ -4,26 +4,13 @@ import {
   EstimateWithRelations,
   EstimateStatus,
 } from "../domain/estimate.entity";
-import { supabase as defaultSupabase, ensureTenantContext } from "@/lib/supabase/client";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { BaseSupabaseRepository } from "@/shared/infrastructure/base-supabase.repository";
 
 /**
  * Supabase implementation of EstimateRepository
  */
-export class SupabaseEstimateRepository implements EstimateRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
-  private toDomain(row: any): Estimate {
+export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate> implements EstimateRepository {
+  protected toDomain(row: any): Estimate {
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -64,7 +51,7 @@ export class SupabaseEstimateRepository implements EstimateRepository {
     };
   }
 
-  private toDatabase(
+  protected toDatabase(
     estimate: Omit<Estimate, "id" | "createdAt" | "updatedAt">
   ): any {
     return {

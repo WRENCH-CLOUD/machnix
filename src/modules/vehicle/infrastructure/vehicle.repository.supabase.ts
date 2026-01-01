@@ -1,25 +1,12 @@
 import { VehicleRepository } from '../domain/vehicle.repository'
 import { Vehicle, VehicleWithCustomer } from '../domain/vehicle.entity'
-import { supabase as defaultSupabase, ensureTenantContext } from '@/lib/supabase/client'
-import { SupabaseClient } from '@supabase/supabase-js'
+import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 
 /**
  * Supabase implementation of VehicleRepository
  */
-export class SupabaseVehicleRepository implements VehicleRepository {
-  private supabase: SupabaseClient;
-  private tenantId?: string;
-
-  constructor(supabase?: SupabaseClient, tenantId?: string) {
-    this.supabase = supabase || defaultSupabase;
-    this.tenantId = tenantId;
-  }
-
-  private getContextTenantId(): string {
-    return this.tenantId || ensureTenantContext();
-  }
-
-  private toDomain(row: any): Vehicle {
+export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> implements VehicleRepository {
+  protected toDomain(row: any): Vehicle {
     return {
       id: row.id,
       tenantId: row.tenant_id,
@@ -45,7 +32,7 @@ export class SupabaseVehicleRepository implements VehicleRepository {
     }
   }
 
-  private toDatabase(vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt'>): any {
+  protected toDatabase(vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt'>): any {
     const v: any = vehicle as any
     const licensePlate =
       vehicle.licensePlate ||
