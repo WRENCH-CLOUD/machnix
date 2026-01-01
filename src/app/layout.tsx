@@ -7,7 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import "./globals.css"
 
-// Use system font stack as fallback when Google Fonts are unavailable
+// Use local fonts for reliable builds (avoids network dependency on Google Fonts)
 const inter = localFont({
   src: [
     {
