@@ -7,6 +7,7 @@ import { useAuth } from "@/providers/auth-provider"
 import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 export default function TenantLayoutWrapper({
   children,
@@ -86,27 +87,29 @@ export default function TenantLayoutWrapper({
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar 
         activeView={activeView} 
         onViewChange={(view) => router.push(`/${view}`)} 
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopHeader
-          tenantName="Mechanix Garage"
-          onCreateJob={() => {
-            if (pathname === "/jobs-board") {
-              // Dispatch a custom event that JobsPage can listen to
-              window.dispatchEvent(new CustomEvent('open-create-job'));
-            } else {
-              router.push("/jobs-board?create=true");
-            }
-          }}
-        />
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </div>
-    </div>
+      <SidebarInset>
+        <div className="flex flex-col h-full overflow-hidden">
+          <TopHeader
+            tenantName="Mechanix Garage"
+            onCreateJob={() => {
+              if (pathname === "/jobs-board") {
+                // Dispatch a custom event that JobsPage can listen to
+                window.dispatchEvent(new CustomEvent('open-create-job'));
+              } else {
+                router.push("/jobs-board?create=true");
+              }
+            }}
+          />
+          <main className="flex-1 overflow-auto p-4 md:p-6">
+            {children}
+          </main>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

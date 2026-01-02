@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers/auth-provider"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
 
 interface TopHeaderProps {
   tenantName: string
@@ -25,36 +27,32 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
-      {/* Left Section - Tenant & Search */}
-      <div className="flex items-center gap-6">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-card px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+      <div className="flex items-center gap-2 px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold px-3 py-1">
+          <Badge variant="outline" className="hidden sm:flex bg-primary/10 text-primary border-primary/20 font-semibold px-3 py-1">
             {tenantName}
           </Badge>
         </div>
+      </div>
 
-        <div className="relative w-80">
+      <div className="flex-1 flex justify-center sm:justify-start">
+         <div className="relative w-full max-w-sm hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search jobs, customers, vehicles..." className="pl-10 bg-secondary border-border" />
+          <Input placeholder="Search..." className="pl-10 bg-secondary border-border" />
         </div>
       </div>
 
       {/* Right Section - Actions, User */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 ml-auto">
         {/* Create Job Button */}
-        <Button onClick={onCreateJob} className="gap-2">
+        <Button onClick={onCreateJob} className="gap-2" size="sm">
           <Plus className="w-4 h-4" />
-          Create Job
+          <span className="hidden sm:inline">Create Job</span>
         </Button>
-
-        {/* Notifications */}
-        {/* <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-            3
-          </span>
-        </Button> */}
 
         {/* Theme Toggle */}
         <ThemeToggle />
