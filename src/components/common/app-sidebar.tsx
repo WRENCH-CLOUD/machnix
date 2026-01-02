@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   LayoutDashboard,
@@ -8,7 +8,7 @@ import {
   Settings,
   Wrench,
   List,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,11 +20,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
-  activeView: string
-  onViewChange: (view: string) => void
+  activeView: string;
+  onViewChange: (view: string) => void;
 }
 
 const navItems = [
@@ -33,11 +33,13 @@ const navItems = [
   { id: "all-jobs", label: "All Jobs", icon: List },
   { id: "customers", label: "Customers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: Car },
-]
+  //  { id: "reports", label: "Reports", icon: BarChart3 },
+];
 
 const bottomNavItems = [
   { id: "settings", label: "Settings", icon: Settings },
-]
+  //  { id: "help", label: "Help & Support", icon: HelpCircle },
+];
 
 export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   return (
@@ -49,7 +51,9 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-bold">Mechanix</span>
-            <span className="truncate text-xs text-muted-foreground">Garage</span>
+            <span className="truncate text-xs text-muted-foreground">
+              Garage
+            </span>
           </div>
         </div>
       </SidebarHeader>
@@ -91,5 +95,5 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
