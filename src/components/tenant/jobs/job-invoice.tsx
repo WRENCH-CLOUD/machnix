@@ -11,6 +11,7 @@ interface JobInvoiceProps {
   invoice: any; // Using any for simplicity for now, ideally InvoiceWithRelations
   estimateItems: any[];
   loading: boolean;
+  onGenerateInvoice: () => void;
   onRetry: () => void;
   onMarkPaid: () => void;
   onGeneratePdf: () => void;
@@ -24,6 +25,7 @@ export function JobInvoice({
   onRetry,
   onMarkPaid,
   onGeneratePdf,
+  onGenerateInvoice,
 }: JobInvoiceProps) {
   // Calculations
   const partsSubtotal = estimateItems.reduce(
@@ -63,15 +65,20 @@ export function JobInvoice({
               <CreditCard className="w-12 h-12 text-muted-foreground mx-auto" />
               <p className="text-sm text-muted-foreground">
                 {job.status === "ready" || job.status === "completed"
-                  ? "Invoice not found. It will be created when payment is recorded."
-                  : "Invoice will be created when payment is recorded."}
+                  ? "Invoice has not been generated yet."
+                  : "Invoice will be created when status is Ready."}
               </p>
             </div>
             {(job.status === "ready" || job.status === "completed") && (
-              <Button variant="outline" size="sm" onClick={onRetry}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry Loading Invoice
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+                <Button size="sm" onClick={onGenerateInvoice}>
+                  Generate Invoice
+                </Button>
+              </div>
             )}
           </div>
         ) : (

@@ -526,7 +526,10 @@ export function JobDetailsContainer({
   };
 
   const handleGenerateInvoice = async () => {
-    if (!estimate) return;
+    if (!estimate) {
+      toast.error("Cannot generate invoice: Estimate not found");
+      return;
+    }
 
     try {
       const res = await api.post("/api/invoices/generate", {
@@ -596,6 +599,7 @@ export function JobDetailsContainer({
       onRetryInvoice={handleRetryInvoice}
       onMarkPaid={handleMarkPaid}
       onGenerateInvoicePdf={handleGenerateInvoicePdf}
+      onGenerateInvoice={handleGenerateInvoice}
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}

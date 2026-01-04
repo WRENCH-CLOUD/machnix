@@ -52,7 +52,8 @@ interface JobDetailsDialogProps {
   onRetryInvoice: () => void;
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
-
+  onGenerateInvoice: () => void;
+  
   // Payment Modal props
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
@@ -77,8 +78,10 @@ export function JobDetailsDialog({
   invoice,
   loadingInvoice,
   onRetryInvoice,
+
   onMarkPaid,
   onGenerateInvoicePdf,
+  onGenerateInvoice,
   showPaymentModal,
   setShowPaymentModal,
   onPaymentComplete,
@@ -316,6 +319,7 @@ export function JobDetailsDialog({
                   onRetry={onRetryInvoice}
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}
+                  onGenerateInvoice={onGenerateInvoice}
                 />
               </TabsContent>
             </div>
