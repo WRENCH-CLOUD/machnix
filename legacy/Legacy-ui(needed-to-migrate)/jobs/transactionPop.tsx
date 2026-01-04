@@ -350,7 +350,7 @@ export function UnpaidWarningModal({
                             ease: [0.22, 1, 0.36, 1],
                           }}
                         >
-                          Complete this job requires payment
+                          Completing this job requires payment
                         </motion.div>
                       )}
                     </AnimatePresence>
