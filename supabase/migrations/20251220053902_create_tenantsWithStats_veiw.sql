@@ -1,3 +1,29 @@
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'tenant') THEN
+    CREATE ROLE tenant;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'tenant_owner') THEN
+    CREATE ROLE tenant_owner;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'tenant_admin') THEN
+    CREATE ROLE tenant_admin;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'manager') THEN
+    CREATE ROLE manager;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'mechanic') THEN
+    CREATE ROLE mechanic;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'frontdesk') THEN
+    CREATE ROLE frontdesk;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'platform_admin') THEN
+    CREATE ROLE platform_admin;
+  END IF;
+END
+$$;
 create or replace view tenant.admin_tenant_overview as
 select
   t.id,

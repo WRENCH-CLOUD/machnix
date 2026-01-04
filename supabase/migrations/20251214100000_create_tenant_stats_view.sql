@@ -12,7 +12,7 @@ SELECT
     (SELECT count(*) FROM tenant.customers c WHERE c.tenant_id = t.id) as customer_count,
     (SELECT count(*) FROM tenant.jobcards j WHERE j.tenant_id = t.id AND j.status IN ('pending', 'in_progress', 'on_hold')) as active_jobs,
     (SELECT count(*) FROM tenant.jobcards j WHERE j.tenant_id = t.id AND j.status = 'completed') as completed_jobs,
-    (SELECT count(*) FROM tenant.users u WHERE u.tenant_id = t.id AND u.role = 'mechanic' AND u.is_active = true) as mechanic_count,
+    (SELECT count(*) FROM tenant.mechanics m WHERE m.tenant_id = t.id) as mechanic_count,
     COALESCE((SELECT sum(total_amount) FROM tenant.invoices i WHERE i.tenant_id = t.id AND i.status = 'paid'), 0) as total_revenue
 FROM tenant.tenants t;
 
