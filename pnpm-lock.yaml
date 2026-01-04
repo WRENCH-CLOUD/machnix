@@ -174,7 +174,7 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       pnpm:
-        specifier: ^10.26.2
+        specifier: ^10.27.0
         version: 10.27.0
       react:
         specifier: 19.2.0
