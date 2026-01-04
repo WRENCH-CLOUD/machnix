@@ -3,6 +3,8 @@ node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+# Trae
+.trae
 
 # Testing
 /coverage
@@ -24,7 +26,9 @@ pnpm-debug.log*
 
 # Local env files
 .env
+.env.keys
 .env*.local
+.env.development
 .env.development.local
 .env.test.local
 .env.production.local
@@ -55,3 +59,4 @@ supabase/.branches
 supabase/.config
 supabase/.local
 supabase/.temp
+.last_admin_token.txt
