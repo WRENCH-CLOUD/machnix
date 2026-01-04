@@ -21,7 +21,7 @@ export interface TenantWithStats extends Tenant {
 export async function getAllTenants(): Promise<TenantWithStats[]> {
   const { data, error } = await supabase
     .schema('tenant')
-    .from('tenants')
+    .from('tenant_stats_view')
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -122,64 +122,27 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
  * Get tenant with detailed stats
  */
 export async function getTenantWithStats(tenantId: string): Promise<TenantWithStats | null> {
-  const tenant = await getTenantById(tenantId)
+  const { data, error } = await supabase
+    .schema('tenant')
+    .from('tenant_stats_view')
+    .select('*')
+    .eq('id', tenantId)
+    .single()
   
-  if (!tenant) {
+  if (error) {
+    console.error('Error fetching tenant with stats:', error)
+    throw error
+  }
+
+  if (!data) {
     return null
   }
 
-  // Get customer count
-  const { count: customerCount } = await supabase
-    .schema('tenant')
-    .from('customers')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-
-  // Get active jobs count
-  const { count: activeJobsCount } = await supabase
-    .schema('tenant')
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .in('status', ['pending', 'in_progress', 'on_hold'])
-
-  // Get completed jobs count
-  const { count: completedJobsCount } = await supabase
-    .schema('tenant')
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('status', 'completed')
-
-  // Get mechanic count
-  const { count: mechanicCount } = await supabase
-    .schema('tenant')
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('role', 'mechanic')
-    .eq('is_active', true)
-
-  // Get total revenue from invoices
-  const { data: invoices } = await supabase
-    .schema('tenant')
-    .from('invoices')
-    .select('total_amount')
-    .eq('tenant_id', tenantId)
-    .eq('status', 'paid')
-
-  const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0
-
   return {
-    ...tenant,
-    customer_count: customerCount || 0,
-    active_jobs: activeJobsCount || 0,
-    completed_jobs: completedJobsCount || 0,
-    mechanic_count: mechanicCount || 0,
-    total_revenue: totalRevenue,
+    ...data,
     status: 'active',
     subscription: 'pro',
-  }
+  } as TenantWithStats
 }
 
 /**
