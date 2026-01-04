@@ -3,16 +3,13 @@
 import "reflect-metadata"
 import { useState, useEffect } from "react"
 import { JobBoardView } from "@/components/tenant/views/jobs-board-view"
-
-// TODO: add JobBoard and JobDetails and CreateJobWizard from new components when ready
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
+import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
 import { useAuth } from "@/providers/auth-provider"
-import { useRouter } from "next/navigation"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { statusConfig, type JobStatus } from "@/lib/mock-data"
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
-import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()

@@ -4,8 +4,6 @@ import { CreditCard, Download, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { type JobStatus } from "@/lib/mock-data";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 
 interface JobInvoiceProps {
@@ -98,10 +96,10 @@ export function JobInvoice({
                   <div className="text-right">
                     <h3 className="font-bold text-gray-900">Garage A</h3>
                     <p className="text-sm text-gray-600">
-                      123 Auto Street, Bangalore
+                      {/*TODO: {tenant.address} which is not there and need to create @sagun-py0909 */}
                     </p>
                     <p className="text-sm text-gray-600">
-                      GSTIN: 29XXXXX1234X1Z5
+                      {/*TODO: need to create GSTIN for tenant */}
                     </p>
                   </div>
                 </div>
