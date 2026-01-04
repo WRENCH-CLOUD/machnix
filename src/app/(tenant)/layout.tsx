@@ -7,6 +7,7 @@ import { useAuth } from "@/providers/auth-provider"
 import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
+import {  SidebarProvider } from "@/components/ui/sidebar"
 
 export default function TenantLayoutWrapper({
   children,
@@ -103,7 +104,7 @@ export default function TenantLayoutWrapper({
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar 
         activeView={activeView} 
         onViewChange={(view) => router.push(`/${view}`)} 
@@ -124,6 +125,6 @@ export default function TenantLayoutWrapper({
           {children}
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

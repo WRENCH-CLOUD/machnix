@@ -1,28 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard,
   ClipboardList,
   Users,
   Car,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   Wrench,
-  FileText,
-  BarChart3,
-  HelpCircle,
   List,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+  BarChart3,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
-  activeView: string
-  onViewChange: (view: string) => void
+  activeView: string;
+  onViewChange: (view: string) => void;
 }
 
 const navItems = [
@@ -40,147 +43,58 @@ const bottomNavItems = [
 ]
 
 export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
-
   return (
-    <TooltipProvider delayDuration={0}>
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 72 : 240 }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="h-screen bg-sidebar border-r border-sidebar-border flex flex-col"
-      >
-        {/* Logo Section */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-          <AnimatePresence mode="wait">
-            {!collapsed && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-2"
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex h-12 items-center gap-2 px-2 transition-[width,height,padding]">
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Wrench className="size-4" />
+          </div>
+          <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate font-bold">Mechanix</span>
+            <span className="truncate text-xs text-muted-foreground">
+              Garage
+            </span>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    isActive={activeView === item.id}
+                    onClick={() => onViewChange(item.id)}
+                    tooltip={item.label}
+                  >
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          {bottomNavItems.map((item) => (
+            <SidebarMenuItem key={item.id}>
+              <SidebarMenuButton
+                isActive={activeView === item.id}
+                onClick={() => onViewChange(item.id)}
+                tooltip={item.label}
               >
-                <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                  <Wrench className="w-5 h-5 text-sidebar-primary-foreground" />
-                </div>
-                <span className="font-bold text-lg text-sidebar-foreground">Mechanix</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center mx-auto">
-              <Wrench className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-          )}
-        </div>
-
-        {/* Main Navigation */}
-        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activeView === item.id
-
-            return (
-              <Tooltip key={item.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => onViewChange(item.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                      "hover:bg-sidebar-accent",
-                      isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    <AnimatePresence mode="wait">
-                      {!collapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, width: 0 }}
-                          animate={{ opacity: 1, width: "auto" }}
-                          exit={{ opacity: 0, width: 0 }}
-                          className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </button>
-                </TooltipTrigger>
-                {collapsed && (
-                  <TooltipContent side="right" sideOffset={10}>
-                    {item.label}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )
-          })}
-        </nav>
-
-        {/* Bottom Navigation */}
-        <div className="py-4 px-3 space-y-1 border-t border-sidebar-border">
-          {bottomNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activeView === item.id
-
-            return (
-              <Tooltip key={item.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => onViewChange(item.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                      "hover:bg-sidebar-accent",
-                      isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    <AnimatePresence mode="wait">
-                      {!collapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, width: 0 }}
-                          animate={{ opacity: 1, width: "auto" }}
-                          exit={{ opacity: 0, width: 0 }}
-                          className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </button>
-                </TooltipTrigger>
-                {collapsed && (
-                  <TooltipContent side="right" sideOffset={10}>
-                    {item.label}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )
-          })}
-        </div>
-
-        {/* Collapse Button */}
-        <div className="p-3 border-t border-sidebar-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className="w-full justify-center text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <>
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                <span className="text-sm">Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </motion.aside>
-    </TooltipProvider>
-  )
+                <item.icon />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
 }

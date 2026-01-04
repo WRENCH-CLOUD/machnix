@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react"
 import { Search, Plus } from "lucide-react"
@@ -10,8 +10,8 @@ import { useAuth } from "@/providers/auth-provider"
 import { GlobalSearch } from "@/components/common/global-search"
 
 interface TopHeaderProps {
-  tenantName: string
-  onCreateJob: () => void
+  tenantName: string;
+  onCreateJob: () => void;
 }
 
 export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
@@ -31,12 +31,14 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
   }, [])
 
   const profileData = {
-    name: user?.email?.split('@')[0] || "User",
+    name: user?.email?.split("@")[0] || "User",
     email: user?.email || "user@example.com",
     avatar: user?.user_metadata?.avatar_url,
-    role: userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1).replace('_', ' ') : 'User',
+    role: userRole
+      ? userRole.charAt(0).toUpperCase() + userRole.slice(1).replace("_", " ")
+      : "User",
     tenantName: tenantName,
-  }
+  };
 
   return (
     <>
