@@ -19,6 +19,10 @@ export interface DashboardStats {
   completed_jobs: number;
   mechanic_count: number;
   total_revenue: number;
+  // Insights data
+  pending_jobs?: number;  // Jobs in 'received' status waiting to be worked
+  ready_jobs?: number;    // Jobs in 'ready' status waiting for payment/pickup
+  jobs_this_week?: number;  // Jobs created this week
   recentJobs?: Array<{
     id: string;
     customer: string;
@@ -73,7 +77,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
       case "working":
         return <Badge variant="default">Working</Badge>;
       case "ready":
-        return <Badge variant="success" className="bg-emerald-500 hover:bg-emerald-600">Ready</Badge>;
+        return <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Ready</Badge>;
       case "completed":
         return <Badge variant="secondary">Completed</Badge>;
       default:
@@ -169,54 +173,60 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
         <Card className="border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle>Quick Insights</CardTitle>
-            <CardDescription>Key alerts for your garage</CardDescription>
+            <CardDescription>Key metrics for your garage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-3 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
-              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-              <div>
-                <div className="text-sm font-medium">3 Jobs Delayed</div>
-                <div className="text-xs text-muted-foreground">Require attention to meet delivery dates</div>
+            {/* Pending Jobs Alert */}
+            {(dynamicStats?.pending_jobs ?? 0) > 0 && (
+              <div className="flex gap-3 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">{dynamicStats?.pending_jobs} Jobs Pending</div>
+                  <div className="text-xs text-muted-foreground">Waiting to be assigned or started</div>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <div>
-                <div className="text-sm font-medium">Target Achieved</div>
-                <div className="text-xs text-muted-foreground">Monthly revenue target reached 85%</div>
+            )}
+            
+            {/* Ready for Pickup */}
+            {(dynamicStats?.ready_jobs ?? 0) > 0 && (
+              <div className="flex gap-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">{dynamicStats?.ready_jobs} Ready for Pickup</div>
+                  <div className="text-xs text-muted-foreground">Vehicles ready for customer collection</div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Weekly Summary */}
             <div className="pt-4">
-              <div className="text-sm font-medium mb-3">Service Distribution</div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span>General Service</span>
-                  <span className="font-medium">65%</span>
+              <div className="text-sm font-medium mb-3">Weekly Overview</div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Jobs This Week</span>
+                  <span className="text-sm font-medium">{dynamicStats?.jobs_this_week ?? 0}</span>
                 </div>
-                <div
-                  className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
-                  role="progressbar"
-                  aria-valuenow={65}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
-                  <div className="h-full bg-blue-500 w-[65%]" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Active Jobs</span>
+                  <span className="text-sm font-medium">{dynamicStats?.active_jobs ?? 0}</span>
                 </div>
-                <div className="flex justify-between text-xs pt-1">
-                  <span>Body Work</span>
-                  <span className="font-medium">20%</span>
-                </div>
-                <div
-                  className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
-                  role="progressbar"
-                  aria-valuenow={20}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
-                  <div className="h-full bg-purple-500 w-[20%]" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Completed Jobs</span>
+                  <span className="text-sm font-medium">{dynamicStats?.completed_jobs ?? 0}</span>
                 </div>
               </div>
             </div>
+
+            {/* No alerts state */}
+            {(dynamicStats?.pending_jobs ?? 0) === 0 && (dynamicStats?.ready_jobs ?? 0) === 0 && (
+              <div className="flex gap-3 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">All Clear</div>
+                  <div className="text-xs text-muted-foreground">No pending jobs or vehicles waiting</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

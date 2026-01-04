@@ -9,6 +9,10 @@ export interface TenantStats {
   completed_jobs: number
   mechanic_count: number
   total_revenue: number
+  // Dashboard insight metrics
+  pending_jobs?: number   // Jobs in 'received' status
+  ready_jobs?: number     // Jobs in 'ready' status
+  jobs_this_week?: number // Jobs created in the last 7 days
 }
 
 /**

@@ -28,7 +28,7 @@ interface AdminLayoutProps {
 const adminNavItems = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "tenants", label: "Tenants", icon: Building2 },
-  { id: "mechanics", label: "Mechanics", icon: HardHat },
+  { id: "mechanics", label: "Mechanics", icon: HardHat, disabled: true, comingSoon: true },
   { id: "settings", label: "Settings", icon: Settings },
 ]
 
@@ -79,17 +79,34 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
           {adminNavItems.map((item) => {
             const Icon = item.icon
             const isActive = activeView === item.id
+            const isDisabled = 'disabled' in item && item.disabled
+            const isComingSoon = 'comingSoon' in item && item.comingSoon
+            
             return (
               <button
                 key={item.id}
-                onClick={() => onViewChange(item.id)}
+                onClick={() => !isDisabled && onViewChange(item.id)}
+                disabled={isDisabled}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                  isActive ? "bg-primary text-primary-foreground" : "text-zinc-400 hover:text-white hover:bg-zinc-800",
+                  isDisabled 
+                    ? "text-zinc-600 cursor-not-allowed opacity-50" 
+                    : isActive 
+                      ? "bg-primary text-primary-foreground" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800",
                 )}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                {!sidebarCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                {!sidebarCollapsed && (
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    {item.label}
+                    {isComingSoon && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 text-zinc-500 rounded">
+                        Soon
+                      </span>
+                    )}
+                  </span>
+                )}
               </button>
             )
           })}

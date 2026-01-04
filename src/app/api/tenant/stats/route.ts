@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
 import { GetTenantWithStatsUseCase } from '@/modules/tenant/application/get-tenant-with-stats.usecase'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -12,7 +13,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    const isPlatformAdmin = user.app_metadata?.role === 'platform_admin'
+    
+    // Get tenantId from app_metadata, or from impersonation cookie for platform admins
+    let tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
+    
+    if (!tenantId && isPlatformAdmin) {
+      // Check for impersonation cookie
+      const cookieStore = await cookies()
+      tenantId = cookieStore.get('impersonate_tenant_id')?.value
+    }
 
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 400 })
@@ -36,3 +46,4 @@ export async function GET() {
     )
   }
 }
+

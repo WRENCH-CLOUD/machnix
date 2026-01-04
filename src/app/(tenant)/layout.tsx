@@ -1,7 +1,7 @@
 "use client"
 
 import "reflect-metadata"
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import Loader from "@/components/ui/loading"
@@ -16,6 +16,23 @@ export default function TenantLayoutWrapper({
   const router = useRouter()
   const pathname = usePathname()
   const { user, tenantId, loading } = useAuth()
+  const [tenantName, setTenantName] = useState<string>("Loading...")
+
+  // Fetch tenant name when tenantId is available
+  useEffect(() => {
+    if (tenantId) {
+      fetch('/api/tenant/stats')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.name) {
+            setTenantName(data.name)
+          }
+        })
+        .catch(err => {
+          console.error('[TenantLayout] Failed to fetch tenant name:', err)
+        })
+    }
+  }, [tenantId])
   
   useEffect(() => {
     console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })
@@ -93,7 +110,7 @@ export default function TenantLayoutWrapper({
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader
-          tenantName="Mechanix Garage"
+          tenantName={tenantName}
           onCreateJob={() => {
             if (pathname === "/jobs-board") {
               // Dispatch a custom event that JobsPage can listen to

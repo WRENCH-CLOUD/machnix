@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  context: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -21,7 +21,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
     }
 
-    const itemId = params.itemId;
+    const { itemId } = await context.params;
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new RemoveEstimateItemUseCase(repository);
 
@@ -39,7 +39,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  context: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -55,7 +55,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const itemId = params.itemId;
+    const { itemId } = await context.params;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new UpdateEstimateItemUseCase(repository);
@@ -74,3 +74,4 @@ export async function PATCH(
     );
   }
 }
+

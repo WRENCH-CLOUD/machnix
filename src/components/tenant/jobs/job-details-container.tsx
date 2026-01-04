@@ -134,6 +134,28 @@ export function JobDetailsContainer({
     }
   };
 
+  const handleUpdateEstimateItem = async (
+    itemId: string,
+    updates: { qty?: number; unitPrice?: number; laborCost?: number }
+  ) => {
+    try {
+      const res = await api.patch(`/api/estimates/items/${itemId}`, {
+        qty: updates.qty,
+        unitPrice: updates.unitPrice,
+        laborCost: updates.laborCost,
+      });
+
+      if (!res.ok) throw new Error("Failed to update item");
+
+      // Refresh estimate to get updated data and totals
+      await fetchEstimate();
+      toast.success("Item updated");
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast.error("Failed to update item");
+    }
+  };
+
   const handleGenerateInvoicePdf = () => {
     if (!invoice) return;
 
@@ -567,6 +589,7 @@ export function JobDetailsContainer({
       estimateItems={estimateItems}
       onAddEstimateItem={handleAddEstimateItem}
       onRemoveEstimateItem={handleRemoveEstimateItem}
+      onUpdateEstimateItem={handleUpdateEstimateItem}
       onGenerateEstimatePdf={handleGenerateEstimatePdf}
       invoice={invoice}
       loadingInvoice={loadingInvoice}

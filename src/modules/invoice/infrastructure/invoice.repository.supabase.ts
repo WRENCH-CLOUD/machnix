@@ -24,7 +24,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       invoiceDate: new Date(row.invoice_date),
       dueDate: row.due_date ? new Date(row.due_date) : undefined,
       metadata: row.metadata || {},
-      createdAt: new Date(row.created_at),
+      createdAt: new Date(row.issued_at || row.invoice_date),
       updatedAt: new Date(row.updated_at),
       deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
       deletedBy: row.deleted_by,
@@ -75,7 +75,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
 
     if (error) throw error
     return (data || []).map(row => this.toDomainWithRelations(row))
@@ -96,7 +96,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
 
     if (error) throw error
     return (data || []).map(row => this.toDomainWithRelations(row))
@@ -132,7 +132,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       .select('*')
       .eq('customer_id', customerId)
       .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))
@@ -147,7 +147,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       .select('*')
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  context: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -20,10 +20,12 @@ export async function GET(
       return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
     }
 
+    const { jobId } = await context.params;
+
     const repository = new SupabaseInvoiceRepository(supabase, tenantId);
     const useCase = new GetInvoiceByJobIdUseCase(repository);
 
-    const invoice = await useCase.execute(params.jobId);
+    const invoice = await useCase.execute(jobId);
 
     if (!invoice) {
       return NextResponse.json(

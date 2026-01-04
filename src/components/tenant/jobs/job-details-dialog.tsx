@@ -43,6 +43,7 @@ interface JobDetailsDialogProps {
   estimateItems: any[];
   onAddEstimateItem: (part: Part) => Promise<void>;
   onRemoveEstimateItem: (itemId: string) => Promise<void>;
+  onUpdateEstimateItem?: (itemId: string, updates: { qty?: number; unitPrice?: number; laborCost?: number }) => Promise<void>;
   onGenerateEstimatePdf: () => void;
 
   // Invoice props
@@ -71,6 +72,7 @@ export function JobDetailsDialog({
   estimateItems,
   onAddEstimateItem,
   onRemoveEstimateItem,
+  onUpdateEstimateItem,
   onGenerateEstimatePdf,
   invoice,
   loadingInvoice,
@@ -300,6 +302,7 @@ export function JobDetailsDialog({
                   jobStatus={currentStatus}
                   onAddItem={onAddEstimateItem}
                   onRemoveItem={onRemoveEstimateItem}
+                  onUpdateItem={onUpdateEstimateItem}
                   onGenerateEstimatePdf={onGenerateEstimatePdf}
                 />
               </TabsContent>

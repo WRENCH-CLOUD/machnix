@@ -11,6 +11,8 @@ import {
   Plus,
   Eye,
   Users,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,9 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { TenantDetailsDialog } from "@/features/admin/tenant-details-dialog";
 import { CreateTenantDialog } from "@/features/admin/create-tenant-dialog";
+import { EditTenantDialog } from "@/features/admin/edit-tenant-dialog";
+import { DeleteTenantDialog } from "@/features/admin/delete-tenant-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +68,8 @@ export default function TenantsPage() {
   );
   const [showTenantDetails, setShowTenantDetails] = useState(false);
   const [showCreateTenant, setShowCreateTenant] = useState(false);
+  const [showEditTenant, setShowEditTenant] = useState(false);
+  const [showDeleteTenant, setShowDeleteTenant] = useState(false);
 
   useEffect(() => {
     loadTenants();
@@ -113,6 +120,56 @@ export default function TenantsPage() {
 
   const handleCreateTenantSuccess = () => {
     loadTenants();
+  };
+
+  const handleEditTenant = (tenant: TenantWithStats) => {
+    setSelectedTenant(tenant);
+    setShowEditTenant(true);
+  };
+
+  const handleEditSuccess = () => {
+    loadTenants();
+  };
+
+  const handleDeleteTenant = (tenant: TenantWithStats) => {
+    setSelectedTenant(tenant);
+    setShowDeleteTenant(true);
+  };
+
+  const handleDeleteSuccess = () => {
+    loadTenants();
+  };
+
+  const { toast } = useToast();
+
+  const handleLoginAsTenant = async (tenant: TenantWithStats) => {
+    try {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: tenant.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start impersonation');
+      }
+
+      toast({
+        title: 'Impersonation Started',
+        description: `Now viewing as ${tenant.name}. Opening dashboard...`,
+      });
+
+      // Open dashboard in new tab
+      window.open('/dashboard', '_blank');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to impersonate tenant',
+        variant: 'destructive',
+      });
+    }
   };
 
   const filteredTenants = useMemo(() => {
@@ -311,12 +368,28 @@ export default function TenantsPage() {
                               <Eye className="w-4 h-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEditTenant(tenant)}
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit Tenant
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled
+                              className="opacity-50 cursor-not-allowed"
+                            >
                               <LogIn className="w-4 h-4 mr-2" />
-                              Login as Tenant
+                              Login as Tenant (Coming Soon)
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               Manage Subscription
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteTenant(tenant)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Tenant
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -341,6 +414,18 @@ export default function TenantsPage() {
         open={showCreateTenant}
         onOpenChange={setShowCreateTenant}
         onSuccess={handleCreateTenantSuccess}
+      />
+      <EditTenantDialog
+        tenant={selectedTenant}
+        open={showEditTenant}
+        onOpenChange={setShowEditTenant}
+        onSuccess={handleEditSuccess}
+      />
+      <DeleteTenantDialog
+        tenant={selectedTenant}
+        open={showDeleteTenant}
+        onOpenChange={setShowDeleteTenant}
+        onSuccess={handleDeleteSuccess}
       />
     </div>
   );

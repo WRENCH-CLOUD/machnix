@@ -81,6 +81,15 @@ export function redirectByRole(request: NextRequest, user: any) {
 
   const url = request.nextUrl.clone()
 
+  // Check for impersonation cookie for platform admins
+  const impersonateTenantId = request.cookies.get('impersonate_tenant_id')?.value
+  
+  if (role === "platform_admin" && impersonateTenantId) {
+    // Platform admin is impersonating a tenant, redirect to dashboard
+    url.pathname = "/dashboard"
+    return NextResponse.redirect(url)
+  }
+
   switch (role) {
     case "platform_admin":
       url.pathname = "/admin"

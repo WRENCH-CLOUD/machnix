@@ -79,6 +79,7 @@ export class SupabaseTenantRepository implements TenantRepository {
   }
 
   async getStats(tenantId: string): Promise<TenantStats> {
+    // Fetch base stats from view
     const { data, error } = await this.supabase
       .schema("tenant")
       .from("admin_tenant_overview")
@@ -91,12 +92,42 @@ export class SupabaseTenantRepository implements TenantRepository {
       throw error;
     }
 
+    // Fetch additional insight metrics
+    const [pendingResult, readyResult, weeklyResult] = await Promise.all([
+      // Pending jobs (received status)
+      this.supabase
+        .schema("tenant")
+        .from("jobcards")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("status", "received"),
+      
+      // Ready jobs (ready status)
+      this.supabase
+        .schema("tenant")
+        .from("jobcards")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("status", "ready"),
+      
+      // Jobs created this week
+      this.supabase
+        .schema("tenant")
+        .from("jobcards")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+    ]);
+
     return {
       customer_count: data?.customer_count || 0,
       active_jobs: data?.active_jobs || 0,
       completed_jobs: data?.completed_jobs || 0,
       mechanic_count: data?.mechanic_count || 0,
       total_revenue: data?.total_revenue || 0,
+      pending_jobs: pendingResult.count || 0,
+      ready_jobs: readyResult.count || 0,
+      jobs_this_week: weeklyResult.count || 0,
     };
   }
 

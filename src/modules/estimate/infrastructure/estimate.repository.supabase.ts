@@ -273,10 +273,13 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
   }
 
   async addItem(estimateId: string, item: any): Promise<any> {
+    const tenantId = this.getContextTenantId();
+    
     const { data, error } = await this.supabase
       .schema("tenant")
       .from("estimate_items")
       .insert({
+        tenant_id: tenantId,
         estimate_id: estimateId,
         part_id: null,
         custom_name: item.customName,

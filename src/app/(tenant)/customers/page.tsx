@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CustomersView } from "@/components/tenant/views/customers-view";
+import { CustomersView } from "@/components/tenant/customers/customers-view";
 import { useAuth } from "@/providers/auth-provider";
 
 interface CustomerWithStats {
@@ -10,8 +10,10 @@ interface CustomerWithStats {
   phone: string | null;
   email: string | null;
   address: string | null;
+  totalJobs: number;
+  lastVisit: Date | null;
   vehicleCount: number;
-  vehicles: any[];
+  vehicles: Array<{ make: string | null; model: string | null }>;
 }
 
 export default function CustomersPage() {
@@ -40,7 +42,7 @@ export default function CustomersPage() {
 
       const customersData = await response.json();
 
-      // Simple transform for UI display
+      // Transform for UI display with stats
       const customersWithStats: CustomerWithStats[] = customersData.map(
         (customer: any) => ({
           id: customer.id,
@@ -48,8 +50,15 @@ export default function CustomersPage() {
           phone: customer.phone,
           email: customer.email,
           address: customer.address,
+          totalJobs: customer.jobcards?.length || 0,
+          lastVisit: customer.jobcards?.length > 0 
+            ? new Date(customer.jobcards[0].created_at) 
+            : null,
           vehicleCount: customer.vehicles?.length || 0,
-          vehicles: customer.vehicles || [],
+          vehicles: (customer.vehicles || []).map((v: any) => ({
+            make: v.make || null,
+            model: v.model || null,
+          })),
         })
       );
 

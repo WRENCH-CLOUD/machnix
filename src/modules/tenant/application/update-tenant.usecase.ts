@@ -59,3 +59,4 @@ export class UpdateTenantUseCase {
     return this.tenantRepository.update(id, updates)
   }
 }
+

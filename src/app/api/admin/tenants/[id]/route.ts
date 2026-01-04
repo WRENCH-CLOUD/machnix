@@ -6,7 +6,7 @@ import { AdminSupabaseTenantRepository } from '@/modules/tenant/infrastructure/t
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await ensurePlatformAdmin()
@@ -17,7 +17,7 @@ export async function GET(
       )
     }
 
-    const tenantId = params.id
+    const { id: tenantId } = await params
     if (!tenantId) {
       return NextResponse.json(
         { error: 'Tenant ID is required' },
@@ -52,7 +52,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await ensurePlatformAdmin()
@@ -63,7 +63,7 @@ export async function PATCH(
       )
     }
 
-    const tenantId = params.id
+    const { id: tenantId } = await params
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
     }
@@ -92,7 +92,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await ensurePlatformAdmin()
@@ -103,7 +103,7 @@ export async function DELETE(
       )
     }
 
-    const tenantId = params.id
+    const { id: tenantId } = await params
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
     }

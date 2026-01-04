@@ -58,14 +58,25 @@ useEffect(() => {
         
         if (clientSession) {
           if (mounted) applySession(clientSession);
+          
+          // 2. Always check /api/auth/me for impersonation override
+          // This is important for platform admins who may be impersonating a tenant
+          const res = await fetch("/api/auth/me");
+          if (res.ok && mounted) {
+            const { user: serverUser } = await res.json();
+            if (serverUser?.isImpersonating && serverUser.tenantId) {
+              // Override tenantId with impersonated value
+              console.log("[AuthProvider] Impersonation active, tenantId:", serverUser.tenantId);
+              setTenantId(serverUser.tenantId);
+              setTenantContext(serverUser.tenantId);
+            }
+          }
         } else {
-          // 2. Fallback to server-side session check
+          // 3. Fallback to server-side session check when no client session
           const res = await fetch("/api/auth/me");
           if (res.ok) {
             const { user: serverUser } = await res.json();
             if (serverUser && mounted) {
-              // Construct a minimal session-like object for applySession
-              // or handle serverUser directly
               setUser(serverUser as any);
               setTenantId(serverUser.tenantId);
               setUserRole(serverUser.role);
@@ -79,6 +90,7 @@ useEffect(() => {
         if (mounted) setLoading(false);
       }
     };
+
 
     initAuth();
 
