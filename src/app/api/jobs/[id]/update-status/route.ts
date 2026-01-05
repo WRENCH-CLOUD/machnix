@@ -3,6 +3,8 @@ import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.reposito
 import { UpdateJobStatusUseCase } from '@/modules/job/application/update-job-status.use-case'
 import { JobStatus } from '@/modules/job/domain/job.entity'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
+import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
+import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
@@ -36,7 +38,9 @@ export async function POST(
     }
     
     const repository = new SupabaseJobRepository(supabase, tenantId)
-    const useCase = new UpdateJobStatusUseCase(repository)
+    const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
+    const invoiceRepository = new SupabaseInvoiceRepository(supabase, tenantId)
+    const useCase = new UpdateJobStatusUseCase(repository, estimateRepository, invoiceRepository)
     const cmd: jobStatusCommand = {
       job_id: id as any,
       status,
