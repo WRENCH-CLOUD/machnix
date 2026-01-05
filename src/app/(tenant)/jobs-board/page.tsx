@@ -155,6 +155,21 @@ export default function JobsPage() {
       // 3. Update Status
       let response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
       
+      // Handle payment required response (402)
+      if (response.status === 402) {
+        const data = await response.json()
+        if (data.paymentRequired) {
+          setPendingCompletion({
+            jobId,
+            invoiceId: data.invoiceId,
+            balance: data.balance,
+            jobNumber: data.jobNumber || oldJob?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return
+        }
+      }
+
       if (!response.ok) {
         response = await api.patch(`/api/jobs/${jobId}`, { status: newStatus })
         if (!response.ok) {

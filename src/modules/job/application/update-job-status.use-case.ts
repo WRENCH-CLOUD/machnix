@@ -4,9 +4,37 @@ import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/application/generate-from-estimate.use-case'
+
+/**
+ * Result types for UpdateJobStatusUseCase
+ */
+export type UpdateJobStatusResult = 
+  | { success: true; job: JobCard }
+  | { success: false; paymentRequired: true; invoiceId: string; balance: number; jobNumber: string }
+
+/**
+ * Valid status transitions for job lifecycle
+ * received <-> working <-> ready -> completed
+ * Any status can go to cancelled (except completed)
+ */
+const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  'received': ['received', 'working', 'cancelled'],
+  'working': ['received', 'working', 'ready', 'cancelled'],
+  'ready': ['working', 'ready', 'completed', 'cancelled'],
+  'completed': ['completed'], // Locked - cannot change
+  'cancelled': ['cancelled'], // Locked - cannot change
+}
+
+/**
+ * Validates if a status transition is allowed
+ */
+function isValidTransition(fromStatus: JobStatus, toStatus: JobStatus): boolean {
+  return VALID_TRANSITIONS[fromStatus]?.includes(toStatus) ?? false
+}
+
 /**
  * Update Job Status Use Case
- * Updates the status of a job
+ * Updates the status of a job with comprehensive guardrails
  */
 export class UpdateJobStatusUseCase {
   constructor(
@@ -15,7 +43,7 @@ export class UpdateJobStatusUseCase {
     private readonly invoiceRepository?: InvoiceRepository,
   ) {}
 
-  async execute(jobStatusCommand : jobStatusCommand): Promise<JobCard> {
+  async execute(jobStatusCommand : jobStatusCommand): Promise<UpdateJobStatusResult> {
     // Validate status transition
     const { job_id: jobId, status } = jobStatusCommand
     const validStatuses: JobStatus[] = ['received', 'working', 'ready', 'completed', 'cancelled']
@@ -27,6 +55,22 @@ export class UpdateJobStatusUseCase {
     const job = await this.repository.findById(jobId)
     if (!job) {
       throw new Error('Job not found')
+    }
+
+    // GUARDRAIL: Validate status transition
+    const currentStatus = job.status as JobStatus
+    if (!isValidTransition(currentStatus, status)) {
+      throw new Error(`Invalid status transition: Cannot change from '${currentStatus}' to '${status}'`)
+    }
+
+    // GUARDRAIL: Completed jobs are locked
+    if (currentStatus === 'completed') {
+      throw new Error('Cannot modify a completed job')
+    }
+
+    // GUARDRAIL: Cancelled jobs are locked
+    if (currentStatus === 'cancelled') {
+      throw new Error('Cannot modify a cancelled job')
     }
 
     // Guardrail: completion requires paid invoice copied from estimate
@@ -80,12 +124,24 @@ export class UpdateJobStatusUseCase {
         invoiceWithRelations = await this.invoiceRepository.findById(updated.id)
       }
 
-      const payments = invoiceWithRelations?.payments || []
-      const isPaid = invoiceWithRelations.status === 'paid' && invoiceWithRelations.balance === 0
+      if (!invoiceWithRelations) {
+        throw new Error('Failed to reload invoice after sync')
+      }
+
+      const payments = invoiceWithRelations.payments || []
+      // Check if invoice is paid - status should be 'paid' OR balance should be 0 (or both)
+      const isPaid = invoiceWithRelations.status === 'paid' || 
+        (invoiceWithRelations.balance !== undefined && invoiceWithRelations.balance !== null && invoiceWithRelations.balance <= 0)
       const hasRecordedPayment = payments.length > 0
 
       if (!isPaid || !hasRecordedPayment) {
-        throw new Error('Cannot complete job until the invoice is fully paid and a payment transaction is recorded')
+        return {
+          success: false,
+          paymentRequired: true,
+          invoiceId: invoiceWithRelations.id,
+          balance: invoiceWithRelations.balance ?? invoiceWithRelations.totalAmount ?? 0,
+          jobNumber: job.jobNumber,
+        }
       }
     }
 
@@ -98,7 +154,8 @@ export class UpdateJobStatusUseCase {
       updates.completedAt = new Date()
     }
 
-    return this.repository.update(jobId, updates)
+    const updatedJob = await this.repository.update(jobId, updates)
+    return { success: true, job: updatedJob }
   }
 }
 

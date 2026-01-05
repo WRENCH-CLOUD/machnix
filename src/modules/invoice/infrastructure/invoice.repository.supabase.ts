@@ -231,21 +231,34 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
 
     if (paymentError) throw paymentError
 
-    // Update invoice paid amount (balance is computed by DB)
+    // Update invoice paid amount and balance
     const newPaidAmount = invoice.paidAmount + payment.amount
     const newBalance = invoice.totalAmount - newPaidAmount
     let newStatus: InvoiceStatus = invoice.status
 
-    if (newBalance === 0) {
+    if (newBalance <= 0) {
       newStatus = 'paid'
     } else if (newPaidAmount > 0 && newBalance > 0) {
       newStatus = 'partially_paid'
     }
 
-    return this.update(invoiceId, {
-      paidAmount: newPaidAmount,
-      status: newStatus,
-    })
+    // Update the invoice with new paid amount and status
+    // Note: balance is a generated column in the database, so we don't update it directly
+    const tenantId = this.getContextTenantId()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('invoices')
+      .update({
+        paid_amount: newPaidAmount,
+        status: newStatus,
+      })
+      .eq('id', invoiceId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return this.toDomain(data)
   }
 
   async delete(id: string): Promise<void> {
