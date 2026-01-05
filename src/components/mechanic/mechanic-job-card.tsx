@@ -4,35 +4,8 @@ import { Car, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { type JobStatus } from '@/modules/job/domain/job.entity'
+import { statusConfig } from '@/modules/job/domain/job.entity'
 import { cn } from "@/lib/utils";
-
-// this is a mock data
-export const statusConfig: Record<
-  JobStatus,
-  { label: string; color: string; bgColor: string }
-> = {
-  received: {
-    label: "Received",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/20",
-  },
-  working: {
-    label: "Working",
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/20",
-  },
-  ready: {
-    label: "Ready",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/20",
-  },
-  completed: {
-    label: "Completed",
-    color: "text-gray-500",
-    bgColor: "bg-gray-500/20",
-  },
-};
 
 // Minimal interface for what the card needs
 export interface MechanicJobCardProps {

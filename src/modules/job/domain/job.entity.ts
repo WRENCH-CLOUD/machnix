@@ -38,4 +38,40 @@ export interface JobCardWithRelations extends JobCard {
 
 // TODO: add DVI items 
 
-// TODO: add statusConfig
+/**
+ * Status Configuration
+ * Display properties for each job status used across the UI
+ */
+export interface StatusConfigItem {
+  label: string
+  color: string
+  bgColor: string
+}
+
+export const statusConfig: Record<JobStatus, StatusConfigItem> = {
+  received: {
+    label: 'Received',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+  },
+  working: {
+    label: 'Working',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+  },
+  ready: {
+    label: 'Ready for Payment',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
+  },
+  completed: {
+    label: 'Completed',
+    color: 'text-slate-400',
+    bgColor: 'bg-slate-500/20',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+  },
+}

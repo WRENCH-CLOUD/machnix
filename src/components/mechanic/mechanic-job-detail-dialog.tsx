@@ -22,9 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { type DVIItem, type JobStatus } from "@/modules/job/domain/job.entity";
+import {type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
 import { cn } from "@/lib/utils";
-import { statusConfig } from "./mechanic-job-card";
 import {
   statusFlow,
   type MechanicJobDetailProps,
@@ -37,9 +36,9 @@ export function MechanicJobDetailDialog({
   onClose,
   currentStatus,
   onStatusUpdate,
-  dviItems,
-  onDviItemStatusChange,
-  onDviItemNoteAdd,
+  // dviItems,
+  // onDviItemStatusChange,
+  // onDviItemNoteAdd,
 }: MechanicJobDetailProps) {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemNote, setItemNote] = useState("");
@@ -51,11 +50,11 @@ export function MechanicJobDetailDialog({
     currentStatusIndex < statusFlow.length - 1 && currentStatusIndex >= 1;
   const canMoveBackward = currentStatusIndex > 1;
 
-  const groupedDviItems = dviItems.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, DVIItem[]>);
+  // const groupedDviItems = dviItems.reduce((acc, item) => {
+  //   if (!acc[item.category]) acc[item.category] = [];
+  //   acc[item.category].push(item);
+  //   return acc;
+  // }, {} as Record<string, DVIItem[]>);
 
   return (
     <motion.div
@@ -241,7 +240,7 @@ export function MechanicJobDetailDialog({
             </div>
           )}
 
-          {/* DVI Tab */}
+          DVI Tab
           {activeTab === "dvi" && (
             <div className="p-4 space-y-4">
               {/* DVI Summary */}
