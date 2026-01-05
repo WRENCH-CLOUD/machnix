@@ -3,8 +3,6 @@ node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
-# Trae
-.trae
 
 # Testing
 /coverage
@@ -40,12 +38,6 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
 
 # OS
 .DS_Store
@@ -60,3 +52,14 @@ supabase/.config
 supabase/.local
 supabase/.temp
 .last_admin_token.txt
+
+# Agent
+.agent
+.trae
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

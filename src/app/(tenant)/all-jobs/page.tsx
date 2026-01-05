@@ -6,7 +6,7 @@ import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-contai
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
-import { type JobStatus } from "@/lib/mock-data"
+import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
 
 export default function AllJobsPage() {

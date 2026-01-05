@@ -25,26 +25,5 @@ export const API_ROUTES = {
   admin: "/api/admin",
 } as const
 
-// Status colors for consistent styling
-export const STATUS_COLORS = {
-  received: {
-    label: "Received",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/20",
-  },
-  working: {
-    label: "Working",
-    color: "text-amber-400",
-    bgColor: "bg-amber-500/20",
-  },
-  ready: {
-    label: "Ready for Payment",
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/20",
-  },
-  completed: {
-    label: "Completed",
-    color: "text-slate-400",
-    bgColor: "bg-slate-500/20",
-  },
-} as const
+// Re-export statusConfig from domain for backward compatibility
+export { statusConfig } from "@/modules/job/domain/job.entity"
