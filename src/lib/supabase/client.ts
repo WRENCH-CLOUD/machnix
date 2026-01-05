@@ -1,23 +1,33 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 // Use the standard anon key for client-side operations
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-}
+// Allow build to succeed without env vars (they'll be available at runtime)
+const isBuildTime = !supabaseUrl || !supabaseKey
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'mechanix-auth',
-  },
-})
+// Use placeholder values during build time to avoid breaking the build
+export const supabase: SupabaseClient<Database> = isBuildTime
+  ? (null as unknown as SupabaseClient<Database>)
+  : createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'mechanix-auth',
+      },
+    })
+
+// Helper to get the supabase client with runtime validation
+export const getSupabase = (): SupabaseClient<Database> => {
+  if (!supabase) {
+    throw new Error('Missing Supabase environment variables. Please check your environment configuration.')
+  }
+  return supabase
+}
 
 // Tenant context management
 let currentTenantId: string | null = null

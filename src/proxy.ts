@@ -64,8 +64,19 @@ export async function proxy(request: NextRequest) {
   // ---------------------------
   // PUBLIC ROUTES
   // ---------------------------
-  if (pathname.startsWith("/login")) {
-    if (user) {
+  const PUBLIC_ROUTES = [
+    "/",           // Landing page
+    "/login",      // Login page
+    "/auth",       // Auth-related pages
+  ];
+
+  const isPublicRoute = PUBLIC_ROUTES.some(route => 
+    pathname === route || pathname.startsWith(route + "/")
+  );
+
+  if (isPublicRoute) {
+    // If user is logged in and on login page, redirect by role
+    if (user && pathname.startsWith("/login")) {
       return redirectByRole(request, user);
     }
     return response;
