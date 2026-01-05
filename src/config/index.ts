@@ -26,7 +26,7 @@ export const API_ROUTES = {
 } as const
 
 // Status colors for consistent styling
-export const STATUS_COLORS = {
+export const statusConfig = {
   received: {
     label: "Received",
     color: "text-blue-400",
@@ -46,5 +46,10 @@ export const STATUS_COLORS = {
     label: "Completed",
     color: "text-slate-400",
     bgColor: "bg-slate-500/20",
+  },
+  cancelled: { // TODO: needs actual implementation
+    label: "Cancelled",
+    color: "text-red-400",
+    bgColor: "bg-red-500/20",
   },
 } as const

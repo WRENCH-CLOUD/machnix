@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { type DVIItem, type JobStatus } from "@/lib/mock-data";
+import { type DVIItem, type JobStatus } from "@/modules/job/domain/job.entity";
 import { cn } from "@/lib/utils";
 import { statusConfig } from "./mechanic-job-card";
 import {

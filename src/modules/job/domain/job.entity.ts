@@ -35,3 +35,7 @@ export interface JobCardWithRelations extends JobCard {
   vehicle?: any
   mechanic?: any
 }
+
+// TODO: add DVI items 
+
+// TODO: add statusConfig

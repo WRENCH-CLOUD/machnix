@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type JobStatus, statusConfig } from "@/lib/mock-data";
+import { type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";

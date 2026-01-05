@@ -4,7 +4,7 @@ import { Car, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { type JobStatus } from "@/lib/mock-data";//  TODO: change this to real JobStatus
+import { type JobStatus } from '@/modules/job/domain/job.entity'
 import { cn } from "@/lib/utils";
 
 // this is a mock data
@@ -16,11 +16,6 @@ export const statusConfig: Record<
     label: "Received",
     color: "text-blue-500",
     bgColor: "bg-blue-500/20",
-  },
-  assigned: {
-    label: "Assigned",
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/20",
   },
   working: {
     label: "Working",

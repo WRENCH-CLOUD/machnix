@@ -7,7 +7,7 @@ import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-contai
 import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
 import { useAuth } from "@/providers/auth-provider"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
-import { statusConfig, type JobStatus } from "@/lib/mock-data"
+import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
 

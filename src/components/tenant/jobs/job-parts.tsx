@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { type JobStatus } from "@/lib/mock-data";
+import { type JobStatus } from "@/modules/job/domain/job.entity";
 // Using strict types instead of any where possible
 import type { Database } from "@/lib/supabase/types";
 

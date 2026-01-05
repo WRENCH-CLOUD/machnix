@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner"; // Assuming sonner is used for toasts, or use other toast lib
-import { type JobStatus } from "@/lib/mock-data";
+import { type JobStatus } from "@/modules/job/domain/job.entity";
 import { api } from "@/lib/supabase/client";
 
 interface JobDetailsContainerProps {
