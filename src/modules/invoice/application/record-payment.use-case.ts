@@ -38,9 +38,11 @@ export class RecordPaymentUseCase {
       throw new Error('Cannot record payment for a cancelled invoice')
     }
 
-    // Check if payment amount exceeds balance
-    if (dto.amount > invoice.balance) {
-      throw new Error('Payment amount exceeds invoice balance')
+    // For simplified flow, we don't check balance - just ensure amount is reasonable
+    // Use totalAmount if balance is not set (backwards compatibility)
+    const invoiceTotal = invoice.balance || invoice.totalAmount || 0;
+    if (invoiceTotal > 0 && dto.amount > invoiceTotal) {
+      throw new Error('Payment amount exceeds invoice total')
     }
 
     const payment: Omit<PaymentTransaction, 'id' | 'createdAt'> = {

@@ -54,6 +54,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       discount_amount: invoice.discountAmount,
       total_amount: invoice.totalAmount,
       paid_amount: invoice.paidAmount,
+      balance: invoice.balance,
       invoice_date: invoice.invoiceDate.toISOString(),
       due_date: invoice.dueDate?.toISOString(),
       metadata: invoice.metadata,
@@ -71,7 +72,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false })
@@ -91,7 +92,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
@@ -114,7 +115,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .eq('id', id)
@@ -185,6 +186,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
     if (updates.discountAmount !== undefined) dbUpdates.discount_amount = updates.discountAmount
     if (updates.totalAmount !== undefined) dbUpdates.total_amount = updates.totalAmount
     if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount
+    if (updates.balance !== undefined) dbUpdates.balance = updates.balance
     if (updates.invoiceDate !== undefined) dbUpdates.invoice_date = updates.invoiceDate.toISOString()
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate?.toISOString()
     if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata

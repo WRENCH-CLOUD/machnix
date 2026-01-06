@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { supabase, getSafeSession } from './client'
 
 export interface ConnectionTestResult {
   success: boolean
@@ -103,7 +103,19 @@ export async function testSupabaseConnection(): Promise<ConnectionTestResult> {
 export async function testSupabaseAuth(): Promise<ConnectionTestResult> {
   try {
     // Get current session
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { session, error, recovered } = await getSafeSession()
+
+    if (recovered) {
+      return {
+        success: false,
+        message: '⚠️ Auth session was invalid and has been cleared',
+        details: {
+          authConfigured: false,
+          canConnect: true,
+          error: 'Refresh token missing/invalid; session cleared safely',
+        },
+      }
+    }
 
     if (error) {
       return {

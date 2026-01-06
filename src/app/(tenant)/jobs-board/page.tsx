@@ -109,11 +109,13 @@ export default function JobsPage() {
         
         if (invRes.ok) {
           const invoice = await invRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
@@ -139,11 +141,13 @@ export default function JobsPage() {
           }
 
           const invoice = await genRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
