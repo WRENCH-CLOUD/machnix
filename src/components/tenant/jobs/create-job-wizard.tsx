@@ -69,6 +69,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [newVehicle, setNewVehicle] = useState({ make: "", model: "", reg_no: "", vin: "" });
 
+  // Duplicate customer dialog state
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [existingCustomer, setExistingCustomer] = useState<any>(null);
+
   const handleAddCustomer = async () => {
     try {
       setLoading(true);
@@ -77,6 +81,16 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCustomer),
       });
+
+      // Handle duplicate phone number (409 Conflict)
+      if (res.status === 409) {
+        const data = await res.json();
+        if (data.duplicatePhone && data.existingCustomer) {
+          setExistingCustomer(data.existingCustomer);
+          setShowDuplicateDialog(true);
+          return;
+        }
+      }
 
       if (res.ok) {
         const customer = await res.json();
@@ -92,6 +106,18 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUseExistingCustomer = () => {
+    if (existingCustomer) {
+      setSelectedCustomer(existingCustomer);
+      setShowDuplicateDialog(false);
+      setShowAddCustomer(false);
+      setExistingCustomer(null);
+      setNewCustomer({ name: "", phone: "", email: "" });
+      setStep("vehicle");
+      toast({ title: "Customer Selected", description: `Using existing customer: ${existingCustomer.name}` });
     }
   };
 
@@ -572,6 +598,40 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Duplicate Customer Dialog */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-amber-500" />
+              Customer Already Exists
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              A customer with this phone number already exists in the system:
+            </p>
+            {existingCustomer && (
+              <div className="p-4 rounded-lg border bg-muted/50">
+                <div className="font-medium">{existingCustomer.name}</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {existingCustomer.phone && <div>📞 {existingCustomer.phone}</div>}
+                  {existingCustomer.email && <div>✉️ {existingCustomer.email}</div>}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setShowDuplicateDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUseExistingCustomer}>
+              Use This Customer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase, setTenantContext } from "@/lib/supabase/client";
+import { supabase, setTenantContext, clearTenantContext, getSafeSession } from "@/lib/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -38,27 +38,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const applySession = (session: Session | null) => {
-  setSession(session);
-  setUser(session?.user ?? null);
+    setSession(session);
+    setUser(session?.user ?? null);
 
-  const { role, tenantId } = extractClaims(session);
-  setUserRole(role);
-  setTenantId(tenantId);
+    const { role, tenantId } = extractClaims(session);
+    setUserRole(role);
+    setTenantId(tenantId);
 
-  if (tenantId) setTenantContext(tenantId);
-};
+    if (session && tenantId) {
+      setTenantContext(tenantId);
+    } else {
+      clearTenantContext();
+    }
+  };
 
 useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
       try {
-        // 1. Try client-side session first
-        const { data: { session: clientSession } } = await supabase.auth.getSession();
-        
+        // 1. Try client-side session first (with graceful refresh fallback)
+        const { session: clientSession, error: sessionError, recovered } = await getSafeSession();
+
+        if (sessionError) {
+          console.error("[AuthProvider] Session fetch error:", sessionError);
+        }
+
         if (clientSession) {
           if (mounted) applySession(clientSession);
-          
+
           // 2. Always check /api/auth/me for impersonation override
           // This is important for platform admins who may be impersonating a tenant
           const res = await fetch("/api/auth/me");
@@ -71,17 +79,23 @@ useEffect(() => {
               setTenantContext(serverUser.tenantId);
             }
           }
-        } else {
-          // 3. Fallback to server-side session check when no client session
-          const res = await fetch("/api/auth/me");
-          if (res.ok) {
-            const { user: serverUser } = await res.json();
-            if (serverUser && mounted) {
-              setUser(serverUser as any);
-              setTenantId(serverUser.tenantId);
-              setUserRole(serverUser.role);
-              if (serverUser.tenantId) setTenantContext(serverUser.tenantId);
-            }
+          return;
+        }
+
+        if (recovered) {
+          if (mounted) applySession(null);
+          return;
+        }
+
+        // 3. Fallback to server-side session check when no client session
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const { user: serverUser } = await res.json();
+          if (serverUser && mounted) {
+            setUser(serverUser as any);
+            setTenantId(serverUser.tenantId);
+            setUserRole(serverUser.role);
+            if (serverUser.tenantId) setTenantContext(serverUser.tenantId);
           }
         }
       } catch (err) {
@@ -143,13 +157,17 @@ useEffect(() => {
 
     // On success, do NOT consume tokens. Fetch the client session (cookie-backed).
     // This keeps tokens out of JS memory and Local Storage.
-    const { data: sessionData, error } = await supabase.auth.getSession();
+    const { session: sessionData, error, recovered } = await getSafeSession();
+    if (recovered || !sessionData) {
+      throw new Error("Session could not be established. Please sign in again.");
+    }
+
     if (error) {
       console.error("Failed to fetch session after login:", error);
       throw error;
     }
 
-    applySession(sessionData.session);
+    applySession(sessionData);
   };
 
   const signOut = async () => {

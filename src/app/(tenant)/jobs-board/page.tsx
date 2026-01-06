@@ -109,11 +109,13 @@ export default function JobsPage() {
         
         if (invRes.ok) {
           const invoice = await invRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
@@ -139,11 +141,13 @@ export default function JobsPage() {
           }
 
           const invoice = await genRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
@@ -155,6 +159,21 @@ export default function JobsPage() {
       // 3. Update Status
       let response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
       
+      // Handle payment required response (402)
+      if (response.status === 402) {
+        const data = await response.json()
+        if (data.paymentRequired) {
+          setPendingCompletion({
+            jobId,
+            invoiceId: data.invoiceId,
+            balance: data.balance,
+            jobNumber: data.jobNumber || oldJob?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return
+        }
+      }
+
       if (!response.ok) {
         response = await api.patch(`/api/jobs/${jobId}`, { status: newStatus })
         if (!response.ok) {

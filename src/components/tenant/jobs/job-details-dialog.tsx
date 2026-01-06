@@ -115,6 +115,12 @@ export function JobDetailsDialog({
 
   const validStatuses = getValidTransitions(currentStatus);
 
+  // Simple payment: use total amount (no partial payment support)
+  const totalAmount =
+    invoice?.totalAmount ??
+    invoice?.total_amount ??
+    0;
+
   return (
     <>
       <motion.div
@@ -333,7 +339,7 @@ export function JobDetailsDialog({
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           jobNumber={job.jobNumber}
-          outstandingBalance={invoice.total_amount || 0}
+          outstandingBalance={totalAmount}
           invoiceId={invoice.id}
           onCancel={() => setShowPaymentModal(false)}
           onMarkPaidAndComplete={onPaymentComplete}

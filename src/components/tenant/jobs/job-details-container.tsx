@@ -555,17 +555,14 @@ export function JobDetailsContainer({
     try {
       // 1. Record Payment
       const paymentRes = await api.post(`/api/invoices/${invoice.id}/pay`, {
-        amount: invoice.total_amount - (invoice.paid_amount || 0),
-        mode: method,
-        status: "success",
-        paidAt: new Date(),
-        reference: ref,
+        amount: invoice.totalAmount || invoice.total_amount || 0,
+        method: method,  // API expects 'method', not 'mode'
       });
 
       if (!paymentRes.ok) throw new Error("Payment failed");
 
       // 2. Mark Job Completed
-      const jobRes = await api.patch(`/api/jobs/${job.id}`, { status: "completed" });
+      const jobRes = await api.post(`/api/jobs/${job.id}/update-status`, { status: "completed" });
 
       if (!jobRes.ok) throw new Error("Failed to complete job");
 

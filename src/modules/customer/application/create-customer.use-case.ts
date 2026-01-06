@@ -10,13 +10,20 @@ export interface CreateCustomerDTO {
 }
 
 /**
+ * Result type for CreateCustomerUseCase
+ */
+export type CreateCustomerResult = 
+  | { success: true; customer: Customer }
+  | { success: false; duplicatePhone: true; existingCustomer: Customer }
+
+/**
  * Create Customer Use Case
  * Creates a new customer in the system
  */
 export class CreateCustomerUseCase {
   constructor(private readonly repository: CustomerRepository) {}
 
-  async execute(dto: CreateCustomerDTO, tenantId: string): Promise<Customer> {
+  async execute(dto: CreateCustomerDTO, tenantId: string): Promise<CreateCustomerResult> {
     // Validation
     if (!dto.name || dto.name.trim().length === 0) {
       throw new Error('Customer name is required')
@@ -26,15 +33,21 @@ export class CreateCustomerUseCase {
     if (dto.phone) {
       const existing = await this.repository.searchByPhone(dto.phone)
       if (existing) {
-        throw new Error('Customer with this phone number already exists')
+        return {
+          success: false,
+          duplicatePhone: true,
+          existingCustomer: existing,
+        }
       }
     }
 
-    return this.repository.create({
+    const customer = await this.repository.create({
       ...dto,
       tenantId,
       name: dto.name.trim(),
     })
+
+    return { success: true, customer }
   }
 }
 
