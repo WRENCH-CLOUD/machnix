@@ -8,7 +8,7 @@ export function FooterSection() {
       {/* Left Section: Logo, Description, Social Links */}
       <div className="flex flex-col justify-start items-start gap-8 p-4 md:p-8">
         <div className="flex gap-3 items-stretch justify-center">
-          <div className="text-center text-foreground text-xl font-semibold leading-4">Mechanix</div>
+          <div className="text-center text-foreground text-xl font-semibold leading-4">machnix</div>
         </div>
         <p className="text-foreground/90 text-sm font-medium leading-[18px] text-left">Professional shop management</p>
         <div className="flex justify-start items-start gap-3">

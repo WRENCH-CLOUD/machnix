@@ -18,7 +18,7 @@ export function PricingSection() {
         "1 technician",
         "Basic job tracking",
         "Customer notifications",
-        "Mechanix branding on invoices",
+        "machnix branding on invoices",
       ],
       buttonText: "Get Started",
       buttonClass:

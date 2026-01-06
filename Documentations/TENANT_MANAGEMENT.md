@@ -6,7 +6,7 @@ This document describes the implementation of the secure tenant creation and man
 ## Features Implemented
 
 ### 1. Tenant Details View
-- **Component**: `components/mechanix/tenant-details-dialog.tsx`
+- **Component**: `components/machnix/tenant-details-dialog.tsx`
 - **Purpose**: Display comprehensive tenant information including:
   - Basic tenant info (name, slug, creation date)
   - Status and subscription details
@@ -15,7 +15,7 @@ This document describes the implementation of the secure tenant creation and man
   - Performance metrics
 
 ### 2. Secure Tenant Creation Flow
-- **Component**: `components/mechanix/create-tenant-dialog.tsx`
+- **Component**: `components/machnix/create-tenant-dialog.tsx`
 - **API Route**: `app/api/admin/tenants/create/route.ts`
 
 #### Security Best Practices Implemented:
@@ -256,13 +256,13 @@ CREATE TABLE tenant.users (
 ## Files Modified/Created
 
 ### New Files
-- `components/mechanix/tenant-details-dialog.tsx`
-- `components/mechanix/create-tenant-dialog.tsx`
+- `components/machnix/tenant-details-dialog.tsx`
+- `components/machnix/create-tenant-dialog.tsx`
 - `app/api/admin/tenants/create/route.ts`
 - `lib/supabase/services/tenant.service.ts`
 
 ### Modified Files
-- `components/mechanix/admin-dashboard.tsx`
+- `components/machnix/admin-dashboard.tsx`
 - `lib/supabase/services/index.ts`
 
 ## Support

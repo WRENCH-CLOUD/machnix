@@ -33,7 +33,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Mechanix - Garage Management System",
+  title: "machnix - Garage Management System",
   description: "Professional multi-tenant garage management system for automotive service businesses",
   icons: {
     // Prefer using existing assets in /public; you can add favicon.ico for full compatibility

@@ -107,7 +107,7 @@ export function CTASection() {
             Ready to Modernize Your Shop?
           </h2>
           <p className="text-muted-foreground text-sm md:text-base font-medium leading-[18.20px] md:leading-relaxed break-words max-w-2xl">
-            Join thousands of auto shops using Mechanix to streamline operations and boost customer satisfaction.
+            Join thousands of auto shops using machnix to streamline operations and boost customer satisfaction.
           </p>
         </div>
         <Link href="/login">

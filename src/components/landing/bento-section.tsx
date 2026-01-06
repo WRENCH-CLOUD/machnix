@@ -81,7 +81,7 @@ export function BentoSection() {
               Everything You Need to Run Your Shop
             </h2>
             <p className="w-full max-w-[600px] text-center text-muted-foreground text-lg md:text-xl font-medium leading-relaxed">
-              From job tracking to customer management, Mechanix gives you the tools to streamline operations and boost efficiency.
+              From job tracking to customer management, machnix gives you the tools to streamline operations and boost efficiency.
             </p>
           </div>
         </div>
