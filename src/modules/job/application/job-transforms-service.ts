@@ -102,19 +102,23 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     updated_at: dbJob.updatedAt,
   }
 
-  // Try to load estimate data for accurate totals
-  const estimateRepository = resolveEstimateRepository()
-  if (estimateRepository) {
-    try {
-      const estimates = await estimateRepository.findByJobcardId(dbJob.id)
-      const estimate = estimates[0]
-      if (estimate) {
-        uiJob.partsTotal = estimate.partsTotal ?? 0
-        uiJob.laborTotal = estimate.laborTotal ?? 0
-        uiJob.tax = estimate.taxAmount ?? 0
+  // Try to load estimate data for accurate totals (server-side only)
+  // Skip on client-side to avoid 401 errors from direct Supabase calls
+  const isClient = typeof window !== 'undefined'
+  if (!isClient) {
+    const estimateRepository = resolveEstimateRepository()
+    if (estimateRepository) {
+      try {
+        const estimates = await estimateRepository.findByJobcardId(dbJob.id)
+        const estimate = estimates[0]
+        if (estimate) {
+          uiJob.partsTotal = estimate.partsTotal ?? 0
+          uiJob.laborTotal = estimate.laborTotal ?? 0
+          uiJob.tax = estimate.taxAmount ?? 0
+        }
+      } catch (error) {
+        console.debug(`[job-transforms] No estimate found for job ${dbJob.jobNumber}`, error)
       }
-    } catch (error) {
-      console.debug(`[job-transforms] No estimate found for job ${dbJob.jobNumber}`, error)
     }
   }
 

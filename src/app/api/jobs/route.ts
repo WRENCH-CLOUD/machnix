@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { GetAllJobsUseCase } from '@/modules/job/application/get-all-jobs.use-case'
 import { createClient } from '@/lib/supabase/server'
+import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 
 export async function GET() {
   try {
@@ -10,6 +11,12 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit read operations
+    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.READ, 'get-jobs')
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
     }
 
     const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id

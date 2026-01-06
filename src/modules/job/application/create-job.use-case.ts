@@ -1,5 +1,7 @@
 import { JobRepository } from '../domain/job.repository'
 import { JobCard, JobStatus } from '../domain/job.entity'
+import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
+import { CreateEstimateUseCase } from '@/modules/estimate/application/create-estimate.use-case'
 
 export interface CreateJobDTO {
   customerId: string
@@ -18,7 +20,10 @@ export interface CreateJobDTO {
  * Creates a new job in the system
  */
 export class CreateJobUseCase {
-  constructor(private readonly repository: JobRepository) {}
+  constructor(
+    private readonly repository: JobRepository,
+    private readonly estimateRepository?: EstimateRepository
+  ) {}
 
   async execute(dto: CreateJobDTO, tenantId: string, createdBy?: string): Promise<JobCard> {
     // Validation
@@ -44,7 +49,7 @@ export class CreateJobUseCase {
       estimatedCompletion: dto.estimatedCompletion,
     }
 
-    return this.repository.create({
+    const job = await this.repository.create({
       tenantId,
       jobNumber,
       customerId: dto.customerId,
@@ -56,6 +61,28 @@ export class CreateJobUseCase {
       details,
       createdBy,
     })
+
+    // Guardrail: ensure every job starts with an estimate
+    if (this.estimateRepository) {
+      const createEstimate = new CreateEstimateUseCase(this.estimateRepository)
+      await createEstimate.execute(
+        {
+          customerId: dto.customerId,
+          vehicleId: dto.vehicleId,
+          jobcardId: job.id,
+          description: dto.description || 'Service estimate',
+          laborTotal: 0,
+          partsTotal: 0,
+          taxAmount: 0,
+          discountAmount: 0,
+          currency: 'INR',
+        },
+        tenantId,
+        createdBy,
+      )
+    }
+
+    return job
   }
 }
 

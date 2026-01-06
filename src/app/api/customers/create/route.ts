@@ -3,13 +3,14 @@ import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/cu
 import { CreateCustomerUseCase } from '@/modules/customer/application/create-customer.use-case'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 
 const createCustomerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  phone: z.string().optional(),
-  email: z.string().email("Invalid email format").optional().or(z.literal('')),
-  address: z.string().optional(),
-  notes: z.string().optional(),
+  name: z.string().min(1, "Name is required").max(200, "Name too long"),
+  phone: z.string().max(20, "Phone number too long").optional(),
+  email: z.string().email("Invalid email format").max(255, "Email too long").optional().or(z.literal('')),
+  address: z.string().max(500, "Address too long").optional(),
+  notes: z.string().max(1000, "Notes too long").optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit write operations
+    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'create-customer')
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
     }
 
     const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
@@ -32,9 +39,18 @@ export async function POST(request: NextRequest) {
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new CreateCustomerUseCase(repository)
     
-    const customer = await useCase.execute(validatedBody, tenantId)
+    const result = await useCase.execute(validatedBody, tenantId)
     
-    return NextResponse.json(customer, { status: 201 })
+    if (!result.success) {
+      // Return 409 Conflict with existing customer info
+      return NextResponse.json({
+        duplicatePhone: true,
+        existingCustomer: result.existingCustomer,
+        message: `A customer with this phone number already exists: ${result.existingCustomer.name}`,
+      }, { status: 409 })
+    }
+
+    return NextResponse.json(result.customer, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 })

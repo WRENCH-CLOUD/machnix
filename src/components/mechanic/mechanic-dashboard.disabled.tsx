@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/providers/auth-provider";
-import { JobStatus } from "@/modules/job/domain/job.entity";
 // TODO: add read mechanic jobs from API or db or table whatever
 import { MechanicJobDetailDialog } from "./mechanic-job-detail-dialog";
 
@@ -19,19 +18,10 @@ export function MechanicDashboardView() {
     "status"
   );
 
-  // Filter jobs assigned to this mechanic (using mock ID "m1" as fallback if user ID matches nothing)
-  // This is a simplified frontend-only filtering for now as requested
-  const mechanicJobs = JobStatus.filter( //TODO: change this to API call
-    (job) =>
-      (job.mechanic?.id === user?.id || job.mechanic?.id === "m1") &&
-      job.status !== "completed"
-  );
-
-  const completedJobs = JobStatus.filter(//TODO: change this to API call
-    (job) =>
-      (job.mechanic?.id === user?.id || job.mechanic?.id === "m1") &&
-      job.status === "completed"
-  );
+  // TODO: Mechanic dashboard is excluded from V1 per PRD
+  // Replace with API call when implementing mechanic features
+  const mechanicJobs: any[] = [];
+  const completedJobs: any[] = [];
 
   return (
     //FIXME: import the tenantName avtar and all from the interface or something

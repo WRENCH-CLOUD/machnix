@@ -8,12 +8,22 @@ import { useRouter } from "next/navigation"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
+import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
 
 export default function AllJobsPage() {
   const { user, tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
   const [jobs, setJobs] = useState<UIJob[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Unpaid warning dialog state
+  const [showUnpaidWarning, setShowUnpaidWarning] = useState(false)
+  const [pendingCompletion, setPendingCompletion] = useState<{
+    jobId: string;
+    invoiceId: string;
+    balance: number;
+    jobNumber: string;
+  } | null>(null)
 
   useEffect(() => {
     if (user && tenantId) {
@@ -50,6 +60,22 @@ export default function AllJobsPage() {
       // Call API route - business logic is in the use case
       const response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
       
+      // Handle payment required response (402)
+      if (response.status === 402) {
+        const data = await response.json()
+        if (data.paymentRequired) {
+          const job = jobs.find(j => j.id === jobId)
+          setPendingCompletion({
+            jobId,
+            invoiceId: data.invoiceId,
+            balance: data.balance,
+            jobNumber: data.jobNumber || job?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return
+        }
+      }
+
       if (!response.ok) {
         throw new Error('Failed to update job status')
       }
@@ -65,6 +91,39 @@ export default function AllJobsPage() {
       }
     } catch (err) {
       console.error('Error updating job status:', err)
+      throw err
+    }
+  }
+
+  const handleMarkPaidAndComplete = async (paymentMethod: string, referenceId?: string) => {
+    if (!pendingCompletion) return
+
+    try {
+      // 1. Record Payment
+      const payRes = await api.post(`/api/invoices/${pendingCompletion.invoiceId}/pay`, {
+        amount: pendingCompletion.balance,
+        method: paymentMethod,
+        referenceId
+      })
+
+      if (!payRes.ok) {
+        throw new Error('Failed to record payment')
+      }
+
+      // 2. Update Job Status to completed
+      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, { 
+        status: 'completed' 
+      })
+
+      if (!statusRes.ok) {
+        throw new Error('Failed to complete job')
+      }
+
+      await loadJobs()
+      setShowUnpaidWarning(false)
+      setPendingCompletion(null)
+    } catch (err) {
+      console.error('Error marking paid and completing:', err)
       throw err
     }
   }
@@ -88,6 +147,24 @@ export default function AllJobsPage() {
           onJobUpdate={async () => {
             await loadJobs()
           }}
+        />
+      )}
+
+      {showUnpaidWarning && pendingCompletion && (
+        <UnpaidWarningDialog
+          isOpen={showUnpaidWarning}
+          onClose={() => {
+            setShowUnpaidWarning(false)
+            setPendingCompletion(null)
+          }}
+          jobNumber={pendingCompletion.jobNumber}
+          outstandingBalance={pendingCompletion.balance}
+          invoiceId={pendingCompletion.invoiceId}
+          onCancel={() => {
+            setShowUnpaidWarning(false)
+            setPendingCompletion(null)
+          }}
+          onMarkPaidAndComplete={handleMarkPaidAndComplete}
         />
       )}
     </>
