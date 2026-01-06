@@ -1,51 +1,25 @@
-"use client";
-
-import { useState, useEffect } from "react";
-
-import Navbar from "@/components/landing/Navbar";
-import Hero from "@/components/landing/Hero";
-import Features from "@/components/landing/Features";
-import AIDemo from "@/components/landing/AiDemo";
-import ValueProp from "@/components/landing/ValueProp";
-import CTA from "@/components/landing/CTA";
-import Footer from "@/components/landing/Footer";
-
-// --- Colors & Theme (Mapped from Tailwind Config) ---
-// Black: #050505
-// Dark: #0f0f0f
-// Card: #18181b
-// Green: #22c55e
-// GreenDark: #15803d
-// Accent: #4ade80
+import { HeroSection } from "@/components/landing/hero-section"
+import { BentoSection } from "@/components/landing/bento-section"
+import { SocialProof } from "@/components/landing/social-proof"
+import { LargeTestimonial } from "@/components/landing/large-testimonial"
+import { PricingSection } from "@/components/landing/pricing-section"
+import { TestimonialGridSection } from "@/components/landing/testimonial-grid-section"
+import { FAQSection } from "@/components/landing/faq-section"
+import { CTASection } from "@/components/landing/cta-section"
+import { FooterSection } from "@/components/landing/footer-section"
 
 export default function HomePage() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Scroll listener for glass nav
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#22c55e] selection:text-black scroll-smooth">
-      <Navbar
-        isScrolled={isScrolled}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-      <Hero />
-      <Features />
-      <AIDemo />
-      <ValueProp />
-      <CTA />
-      <Footer />
+    <div className="dark min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-primary selection:text-primary-foreground scroll-smooth">
+      <HeroSection />
+      {/* <SocialProof /> */}
+      <BentoSection />
+      {/* <LargeTestimonial /> */}
+      <PricingSection />
+      {/* <TestimonialGridSection /> */}
+      <FAQSection />
+      <CTASection />
+      <FooterSection />
     </div>
-  );
+  )
 }
-
-// --- Components ---
