@@ -51,7 +51,6 @@ export class GenerateInvoiceFromEstimateUseCase {
       discountAmount: estimate.discountAmount,
       totalAmount: estimate.totalAmount,
       paidAmount: 0,
-      balance: estimate.totalAmount,
       invoiceDate,
       dueDate,
       metadata: { source: 'estimate', estimateNumber: estimate.estimateNumber },
