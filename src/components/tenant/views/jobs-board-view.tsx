@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
-import { statusConfig, type JobStatus } from "@/lib/mock-data";
+import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 
 interface JobBoardProps {
   jobs: UIJob[];

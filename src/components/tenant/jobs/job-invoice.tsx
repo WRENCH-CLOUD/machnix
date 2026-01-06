@@ -4,8 +4,6 @@ import { CreditCard, Download, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { type JobStatus } from "@/lib/mock-data";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 
 interface JobInvoiceProps {
@@ -13,6 +11,7 @@ interface JobInvoiceProps {
   invoice: any; // Using any for simplicity for now, ideally InvoiceWithRelations
   estimateItems: any[];
   loading: boolean;
+  onGenerateInvoice: () => void;
   onRetry: () => void;
   onMarkPaid: () => void;
   onGeneratePdf: () => void;
@@ -26,6 +25,7 @@ export function JobInvoice({
   onRetry,
   onMarkPaid,
   onGeneratePdf,
+  onGenerateInvoice,
 }: JobInvoiceProps) {
   // Calculations
   const partsSubtotal = estimateItems.reduce(
@@ -65,15 +65,20 @@ export function JobInvoice({
               <CreditCard className="w-12 h-12 text-muted-foreground mx-auto" />
               <p className="text-sm text-muted-foreground">
                 {job.status === "ready" || job.status === "completed"
-                  ? "Invoice not found. It will be created when payment is recorded."
-                  : "Invoice will be created when payment is recorded."}
+                  ? "Invoice has not been generated yet."
+                  : "Invoice will be created when status is Ready."}
               </p>
             </div>
             {(job.status === "ready" || job.status === "completed") && (
-              <Button variant="outline" size="sm" onClick={onRetry}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry Loading Invoice
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+                <Button size="sm" onClick={onGenerateInvoice}>
+                  Generate Invoice
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -98,10 +103,10 @@ export function JobInvoice({
                   <div className="text-right">
                     <h3 className="font-bold text-gray-900">Garage A</h3>
                     <p className="text-sm text-gray-600">
-                      123 Auto Street, Bangalore
+                      {/*TODO: {tenant.address} which is not there and need to create @sagun-py0909 */}
                     </p>
                     <p className="text-sm text-gray-600">
-                      GSTIN: 29XXXXX1234X1Z5
+                      {/*TODO: need to create GSTIN for tenant */}
                     </p>
                   </div>
                 </div>

@@ -10,6 +10,7 @@ import {
   Check,
   Pencil,
   X,
+  Scroll,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { type JobStatus } from "@/lib/mock-data";
+import { type JobStatus } from "@/modules/job/domain/job.entity";
 // Using strict types instead of any where possible
 import type { Database } from "@/lib/supabase/types";
 
@@ -496,15 +497,14 @@ export function JobParts({
                   <span>₹{total.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end items-center">
                 <Button
-                  variant="outline"
+                  variant="link"
                   size="sm"
-                  className="gap-2 bg-transparent"
                   onClick={onGenerateEstimatePdf}
                   disabled={!estimate || estimateItems.length === 0}
                 >
-                  <Check className="w-3 h-3" />
+                  <Scroll className="w-3 h-3" />
                   Generate Estimate PDF
                 </Button>
               </div>

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { AuthError } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -7,6 +8,8 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 // Allow build to succeed without env vars (they'll be available at runtime)
 const isBuildTime = !supabaseUrl || !supabaseKey
+
+const AUTH_STORAGE_KEY = 'mechanix-auth'
 
 // Create a single supabase client for interacting with your database
 // Use placeholder values during build time to avoid breaking the build
@@ -17,7 +20,7 @@ export const supabase: SupabaseClient<Database> = isBuildTime
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'mechanix-auth',
+        storageKey: AUTH_STORAGE_KEY,
       },
     })
 
@@ -55,6 +58,45 @@ export const clearTenantContext = () => {
   currentTenantId = null
   if (typeof window !== 'undefined') {
     localStorage.removeItem('tenantId')
+  }
+}
+
+const isRefreshTokenError = (error?: Pick<AuthError, 'code' | 'message'> | null) => {
+  if (!error) return false
+  const message = (error.message || '').toLowerCase()
+  return error.code === 'refresh_token_not_found' || message.includes('invalid refresh token')
+}
+
+const clearLocalAuthState = () => {
+  clearTenantContext()
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(AUTH_STORAGE_KEY)
+  }
+}
+
+export const getSafeSession = async () => {
+  // Avoid throwing during build where supabase is a placeholder
+  if (!supabase) {
+    return { session: null, error: new Error('Supabase client not initialized'), recovered: false }
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getSession()
+
+    if (isRefreshTokenError(error)) {
+      console.warn('[Supabase] Refresh token missing/invalid. Forcing sign-out.')
+      try {
+        await supabase.auth.signOut()
+      } catch (signOutError) {
+        console.error('[Supabase] Sign-out after refresh error failed:', signOutError)
+      }
+      clearLocalAuthState()
+      return { session: null, error: null, recovered: true }
+    }
+
+    return { session: data.session, error: error ?? null, recovered: false }
+  } catch (err) {
+    return { session: null, error: err as Error, recovered: false }
   }
 }
 

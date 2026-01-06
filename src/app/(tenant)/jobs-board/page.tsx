@@ -3,16 +3,13 @@
 import "reflect-metadata"
 import { useState, useEffect } from "react"
 import { JobBoardView } from "@/components/tenant/views/jobs-board-view"
-
-// TODO: add JobBoard and JobDetails and CreateJobWizard from new components when ready
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
+import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
 import { useAuth } from "@/providers/auth-provider"
-import { useRouter } from "next/navigation"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
-import { statusConfig, type JobStatus } from "@/lib/mock-data"
+import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
-import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
@@ -112,11 +109,13 @@ export default function JobsPage() {
         
         if (invRes.ok) {
           const invoice = await invRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
@@ -142,11 +141,13 @@ export default function JobsPage() {
           }
 
           const invoice = await genRes.json()
-          if (invoice && invoice.balance && invoice.balance > 0) {
+          // Check if invoice is unpaid and has a total
+          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
+            const total = invoice.totalAmount || invoice.total_amount
             setPendingCompletion({
               jobId,
               invoiceId: invoice.id,
-              balance: invoice.balance,
+              balance: total,
               jobNumber: oldJob?.jobNumber,
             })
             setShowUnpaidWarning(true)
@@ -158,6 +159,21 @@ export default function JobsPage() {
       // 3. Update Status
       let response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
       
+      // Handle payment required response (402)
+      if (response.status === 402) {
+        const data = await response.json()
+        if (data.paymentRequired) {
+          setPendingCompletion({
+            jobId,
+            invoiceId: data.invoiceId,
+            balance: data.balance,
+            jobNumber: data.jobNumber || oldJob?.jobNumber,
+          })
+          setShowUnpaidWarning(true)
+          return
+        }
+      }
+
       if (!response.ok) {
         response = await api.patch(`/api/jobs/${jobId}`, { status: newStatus })
         if (!response.ok) {

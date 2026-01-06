@@ -105,6 +105,8 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
   async findById(id: string): Promise<InvoiceWithRelations | null> {
     const tenantId = this.getContextTenantId()
 
+    console.log('[DEBUG] findById - id:', id, 'tenantId:', tenantId);
+
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
@@ -119,7 +121,12 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       .eq('id', id)
       .single()
 
-    if (error) return null
+    if (error) {
+      console.error('[DEBUG] findById - Error fetching detailed invoice:', error);
+      return null
+    }
+    
+    console.log('[DEBUG] findById - Success, found data for ID:', data.id);
     return this.toDomainWithRelations(data)
   }
 
@@ -141,6 +148,8 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
   async findByJobcardId(jobcardId: string): Promise<Invoice[]> {
     const tenantId = this.getContextTenantId()
 
+    console.log('[DEBUG] findByJobcardId - jobcardId:', jobcardId, 'tenantId:', tenantId);
+
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
@@ -148,6 +157,8 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false })
+
+    console.log('[DEBUG] findByJobcardId - result count:', data?.length, 'error:', error);
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))
@@ -227,17 +238,29 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
     const newBalance = invoice.totalAmount - newPaidAmount
     let newStatus: InvoiceStatus = invoice.status
 
-    if (newBalance === 0) {
+    if (newBalance <= 0) {
       newStatus = 'paid'
     } else if (newPaidAmount > 0 && newBalance > 0) {
       newStatus = 'partially_paid'
     }
 
-    return this.update(invoiceId, {
-      paidAmount: newPaidAmount,
-      balance: newBalance,
-      status: newStatus,
-    })
+    // Update the invoice with new paid amount and status
+    // Note: balance is a generated column in the database, so we don't update it directly
+    const tenantId = this.getContextTenantId()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('invoices')
+      .update({
+        paid_amount: newPaidAmount,
+        status: newStatus,
+      })
+      .eq('id', invoiceId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return this.toDomain(data)
   }
 
   async delete(id: string): Promise<void> {

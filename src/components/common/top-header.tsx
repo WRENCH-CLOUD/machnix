@@ -5,7 +5,7 @@ import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import ProfileDropdown from "@/components/ui/profileDropdown"
+import  ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers/auth-provider"
 import { GlobalSearch } from "@/components/common/global-search"
 
@@ -54,12 +54,12 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
           {/* Search trigger button */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="relative w-80 flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground bg-secondary border border-border rounded-md hover:bg-secondary/80 transition-colors"
+            className="relative w-90 flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground bg-secondary border border-border rounded-md hover:bg-secondary/80 transition-colors"
           >
-            <Search className="w-4 h-4" />
-            <span className="flex-1 text-left">Search jobs, customers, vehicles...</span>
-            <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="text-xs">⌘</span>K
+            <Search className="w-5 h-5" />
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="hidden sm:inline-flex h-1 w-1 items-center justify-end gap-1 font-mono text-[12px]">
+              <span className="text-[12px]">⌘/Ctrl </span>K
             </kbd>
           </button>
         </div>

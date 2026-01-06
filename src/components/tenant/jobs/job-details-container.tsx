@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner"; // Assuming sonner is used for toasts, or use other toast lib
-import { type JobStatus } from "@/lib/mock-data";
+import { type JobStatus } from "@/modules/job/domain/job.entity";
 import { api } from "@/lib/supabase/client";
 
 interface JobDetailsContainerProps {
@@ -526,7 +526,10 @@ export function JobDetailsContainer({
   };
 
   const handleGenerateInvoice = async () => {
-    if (!estimate) return;
+    if (!estimate) {
+      toast.error("Cannot generate invoice: Estimate not found");
+      return;
+    }
 
     try {
       const res = await api.post("/api/invoices/generate", {
@@ -552,17 +555,14 @@ export function JobDetailsContainer({
     try {
       // 1. Record Payment
       const paymentRes = await api.post(`/api/invoices/${invoice.id}/pay`, {
-        amount: invoice.total_amount - (invoice.paid_amount || 0),
-        mode: method,
-        status: "success",
-        paidAt: new Date(),
-        reference: ref,
+        amount: invoice.totalAmount || invoice.total_amount || 0,
+        method: method,  // API expects 'method', not 'mode'
       });
 
       if (!paymentRes.ok) throw new Error("Payment failed");
 
       // 2. Mark Job Completed
-      const jobRes = await api.patch(`/api/jobs/${job.id}`, { status: "completed" });
+      const jobRes = await api.post(`/api/jobs/${job.id}/update-status`, { status: "completed" });
 
       if (!jobRes.ok) throw new Error("Failed to complete job");
 
@@ -596,6 +596,7 @@ export function JobDetailsContainer({
       onRetryInvoice={handleRetryInvoice}
       onMarkPaid={handleMarkPaid}
       onGenerateInvoicePdf={handleGenerateInvoicePdf}
+      onGenerateInvoice={handleGenerateInvoice}
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}

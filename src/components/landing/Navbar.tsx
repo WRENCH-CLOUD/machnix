@@ -65,7 +65,7 @@ export default function Navbar({ isScrolled, mobileMenuOpen, setMobileMenuOpen }
             <a href="#ai-demo" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-3 text-base font-medium text-gray-300 hover:text-[#22c55e] hover:bg-gray-900 rounded-md">AI Demo</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-3 text-base font-medium text-gray-300 hover:text-[#22c55e] hover:bg-gray-900 rounded-md">Pricing</a>
             <div className="mt-4 pt-4 border-t border-gray-800 flex flex-col gap-3">
-              <a href="#" className="block w-full text-center px-4 py-3 border border-gray-700 rounded-lg text-white font-medium hover:bg-gray-800">
+              <a href="/login" className="block w-full text-center px-4 py-3 border border-gray-700 rounded-lg text-white font-medium hover:bg-gray-800">
                 Log In
               </a>
               <button className="block w-full text-center px-4 py-3 bg-[#22c55e] text-black rounded-lg font-bold hover:bg-[#4ade80]">

@@ -40,7 +40,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
-import { type JobStatus, statusConfig } from "@/lib/mock-data";
+import { type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
 
 interface AllJobsViewProps {
   jobs: UIJob[];

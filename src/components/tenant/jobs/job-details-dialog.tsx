@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type JobStatus, statusConfig } from "@/lib/mock-data";
+import { type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
@@ -52,7 +52,8 @@ interface JobDetailsDialogProps {
   onRetryInvoice: () => void;
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
-
+  onGenerateInvoice: () => void;
+  
   // Payment Modal props
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
@@ -77,8 +78,10 @@ export function JobDetailsDialog({
   invoice,
   loadingInvoice,
   onRetryInvoice,
+
   onMarkPaid,
   onGenerateInvoicePdf,
+  onGenerateInvoice,
   showPaymentModal,
   setShowPaymentModal,
   onPaymentComplete,
@@ -111,6 +114,12 @@ export function JobDetailsDialog({
   };
 
   const validStatuses = getValidTransitions(currentStatus);
+
+  // Simple payment: use total amount (no partial payment support)
+  const totalAmount =
+    invoice?.totalAmount ??
+    invoice?.total_amount ??
+    0;
 
   return (
     <>
@@ -316,6 +325,7 @@ export function JobDetailsDialog({
                   onRetry={onRetryInvoice}
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}
+                  onGenerateInvoice={onGenerateInvoice}
                 />
               </TabsContent>
             </div>
@@ -329,7 +339,7 @@ export function JobDetailsDialog({
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           jobNumber={job.jobNumber}
-          outstandingBalance={invoice.total_amount || 0}
+          outstandingBalance={totalAmount}
           invoiceId={invoice.id}
           onCancel={() => setShowPaymentModal(false)}
           onMarkPaidAndComplete={onPaymentComplete}
