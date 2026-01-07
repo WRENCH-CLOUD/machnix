@@ -78,6 +78,7 @@
     "reflect-metadata": "^0.2.2",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
+    "tailwindcss": "^4.1.9",
     "tailwindcss-animate": "^1.0.7",
     "tsyringe": "^4.10.0",
     "vaul": "^1.1.2",
@@ -99,7 +100,6 @@
     "postcss": "^8.5",
     "react-is": "^19.2.1",
     "supabase": "^2.70.5",
-    "tailwindcss": "^4.1.9",
     "typescript": "^5",
     "typescript-eslint": "^8.50.0"
   }
