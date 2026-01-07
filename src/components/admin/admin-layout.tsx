@@ -63,7 +63,7 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
                 <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <span className="font-bold text-lg text-white">Mechanix</span>
+                <span className="font-bold text-lg text-white">machnix</span>
                 <span className="text-xs text-zinc-500 block">Central Admin</span>
               </div>
             </div>
