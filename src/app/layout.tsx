@@ -7,6 +7,9 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import "./globals.css"
 
+// Force dynamic rendering for all pages - prevents prerender errors with React context
+export const dynamic = 'force-dynamic'
+
 // Use local fonts for reliable builds (avoids network dependency on Google Fonts)
 const inter = localFont({
   src: [
