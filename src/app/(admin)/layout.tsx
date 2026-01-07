@@ -23,6 +23,7 @@ export default function AdminLayoutWrapper({
 
   // --- UI STATE HELPERS ---
   const getActiveView = () => {
+    if (pathname.includes("/callbacks")) return "callbacks";
     if (pathname.includes("/tenants")) return "tenants";
     if (pathname.includes("/mechanics")) return "mechanics";
     if (pathname.includes("/settings")) return "settings";
@@ -32,6 +33,7 @@ export default function AdminLayoutWrapper({
   const viewTitles: Record<string, string> = {
     overview: "Overview",
     tenants: "Tenants",
+    callbacks: "Callbacks",
     mechanics: "Mechanics",
     settings: "Settings",
   };
@@ -44,6 +46,7 @@ export default function AdminLayoutWrapper({
         const routes: Record<string, string> = {
           overview: "/admin",
           tenants: "/tenants",
+          callbacks: "/admin/callbacks",
           mechanics: "/mechanics",
           settings: "/settings",
         };

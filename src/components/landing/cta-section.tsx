@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { CallbackForm } from "./callback-form"
 
 export function CTASection() {
   return (
-    <section className="w-full pt-20 md:pt-60 lg:pt-60 pb-10 md:pb-20 px-5 relative flex flex-col justify-center items-center overflow-visible">
+    <section id="callback-section" className="w-full pt-20 md:pt-40 lg:pt-60 pb-10 md:pb-20 px-5 relative flex flex-col justify-center items-center overflow-visible">
       {/* Optimized: replaced complex SVG with CSS gradients */}
       <div className="absolute inset-0 top-[-90px] overflow-hidden pointer-events-none">
         {/* Primary glow */}
@@ -30,14 +31,21 @@ export function CTASection() {
             Join thousands of auto shops using machnix to streamline operations and boost customer satisfaction.
           </p>
         </div>
-        <Link href="/login">
-          <Button
-            className="px-[30px] py-2 bg-secondary text-secondary-foreground text-base font-medium leading-6 rounded-[99px] shadow-[0px_0px_0px_4px_rgba(255,255,255,0.13)] hover:bg-secondary/90 transition-all duration-200"
-            size="lg"
-          >
-            Start Free Trial
-          </Button>
-        </Link>
+        
+        {/* Callback Form */}
+        <CallbackForm />
+        
+        <div className="flex items-center gap-4 text-muted-foreground text-sm">
+          <span>Already have an account?</span>
+          <Link href="/login">
+            <Button
+              variant="outline"
+              className="px-6 py-2 border-white/20 text-white hover:bg-white/10 rounded-full transition-all duration-200"
+            >
+              Login
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   )

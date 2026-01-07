@@ -11,6 +11,7 @@ import {
   HardHat,
   BarChart3,
   Shield,
+  Phone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -28,6 +29,7 @@ interface AdminLayoutProps {
 const adminNavItems = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "tenants", label: "Tenants", icon: Building2 },
+  { id: "callbacks", label: "Callbacks", icon: Phone },
   { id: "mechanics", label: "Mechanics", icon: HardHat, disabled: true, comingSoon: true },
   { id: "settings", label: "Settings", icon: Settings },
 ]

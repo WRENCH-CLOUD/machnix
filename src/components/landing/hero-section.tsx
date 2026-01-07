@@ -54,11 +54,11 @@ export function HeroSection() {
         </p>
       </div>
 
-      <Link href="/login">
+      <a href="#callback-section">
         <Button className="relative z-10 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 py-3 rounded-full font-medium text-base shadow-lg ring-1 ring-white/10">
-          Start Free Trial
+          Get Started
         </Button>
-      </Link>
+      </a>
 
       {/* Dashboard Preview Image */}
       <div className="relative z-10 mt-10 md:mt-14 lg:mt-16 w-full max-w-[1160px] px-4">
