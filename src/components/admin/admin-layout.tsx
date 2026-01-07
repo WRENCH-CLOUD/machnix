@@ -134,7 +134,7 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
           </div>
           <div className="flex items-center gap-4">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild id="admin-user-menu">
                 <Button variant="ghost" className="flex items-center gap-2 px-2">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={(user as any)?.avatar || "/placeholder.svg"} />

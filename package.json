@@ -1,13 +1,16 @@
 {
-  "name": "Machnix",
-  "version": "0.1.0",
+  "name": "Wrench Cloud",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "start": "next start"
+    "start": "next start",
+    "setup": "npx tsx scripts/create-platform-admin.ts",
+    "seed:vehicles": "npx tsx scripts/seed-vehicle-data.ts",
+    "seed:all": "npm run setup && npm run seed:vehicles"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
