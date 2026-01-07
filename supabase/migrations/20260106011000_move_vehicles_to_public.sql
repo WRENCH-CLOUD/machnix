@@ -1,7 +1,8 @@
--- REVERT: Keep vehicles in tenant schema, don't move to public
--- This migration was originally moving vehicles to public schema
--- but the correct design is: tenant.vehicles with text make/model columns
--- and FK references to public.vehicle_make/model for lookup
+-- REVERT MIGRATION: Keep vehicles in tenant schema (do NOT move to public)
+-- NOTE: The filename '20260106011000_move_vehicles_to_public.sql' is legacy
+-- and does not reflect the current behavior; this migration enforces the
+-- correct design: tenant.vehicles with text make/model columns and
+-- FK references to public.vehicle_make/model for lookup
 
 -- 1) If public.vehicles was created by accident, drop it
 DROP TABLE IF EXISTS public.vehicles;
