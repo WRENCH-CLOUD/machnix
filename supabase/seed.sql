@@ -102,6 +102,12 @@ DECLARE
     mg_id uuid;
     skoda_id uuid;
     renault_id uuid;
+    fiat_id uuid;
+    alfa_romeo_id uuid;
+    maserati_id uuid;
+    ferrari_id uuid;
+    lamborghini_id uuid;
+    citroen_id uuid;
     
     -- Category IDs
     sedan_id uuid;
