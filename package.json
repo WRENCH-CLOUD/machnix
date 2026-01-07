@@ -2,9 +2,6 @@
   "name": "Machnix",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "20.x"
-  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -78,10 +75,7 @@
     "reflect-metadata": "^0.2.2",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
-    "@tailwindcss/postcss": "^4.1.9",
-    "tailwindcss": "^4.1.9",
     "tailwindcss-animate": "^1.0.7",
-    "postcss": "^8.5",
     "tsyringe": "^4.10.0",
     "vaul": "^1.1.2",
     "zod": "3.25.76"
@@ -90,6 +84,7 @@
     "@eslint/compat": "^2.0.0",
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
+    "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -98,8 +93,10 @@
     "eslint-config-next": "^16.0.7",
     "eslint-plugin-check-file": "^3.3.1",
     "eslint-plugin-import": "^2.32.0",
+    "postcss": "^8.5",
     "react-is": "^19.2.1",
     "supabase": "^2.70.5",
+    "tailwindcss": "^4.1.9",
     "typescript": "^5",
     "typescript-eslint": "^8.50.0"
   }
