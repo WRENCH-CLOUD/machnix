@@ -5,7 +5,7 @@ export default function SmartScheduling() {
     <div className="w-full h-full p-4 flex flex-col">
        <div className="flex justify-between items-center mb-3">
          <div className="flex flex-col">
-           <span className="text-xs font-bold">October 24</span>
+           <span className="text-xs font-bold">Today</span>
            <span className="text-[10px] text-muted-foreground">Today's Schedule</span>
          </div>
          <div className="p-1.5 bg-muted rounded-md">
