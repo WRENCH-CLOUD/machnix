@@ -13,15 +13,15 @@ export default function SmartScheduling() {
          </div>
        </div>
 
-       <div className="flex-1 flex flex-col gap-2 relative">
-          {/* Timeline line */}
-          <div className="absolute left-3 top-0 bottom-0 w-px bg-border border-l border-dashed border-muted-foreground/30" />
+      <div className="flex-1 flex flex-col gap-2 relative">
+        {/* Timeline line */}
+        <div className="absolute left-3 top-0 bottom-0 w-px bg-border border-l border-dashed border-muted-foreground/30" />
 
-          {/* Event 1 */}
-          <div className="relative pl-8">
-             <div className="absolute left-[9px] top-1.5 w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-background" />
-             <div className="bg-primary/10 border border-primary/20 rounded-lg p-2">
-                <div className="flex justify-between items-start mb-1">
+        {/* Event 1 */}
+        <div className="relative pl-8">
+          <div className="absolute left-[9px] top-1.5 w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-background" />
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-2">
+            <div className="flex justify-between items-start mb-1">
                   <span className="text-[10px] font-bold text-primary">09:00 AM</span>
                   <span className="text-[9px] text-primary/80">1h</span>
                 </div>
