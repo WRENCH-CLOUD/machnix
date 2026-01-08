@@ -66,8 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
         if (error) {
-          // "Auth session missing!" is expected when no user is logged in - not a real error
-          if (error.message !== "Auth session missing!") {
+          // Check if this is an expected "no session" error (status 400 or 401)
+          // These are normal when the user is not logged in
+          const isNoSessionError = error.status === 400 || error.status === 401;
+          
+          if (!isNoSessionError) {
             console.error("[AuthProvider] Auth error:", error.message);
           }
           if (mounted) {
