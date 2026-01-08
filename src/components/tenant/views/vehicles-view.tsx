@@ -87,7 +87,7 @@ export function VehiclesView({
     return vehicles.filter(v =>
       (v.makeName || "").toLowerCase().includes(q) ||
       (v.modelName || "").toLowerCase().includes(q) ||
-      (v.reg_no || "").toLowerCase().includes(q) ||
+      (v.regNo || "").toLowerCase().includes(q) ||
       (v.ownerName || "").toLowerCase().includes(q)
     )
   }, [vehicles, searchQuery])
@@ -339,7 +339,7 @@ export function VehiclesView({
                           {vehicle.modelName || "Unknown"}
                         </CardTitle>
                         <CardDescription className="font-mono">
-                          {vehicle.reg_no}
+                          {vehicle.regNo}
                         </CardDescription>
                       </div>
                     </div>
