@@ -17,7 +17,7 @@ export async function register() {
 
     try {
       validateEnv()
-      console.log('🚀 Mechanix server starting...')
+      console.log('🚀 Wrench Cloud server starting...')
     } catch (error) {
       // In production, exit the process to prevent unhealthy server
       if (process.env.NODE_ENV === 'production') {
