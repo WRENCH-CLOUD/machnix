@@ -46,7 +46,7 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Link href="/login" className="hidden md:block">
             <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6 py-2 rounded-full font-medium shadow-sm">
-              L ogin
+              Login
             </Button>
           </Link>
           <Sheet>
