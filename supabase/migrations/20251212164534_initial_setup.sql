@@ -85,6 +85,7 @@ CREATE TABLE public.vehicle_model (
   vehicle_category uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT vehicle_model_pkey PRIMARY KEY (id),
+  CONSTRAINT vehicle_model_make_id_name_key UNIQUE (make_id, name),
   CONSTRAINT vehicle_model_make_id_fkey FOREIGN KEY (make_id) REFERENCES public.vehicle_make(id),
   CONSTRAINT vehicle_model_vehicle_category_fkey FOREIGN KEY (vehicle_category) REFERENCES public.vehicle_category(id)
 );
@@ -252,7 +253,7 @@ CREATE TABLE IF NOT EXISTS tenant.invoices (
   tax_amount numeric(10,2) DEFAULT 0,
   discount_amount numeric(10,2) DEFAULT 0,
   paid_amount numeric(10,2) DEFAULT 0,
-  balance numeric(12,2) GENERATED ALWAYS AS (total_amount - paid_amount) STORED,
+  balance numeric(12,2) DEFAULT 0,
   file_key text,
   filename text,
   created_by uuid,
