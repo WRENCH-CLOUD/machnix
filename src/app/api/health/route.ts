@@ -69,13 +69,25 @@ async function checkDatabase(): Promise<HealthCheckResult> {
     const latencyMs = Date.now() - start
 
     if (error) {
-      // Some errors are expected (e.g., RLS policies blocking anonymous access)
-      // We still consider the database healthy if we can connect
-      if (error.code === 'PGRST301' || error.code === '42501') {
+      // PostgREST error PGRST301: JWT missing/malformed - expected with anonymous client
+      // This indicates the database connection is working, RLS is active
+      if (error.code === 'PGRST301') {
         return {
           name: 'database',
           status: 'healthy',
           message: 'Connected (RLS active)',
+          latencyMs,
+        }
+      }
+
+      // PostgreSQL error 42501: Insufficient privilege
+      // Mark as degraded rather than healthy to surface potential permission issues
+      // while still indicating database connectivity is working
+      if (error.code === '42501') {
+        return {
+          name: 'database',
+          status: 'degraded',
+          message: 'Connected but insufficient privileges - check database permissions',
           latencyMs,
         }
       }
