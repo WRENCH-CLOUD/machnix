@@ -34,7 +34,7 @@ export function MechanicDashboardView() {
               <Wrench className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-foreground">machnix</h1>
+              <h1 className="font-bold text-foreground">Wrench Cloud</h1>
               <p className="text-xs text-muted-foreground">
                 {user?.tenantName || "Garage A"}
               </p>

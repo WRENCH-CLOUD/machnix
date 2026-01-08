@@ -1,11 +1,11 @@
 # Next.js Project Restructuring Summary
 
 **Date**: December 13, 2025  
-**Project**: Machnix - Multi-tenant Garage Management System
+**Project**: Wrench Cloud - Multi-tenant Garage Management System
 
 ## Overview
 
-This document details the complete restructuring of the Machnix project to follow Next.js App Router best practices with a proper `src/` directory structure.
+This document details the complete restructuring of the Wrench Cloud project to follow Next.js App Router best practices with a proper `src/` directory structure.
 
 ---
 

@@ -61,7 +61,7 @@ export function LoginPage() {
               <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
                 <Wrench className="w-8 h-8 text-primary-foreground" />
               </div>
-              <span className="text-4xl font-bold text-foreground">machnix</span>
+              <span className="text-4xl font-bold text-foreground">Wrench Cloud</span>
             </div>
             <h1 className="text-4xl font-bold text-foreground mb-4">
               Garage Management,
@@ -107,7 +107,7 @@ export function LoginPage() {
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
               <Wrench className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold">machnix</span>
+            <span className="text-2xl font-bold">Wrench Cloud</span>
           </div>
 
           <Card className="border-border/50 shadow-xl">
