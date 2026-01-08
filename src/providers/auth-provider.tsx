@@ -69,9 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // When no user is logged in, getUser() returns an error (typically status 400).
           // This is expected and not a real error condition.
           // Only log errors that might indicate actual problems (e.g., network issues, invalid tokens).
-          // Check error status: 400 typically means "no session", which is expected
-          if (error.status && error.status !== 400) {
-            console.error("[AuthProvider] Auth error:", error.message, "Status:", error.status);
+          // Status 400 typically means "no session", which is expected
+          // If there's no status property, log the error as it might be unexpected
+          const isExpectedNoSession = error.status === 400;
+          if (!isExpectedNoSession) {
+            console.error("[AuthProvider] Auth error:", error.message, "Status:", error.status ?? "unknown");
           }
           if (mounted) {
             applySession(null);
