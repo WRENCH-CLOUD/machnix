@@ -105,7 +105,7 @@ export function MechanicJobDetailDialog({
           <div className="flex gap-1">
             {[
               { id: "status" as const, label: "Status", icon: Clock },
-              { id: "dvi" as const, label: "Inspection", icon: ClipboardCheck },
+              // { id: "dvi" as const, label: "Inspection", icon: ClipboardCheck },
               { id: "info" as const, label: "Details", icon: Car },
             ].map((tab) => (
               <button
@@ -240,10 +240,9 @@ export function MechanicJobDetailDialog({
             </div>
           )}
 
-          DVI Tab
+          {/* DVI Tab - Commented out as it's not in scope
           {activeTab === "dvi" && (
             <div className="p-4 space-y-4">
-              {/* DVI Summary */}
               <div className="grid grid-cols-4 gap-2">
                 {Object.entries(dviStatusConfig).map(([key, config]) => {
                   // FIXME: create and or if exsist import dviStatusConfig
@@ -267,7 +266,6 @@ export function MechanicJobDetailDialog({
                 })}
               </div>
 
-              {/* DVI Items by Category */}
               {Object.entries(groupedDviItems).map(([category, items]) => (
                 <div key={category}>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -286,7 +284,6 @@ export function MechanicJobDetailDialog({
                       return (
                         <Card key={item.id} className="overflow-hidden">
                           <CardContent className="p-0">
-                            {/* Item Header */}
                             <div className="p-4">
                               <div className="flex items-center gap-3 mb-3">
                                 <StatusIcon
@@ -303,7 +300,6 @@ export function MechanicJobDetailDialog({
                                 </p>
                               )}
 
-                              {/* Status Buttons - Large Touch Targets */}
                               <div className="grid grid-cols-4 gap-2">
                                 {(
                                   [
@@ -341,7 +337,6 @@ export function MechanicJobDetailDialog({
                               </div>
                             </div>
 
-                            {/* Action Buttons */}
                             <div className="flex border-t border-border">
                               <button
                                 onClick={() =>
@@ -359,7 +354,6 @@ export function MechanicJobDetailDialog({
                               </button>
                             </div>
 
-                            {/* Expanded Note Input */}
                             <AnimatePresence>
                               {isExpanded && (
                                 <motion.div
@@ -423,7 +417,7 @@ export function MechanicJobDetailDialog({
                 </Card>
               )}
             </div>
-          )}
+          )} */}
 
           {/* Info Tab - Read Only */}
           {activeTab === "info" && (
