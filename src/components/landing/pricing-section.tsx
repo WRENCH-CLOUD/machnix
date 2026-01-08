@@ -18,7 +18,7 @@ export function PricingSection() {
         "1 technician",
         "Basic job tracking",
         "Customer notifications",
-        "machnix branding on invoices",
+        "Wrench Cloud branding on invoices",
       ],
       buttonText: "Get Started",
       buttonClass:

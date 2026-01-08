@@ -7,9 +7,9 @@ import { ChevronDown } from "lucide-react"
 //TODO: Update the faq data to a realsonable data
 const faqData = [
   {
-    question: "What is machnix and who is it for?",
+    question: "What is Wrench Cloud and who is it for?",
     answer:
-      "machnix is a professional garage management platform designed for auto repair shops of all sizes. Whether you're a single-bay operation or managing multiple locations, machnix helps you streamline job tracking, customer communication, and shop operations.",
+      "Wrench Cloud is a professional garage management platform designed for auto repair shops of all sizes. Whether you're a single-bay operation or managing multiple locations, Wrench Cloud helps you streamline job tracking, customer communication, and shop operations.",
   },
   {
     question: "How do Digital Vehicle Inspections work?",
@@ -24,7 +24,7 @@ const faqData = [
   {
     question: "What's included in the free plan?",
     answer:
-      "The free plan includes up to 50 jobs per month, 1 technician, basic job tracking, customer notifications, and invoicing with machnix branding. It's perfect for small shops or those wanting to try the platform before upgrading.",
+      "The free plan includes up to 50 jobs per month, 1 technician, basic job tracking, customer notifications, and invoicing with Wrench Cloud branding. It's perfect for small shops or those wanting to try the platform before upgrading.",
   },
   {
     question: "Do you offer multi-shop support?",
@@ -100,7 +100,7 @@ export function FAQSection() {
             Frequently Asked Questions
           </h2>
           <p className="self-stretch text-center text-muted-foreground text-sm font-medium leading-[18.20px] break-words">
-            Everything you need to know about machnix and how it can transform your shop
+            Everything you need to know about Wrench Cloud and how it can transform your shop
           </p>
         </div>
       </div>

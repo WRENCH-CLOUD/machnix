@@ -283,7 +283,7 @@ export default function HomePage() {
       <AppSidebar activeView={activeView} onViewChange={setActiveView} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopHeader
-          tenantName="machnix Garage"
+          tenantName="Wrench Cloud Garage"
           onCreateJob={() => setShowCreateJob(true)}
         />
         <main className="flex-1 overflow-auto p-6">
@@ -348,6 +348,6 @@ export default function HomePage() {
   )
 }
 
-export default function machnixApp() {
+export default function WrenchCloudApp() {
   return <AppContent />
 }

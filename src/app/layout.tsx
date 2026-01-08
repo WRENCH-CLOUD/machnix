@@ -7,6 +7,9 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import "./globals.css"
 
+// Force dynamic rendering for all pages - prevents prerender errors with React context
+export const dynamic = 'force-dynamic'
+
 // Use local fonts for reliable builds (avoids network dependency on Google Fonts)
 const inter = localFont({
   src: [
@@ -33,7 +36,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "machnix - Garage Management System",
+  title: "Wrench Cloud - Garage Management System",
   description: "Professional multi-tenant garage management system for automotive service businesses",
   icons: {
     // Prefer using existing assets in /public; you can add favicon.ico for full compatibility
