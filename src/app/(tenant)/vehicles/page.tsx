@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { VehiclesView, Vehicle } from "@/components/tenant/views/vehicles-view";
+import { VehiclesView } from "@/components/tenant/views/vehicles-view";
 import { useAuth } from "@/providers/auth-provider";
+import { VehicleViewModel, VehicleFormData, transformVehicleToViewModel } from "@/lib/transformers";
 
 export default function VehiclesPage() {
   const { tenantId } = useAuth();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleViewModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,18 +30,7 @@ export default function VehiclesPage() {
       const vehiclesData = await response.json();
       
       // Transform API data to UI format
-      const transformedVehicles: Vehicle[] = vehiclesData.map((v: any) => ({
-        id: v.id,
-        makeName: v.make?.name || "Unknown",
-        modelName: v.model || "Unknown",
-        reg_no: v.reg_no,
-        year: v.year,
-        color: v.color,
-        odometer: v.odometer,
-        ownerName: v.customer?.name || "Unknown",
-        totalJobs: v.jobs?.length || 0,
-        lastService: v.jobs?.[0]?.created_at ? new Date(v.jobs[0].created_at) : undefined
-      }));
+      const transformedVehicles: VehicleViewModel[] = vehiclesData.map(transformVehicleToViewModel);
 
       setVehicles(transformedVehicles);
     } catch (err) {
@@ -51,7 +41,7 @@ export default function VehiclesPage() {
     }
   };
 
-  const handleAddVehicle = async (data: any) => {
+  const handleAddVehicle = async (data: VehicleFormData) => {
     try {
       const response = await fetch("/api/vehicles/create", {
         method: "POST",
