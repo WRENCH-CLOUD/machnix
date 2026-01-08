@@ -6,7 +6,7 @@ This document describes the implementation of the secure tenant creation and man
 ## Features Implemented
 
 ### 1. Tenant Details View
-- **Component**: `components/machnix/tenant-details-dialog.tsx`
+- **Component**: `components/wrench-cloud/tenant-details-dialog.tsx`
 - **Purpose**: Display comprehensive tenant information including:
   - Basic tenant info (name, slug, creation date)
   - Status and subscription details
@@ -15,7 +15,7 @@ This document describes the implementation of the secure tenant creation and man
   - Performance metrics
 
 ### 2. Secure Tenant Creation Flow
-- **Component**: `components/machnix/create-tenant-dialog.tsx`
+- **Component**: `components/wrench-cloud/create-tenant-dialog.tsx`
 - **API Route**: `app/api/admin/tenants/create/route.ts`
 
 #### Security Best Practices Implemented:
@@ -256,13 +256,13 @@ CREATE TABLE tenant.users (
 ## Files Modified/Created
 
 ### New Files
-- `components/machnix/tenant-details-dialog.tsx`
-- `components/machnix/create-tenant-dialog.tsx`
+- `components/wrench-cloud/tenant-details-dialog.tsx`
+- `components/wrench-cloud/create-tenant-dialog.tsx`
 - `app/api/admin/tenants/create/route.ts`
 - `lib/supabase/services/tenant.service.ts`
 
 ### Modified Files
-- `components/machnix/admin-dashboard.tsx`
+- `components/wrench-cloud/admin-dashboard.tsx`
 - `lib/supabase/services/index.ts`
 
 ## Support

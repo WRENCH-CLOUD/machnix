@@ -458,7 +458,7 @@ export function HeroSection() {
         <div className="bg-gradient-to-b from-emerald-500/30 to-transparent rounded-2xl p-1 md:p-2 shadow-2xl">
           <Image
             src="/dashboard-page.jpeg"
-            alt="machnix Dashboard Preview"
+            alt="Wrench Cloud Dashboard Preview"
             width={1160}
             height={700}
             className="w-full h-auto object-cover rounded-xl shadow-lg border border-white/10"

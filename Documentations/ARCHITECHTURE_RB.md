@@ -1,6 +1,6 @@
 # Architecture Rules & Blueprint
 
-**Project:** Machnix
+**Project:** Wrench Cloud
 **Architecture:** Modular SaaS Monolith (Next.js App Router)
 **Version:** 2.0
 **Target Scale:** 1 → 10,000+ Tenants
