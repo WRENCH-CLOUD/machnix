@@ -14,20 +14,20 @@ export default function InvoiceEstimates() {
            <span className="text-[10px] text-muted-foreground">#INV-2024</span>
         </div>
 
-        <div className="space-y-1.5">
+        <dl className="space-y-1.5" aria-label="Invoice breakdown">
            <div className="flex justify-between text-[10px]">
-             <span className="text-muted-foreground">Labor (3.5h)</span>
-             <span>$350.00</span>
+             <dt className="text-muted-foreground">Labor (3.5h)</dt>
+             <dd>$350.00</dd>
            </div>
            <div className="flex justify-between text-[10px]">
-             <span className="text-muted-foreground">Parts</span>
-             <span>$125.50</span>
+             <dt className="text-muted-foreground">Parts</dt>
+             <dd>$125.50</dd>
            </div>
            <div className="flex justify-between text-[10px] font-medium border-t border-border/50 pt-1.5 mt-1">
-             <span>Total</span>
-             <span>$475.50</span>
+             <dt>Total</dt>
+             <dd>$475.50</dd>
            </div>
-        </div>
+        </dl>
 
         <div className="mt-auto">
            <div className="w-full py-1 bg-green-500/10 text-green-600 rounded flex items-center justify-center gap-1 text-[10px] font-medium">
