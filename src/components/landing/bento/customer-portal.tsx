@@ -35,8 +35,8 @@ export default function CustomerPortal() {
           </div>
 
           <div className="mt-auto flex gap-2">
-             <div className="h-6 flex-1 bg-primary rounded text-[8px] text-primary-foreground flex items-center justify-center font-medium">View</div>
-             <div className="h-6 flex-1 bg-muted rounded text-[8px] text-muted-foreground flex items-center justify-center font-medium">Chat</div>
+             <button className="h-6 flex-1 bg-primary rounded text-[8px] text-primary-foreground flex items-center justify-center font-medium">View</button>
+             <button className="h-6 flex-1 bg-muted rounded text-[8px] text-muted-foreground flex items-center justify-center font-medium">Chat</button>
           </div>
         </div>
       </div>
