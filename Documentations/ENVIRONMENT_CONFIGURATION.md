@@ -1,6 +1,6 @@
 # Environment Configuration Guide
 
-This document describes all environment variables used by Mechanix and how to configure them properly.
+This document describes all environment variables used by Wrench Cloud and how to configure them properly.
 
 ## Quick Start
 
