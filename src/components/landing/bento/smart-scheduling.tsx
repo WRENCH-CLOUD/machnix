@@ -9,7 +9,7 @@ export default function SmartScheduling() {
            <span className="text-[10px] text-muted-foreground">Today's Schedule</span>
          </div>
          <div className="p-1.5 bg-muted rounded-md">
-            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
          </div>
        </div>
 
