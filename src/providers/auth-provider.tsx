@@ -68,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           // Check if this is an expected "no session" error (status 400 or 401)
           // These are normal when the user is not logged in
+          // Status codes based on Supabase Auth API behavior:
+          // - 400: Bad Request (e.g., invalid or missing session)
+          // - 401: Unauthorized (e.g., expired session)
+          // Note: undefined status is treated as an unexpected error and will be logged
           const isNoSessionError = error.status === 400 || error.status === 401;
           
           // Log unexpected errors (anything that's not a "no session" error)
