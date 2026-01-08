@@ -187,13 +187,13 @@ Example Kubernetes deployment configuration:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mechanix
+  name: wrench-cloud
 spec:
   template:
     spec:
       containers:
-        - name: mechanix
-          image: mechanix:latest
+        - name: wrench-cloud
+          image: wrench-cloud:latest
           ports:
             - containerPort: 3000
           env:
