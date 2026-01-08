@@ -285,6 +285,37 @@ const VEHICLE_MODELS: Record<string, { name: string; model_code: string; categor
     { name: 'Kiger', model_code: 'KIG', category: 'SUV' },
     { name: 'Duster', model_code: 'DUS', category: 'SUV' },
   ],
+  'Fiat': [
+    { name: '500', model_code: '500', category: 'Hatchback' },
+    { name: 'Panda', model_code: 'PAN', category: 'Hatchback' },
+    { name: 'Tipo', model_code: 'TIP', category: 'Sedan' },
+    { name: 'Punto', model_code: 'PUN', category: 'Hatchback' },
+  ],
+  'Alfa Romeo': [
+    { name: 'Giulia', model_code: 'GIU', category: 'Sedan' },
+    { name: 'Stelvio', model_code: 'STE', category: 'SUV' },
+    { name: 'Giulietta', model_code: 'GIUL', category: 'Hatchback' },
+  ],
+  'Maserati': [
+    { name: 'Ghibli', model_code: 'GHI', category: 'Sedan' },
+    { name: 'Quattroporte', model_code: 'QUA', category: 'Sedan' },
+    { name: 'Levante', model_code: 'LEV', category: 'SUV' },
+  ],
+  'Ferrari': [
+    { name: '488 GTB', model_code: '488', category: 'Sports Car' },
+    { name: 'F8 Tributo', model_code: 'F8', category: 'Sports Car' },
+    { name: 'Roma', model_code: 'ROM', category: 'Sports Car' },
+  ],
+  'Lamborghini': [
+    { name: 'Huracán', model_code: 'HUR', category: 'Sports Car' },
+    { name: 'Aventador', model_code: 'AVE', category: 'Sports Car' },
+    { name: 'Urus', model_code: 'URU', category: 'SUV' },
+  ],
+  'Citroen': [
+    { name: 'C3', model_code: 'C3', category: 'Hatchback' },
+    { name: 'C4', model_code: 'C4', category: 'Hatchback' },
+    { name: 'C5 Aircross', model_code: 'C5A', category: 'SUV' },
+  ],
 }
 
 // ============================================================================
