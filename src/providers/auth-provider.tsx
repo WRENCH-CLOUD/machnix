@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // These are normal when the user is not logged in
           const isNoSessionError = error.status === 400 || error.status === 401;
           
+          // Log unexpected errors (anything that's not a "no session" error)
           if (!isNoSessionError) {
             console.error("[AuthProvider] Auth error:", error.message);
           }
