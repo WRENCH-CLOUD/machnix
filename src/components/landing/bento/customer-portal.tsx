@@ -19,8 +19,8 @@ export default function CustomerPortal() {
               <MessageSquare className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex flex-col">
-              <div className="h-2 w-20 bg-muted rounded mb-1" />
-              <div className="h-1.5 w-12 bg-muted/50 rounded" />
+              <div className="h-2 w-20 bg-muted rounded mb-1" aria-hidden="true" />
+              <div className="h-1.5 w-12 bg-muted/50 rounded" aria-hidden="true" />
             </div>
           </div>
 
