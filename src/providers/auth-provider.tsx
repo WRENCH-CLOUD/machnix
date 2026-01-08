@@ -66,9 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
         if (error) {
-          // "Auth session missing!" is expected when no user is logged in - not a real error
-          if (error.message !== "Auth session missing!") {
-            console.error("[AuthProvider] Auth error:", error.message);
+          // When no user is logged in, getUser() returns an error (typically status 400).
+          // This is expected and not a real error condition.
+          // Only log errors that might indicate actual problems (e.g., network issues, invalid tokens).
+          // Check error status: 400 typically means "no session", which is expected
+          if (error.status && error.status !== 400) {
+            console.error("[AuthProvider] Auth error:", error.message, "Status:", error.status);
           }
           if (mounted) {
             applySession(null);
