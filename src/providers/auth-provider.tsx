@@ -66,14 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
         if (error) {
-          // When no user is logged in, getUser() returns an error (typically status 400).
-          // This is expected and not a real error condition.
-          // Only log errors that might indicate actual problems (e.g., network issues, invalid tokens).
-          // Status 400 typically means "no session", which is expected
-          // If there's no status property, log the error as it might be unexpected
+          // When no user is logged in, getUser() returns an error with status 400.
+          // This is expected and should not be logged. Any other error (different status
+          // or missing status) indicates an actual problem and should be logged.
           const isExpectedNoSession = error.status === 400;
           if (!isExpectedNoSession) {
-            console.error("[AuthProvider] Auth error:", error.message, "Status:", error.status ?? "unknown");
+            console.error(
+              "[AuthProvider] Auth error:",
+              error.message || "Unknown error",
+              "Status:",
+              error.status ?? "unknown"
+            );
           }
           if (mounted) {
             applySession(null);
