@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase, setTenantContext, clearTenantContext, getSafeSession } from "@/lib/supabase/client";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { setTenantContext, clearTenantContext } from "@/lib/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -36,8 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Get the browser client (uses cookies, synced with server via middleware)
+  const supabase = useMemo(() => getSupabaseBrowser(), []);
 
-  const applySession = (session: Session | null) => {
+  const applySession = useCallback((session: Session | null) => {
     setSession(session);
     setUser(session?.user ?? null);
 
@@ -50,61 +54,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       clearTenantContext();
     }
-  };
+  }, []);
 
-useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
       try {
-        // 1. Try client-side session first (with graceful refresh fallback)
-        const { session: clientSession, error: sessionError, recovered } = await getSafeSession();
+        // Use getUser() instead of getSession() for proper validation
+        // The middleware refreshes the session, so cookies should be up to date
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
-        if (sessionError) {
-          console.error("[AuthProvider] Session fetch error:", sessionError);
+        if (error) {
+          // When no user is logged in, getUser() returns an error with status 400.
+          // This is expected and should not be logged. Any other error (different status
+          // or missing status) indicates an actual problem and should be logged.
+          const isExpectedNoSession = error.status === 400;
+          if (!isExpectedNoSession) {
+            console.error(
+              "[AuthProvider] Auth error:",
+              error.message || "Unknown error",
+              "Status:",
+              error.status ?? "unknown"
+            );
+          }
+          if (mounted) {
+            applySession(null);
+            setLoading(false);
+          }
+          return;
         }
 
-        if (clientSession) {
-          if (mounted) applySession(clientSession);
+        if (authUser) {
+          // Get the full session for the user
+          const { data: { session: authSession } } = await supabase.auth.getSession();
+          if (mounted) applySession(authSession);
 
-          // 2. Always check /api/auth/me for impersonation override
-          // This is important for platform admins who may be impersonating a tenant
+          // Check /api/auth/me for impersonation override (platform admins)
           const res = await fetch("/api/auth/me");
           if (res.ok && mounted) {
             const { user: serverUser } = await res.json();
             if (serverUser?.isImpersonating && serverUser.tenantId) {
-              // Override tenantId with impersonated value
               console.log("[AuthProvider] Impersonation active, tenantId:", serverUser.tenantId);
               setTenantId(serverUser.tenantId);
               setTenantContext(serverUser.tenantId);
             }
           }
-          return;
-        }
-
-        if (recovered) {
+        } else {
           if (mounted) applySession(null);
-          return;
-        }
-
-        // 3. Fallback to server-side session check when no client session
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const { user: serverUser } = await res.json();
-          if (serverUser && mounted) {
-            setUser(serverUser as any);
-            setTenantId(serverUser.tenantId);
-            setUserRole(serverUser.role);
-            if (serverUser.tenantId) setTenantContext(serverUser.tenantId);
-          }
         }
       } catch (err) {
         console.error("[AuthProvider] Initialization error:", err);
+        if (mounted) applySession(null);
       } finally {
         if (mounted) setLoading(false);
       }
     };
-
 
     initAuth();
 
@@ -119,11 +124,11 @@ useEffect(() => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase, applySession]);
 
 
   const signIn = async (email: string, password: string) => {
-    // Use server-side login to set HttpOnly cookies, then sync client session
+    // Use server-side login to set HttpOnly cookies
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,7 +143,7 @@ useEffect(() => {
 
       if (contentType.includes("application/json")) {
         try {
-          const err= await res.json();
+          const err = await res.json();
           errorMessage = err?.error?.message || errorMessage;
         } catch (e) {
           console.error("Failed to parse error JSON from /api/auth/login", e);
@@ -155,16 +160,25 @@ useEffect(() => {
       throw new Error(errorMessage);
     }
 
-    // On success, do NOT consume tokens. Fetch the client session (cookie-backed).
-    // This keeps tokens out of JS memory and Local Storage.
-    const { session: sessionData, error, recovered } = await getSafeSession();
-    if (recovered || !sessionData) {
+    // Server has set the cookies. Now get the session from the browser client.
+    // The middleware will have already refreshed cookies on the next request,
+    // but we can get the session directly since cookies are now set.
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !authUser) {
+      console.error("Failed to get user after login:", userError);
       throw new Error("Session could not be established. Please sign in again.");
     }
 
-    if (error) {
-      console.error("Failed to fetch session after login:", error);
-      throw error;
+    const { data: { session: sessionData }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("Failed to fetch session after login:", sessionError);
+      throw sessionError;
+    }
+
+    if (!sessionData) {
+      throw new Error("Session could not be established. Please sign in again.");
     }
 
     applySession(sessionData);

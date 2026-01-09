@@ -63,7 +63,7 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
                 <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <span className="font-bold text-lg text-white">machnix</span>
+                <span className="font-bold text-lg text-white">Wrench Cloud</span>
                 <span className="text-xs text-zinc-500 block">Central Admin</span>
               </div>
             </div>
@@ -134,7 +134,7 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
           </div>
           <div className="flex items-center gap-4">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild id="admin-user-menu">
                 <Button variant="ghost" className="flex items-center gap-2 px-2">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={(user as any)?.avatar || "/placeholder.svg"} />

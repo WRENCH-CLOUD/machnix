@@ -1,19 +1,23 @@
-import { Wrench, ClipboardCheck, Users, Package, Receipt, Building2 } from "lucide-react"
+import JobManagement from "./bento/job-management"
+import CustomerPortal from "./bento/customer-portal"
+import InventoryTracking from "./bento/inventory-tracking"
+import InvoiceEstimates from "./bento/invoice-estimates"
+import MultiShop from "./bento/multi-shop"
+import SmartScheduling from "./bento/smart-scheduling"
 
 interface BentoCardProps {
   title: string
   description: string
-  icon: React.ReactNode
+  graphic: React.ReactNode
 }
 
-// TODO: Update the bento card to a realsonable data and snapshot iamges of each feature
-const BentoCard = ({ title, description, icon }: BentoCardProps) => (
-  <div className="overflow-hidden rounded-2xl border border-white/20 flex flex-col justify-start items-start relative">
+const BentoCard = ({ title, description, graphic }: BentoCardProps) => (
+  <div className="overflow-hidden rounded-2xl border border-white/20 flex flex-col justify-start items-start relative bg-card/10">
     {/* Background with blur effect */}
     <div
       className="absolute inset-0 rounded-2xl"
       style={{
-        background: "rgba(231, 236, 235, 0.08)",
+        background: "rgba(231, 236, 235, 0.04)",
         backdropFilter: "blur(4px)",
         WebkitBackdropFilter: "blur(4px)",
       }}
@@ -29,10 +33,8 @@ const BentoCard = ({ title, description, icon }: BentoCardProps) => (
         </p>
       </div>
     </div>
-    <div className="self-stretch h-48 relative -mt-0.5 z-10 flex items-center justify-center">
-      <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-        {icon}
-      </div>
+    <div className="self-stretch h-56 relative -mt-0.5 z-10 flex items-center justify-center overflow-hidden">
+      {graphic}
     </div>
   </div>
 )
@@ -42,32 +44,32 @@ export function BentoSection() {
     {
       title: "Job Management",
       description: "Track repairs from intake to delivery with real-time status updates.",
-      icon: <Wrench className="w-10 h-10 text-primary" />,
+      graphic: <JobManagement />,
     },
     {
-      title: "Digital Vehicle Inspections",
-      description: "Professional DVI reports with photos your customers can trust.",
-      icon: <ClipboardCheck className="w-10 h-10 text-primary" />,
+      title: "Smart Scheduling",
+      description: "Optimize bay utilization and technician schedules effortlessly.",
+      graphic: <SmartScheduling />,
     },
     {
       title: "Customer Portal",
       description: "Keep customers informed with real-time job updates and approvals.",
-      icon: <Users className="w-10 h-10 text-primary" />,
+      graphic: <CustomerPortal />,
     },
     {
       title: "Inventory Tracking",
       description: "Manage parts and supplies effortlessly with smart stock alerts.",
-      icon: <Package className="w-10 h-10 text-primary" />,
+      graphic: <InventoryTracking />,
     },
     {
       title: "Invoice & Estimates",
       description: "Generate professional quotes and invoices in seconds.",
-      icon: <Receipt className="w-10 h-10 text-primary" />,
+      graphic: <InvoiceEstimates />,
     },
     {
       title: "Multi-Shop Support",
       description: "Manage multiple locations from one unified dashboard.",
-      icon: <Building2 className="w-10 h-10 text-primary" />,
+      graphic: <MultiShop />,
     },
   ]
 
@@ -81,7 +83,7 @@ export function BentoSection() {
               Everything You Need to Run Your Shop
             </h2>
             <p className="w-full max-w-[600px] text-center text-muted-foreground text-lg md:text-xl font-medium leading-relaxed">
-              From job tracking to customer management, machnix gives you the tools to streamline operations and boost efficiency.
+              From job tracking to customer management, Wrench Cloud gives you the tools to streamline operations and boost efficiency.
             </p>
           </div>
         </div>
