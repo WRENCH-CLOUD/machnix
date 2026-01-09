@@ -200,7 +200,13 @@ export function ResetPasswordForm() {
                 type={newPassword.visible ? "text" : "password"}
                 placeholder="Enter your new password"
                 value={newPassword.value}
-                onChange={(e) => setNewPassword((prev) => ({ ...prev, value: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setNewPassword((prev) => ({ ...prev, value }))
+                  if (confirmPassword.value && touched.confirmPassword) {
+                    validateForm()
+                  }
+                }}
                 onBlur={() => handleBlur("newPassword")}
                 className="pl-10 pr-10"
                 required
