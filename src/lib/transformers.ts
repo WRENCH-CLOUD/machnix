@@ -2,7 +2,7 @@ export interface VehicleViewModel {
   id: string;
   makeName: string;
   modelName: string;
-  reg_no: string;
+  regNo: string;
   year?: number;
   color?: string;
   odometer?: number;
@@ -28,7 +28,7 @@ export function transformVehicleToViewModel(vehicle: Record<string, any>): Vehic
     id: vehicle.id,
     makeName: vehicle.make?.name || "Unknown",
     modelName: vehicle.model || "Unknown",
-    reg_no: vehicle.reg_no,
+    regNo: vehicle.reg_no,
     year: vehicle.year,
     color: vehicle.color,
     odometer: vehicle.odometer,
