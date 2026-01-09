@@ -19,7 +19,7 @@ const faqData = [
   {
     question: "Can I import my existing customer data?",
     answer:
-      "Yes! We offer easy data import from spreadsheets and many popular shop management systems. Our support team can also help with custom migrations for larger operations.",
+      "Yes! We offer easy data import from spreadsheets and many popular garage management systems. Our support team can also help with custom migrations for larger operations.",
   },
   {
     question: "What's included in the free plan?",
