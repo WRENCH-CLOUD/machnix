@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   description: "Professional multi-tenant garage management system for automotive service businesses",
   icons: {
     // Prefer using existing assets in /public; you can add favicon.ico for full compatibility
-    icon: "/icon.svg",
-    apple: "/apple-icon.png",
+    icon: "/icon.png",
+    apple: "/icon.png",
   },
 }
 
