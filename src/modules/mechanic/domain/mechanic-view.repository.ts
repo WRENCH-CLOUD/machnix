@@ -1,9 +1,7 @@
 import { JobStatus } from "@/modules/job/domain/job.entity"
-// TODO: chagne this to real data
-// TODO: needed more revision and fixs and updates
+
 export const statusFlow: JobStatus[] = [
   "received",
-  "assigned",
   "working",
   "ready",
   "completed",
