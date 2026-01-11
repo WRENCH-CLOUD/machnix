@@ -105,18 +105,26 @@ export function ResetPasswordForm() {
     setSubmitSuccess(false)
 
     try {
-      // Mock async API call - replace with actual backend integration
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simulate random success/failure for demo purposes
-          const shouldSucceed = Math.random() > 0.3
-          if (shouldSucceed) {
-            resolve(true)
-          } else {
-            reject(new Error("Current password is incorrect"))
-          }
-        }, 1500)
+      // Call the change-password API endpoint
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: existingPassword.value,
+          newPassword: newPassword.value,
+          confirmNewPassword: confirmPassword.value,
+        }),
       })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Handle specific error codes from the API
+        const errorMessage = data.error?.message || 'Failed to change password. Please try again.'
+        throw new Error(errorMessage)
+      }
 
       // Success - reset form
       setSubmitSuccess(true)
@@ -131,7 +139,7 @@ export function ResetPasswordForm() {
         setSubmitSuccess(false)
       }, 5000)
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Failed to reset password. Please try again.")
+      setSubmitError(error instanceof Error ? error.message : "Failed to change password. Please try again.")
     } finally {
       setIsLoading(false)
     }
