@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from "@/lib/supabaseClient";
+import { getSupabase as getSupabaseClient } from "@/lib/supabase/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { AuthRepository, CreateUserInput, AuthUser } from "./auth.repository";
 
@@ -45,7 +45,7 @@ export class SupabaseAuthRepository implements AuthRepository {
    */
   async verifyPassword(email: string, password: string): Promise<boolean> {
     // Use the lib client for password verification
-    const tempClient = createSupabaseClient();
+    const tempClient = getSupabaseClient();
     let signInError: unknown = null;
     try {
       const { error } = await tempClient.auth.signInWithPassword({
