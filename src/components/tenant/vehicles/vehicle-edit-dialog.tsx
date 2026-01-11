@@ -188,7 +188,6 @@ export function VehicleEditDialog({
                   }
                   placeholder="2024"
                   min="1900"
-                  max="2030"
                 />
               </div>
             </div>
