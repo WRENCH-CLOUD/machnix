@@ -11,6 +11,8 @@ import {
   MoreHorizontal,
   User,
   Wrench,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +27,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,6 +49,18 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VehicleViewModel, VehicleFormData } from "@/lib/transformers";
+import { VehicleDetailDialog } from "@/components/tenant/vehicles/vehicle-detail-dialog";
+import { VehicleEditDialog } from "@/components/tenant/vehicles/vehicle-edit-dialog";
+import { VehicleDeleteDialog } from "@/components/tenant/vehicles/vehicle-delete-dialog";
+
+interface VehicleEditFormData {
+  make: string;
+  model: string;
+  regNo: string;
+  year: string;
+  color: string;
+  odometer: string;
+}
 
 interface VehiclesViewProps {
   vehicles: VehicleViewModel[];
@@ -52,7 +68,10 @@ interface VehiclesViewProps {
   error: string | null;
   makes?: { id: string; name: string }[];
   onAddVehicle: (data: VehicleFormData) => Promise<void>;
+  onEditVehicle?: (id: string, data: VehicleEditFormData) => Promise<void>;
+  onDeleteVehicle?: (id: string) => Promise<void>;
   onRetry: () => void;
+  onCreateJob?: (vehicle: VehicleViewModel) => void;
 }
 
 export function VehiclesView({
@@ -61,10 +80,13 @@ export function VehiclesView({
   error = null,
   makes = [],
   onAddVehicle,
+  onEditVehicle,
+  onDeleteVehicle,
   onRetry,
+  onCreateJob,
 }: VehiclesViewProps) {
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<VehicleFormData>({
     makeId: "",
     model: "",
@@ -73,33 +95,99 @@ export function VehiclesView({
     color: "",
     odometer: "",
     ownerPhone: "",
-  })
+  });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Dialog states
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleViewModel | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const stats = useMemo(() => {
     return {
       total: vehicles.length,
       servicedThisMonth: Math.min(vehicles.length, 5),
-    }
-  }, [vehicles])
+    };
+  }, [vehicles]);
 
   const filteredVehicles = useMemo(() => {
-    const q = searchQuery.toLowerCase()
-    return vehicles.filter(v =>
-      (v.makeName || "").toLowerCase().includes(q) ||
-      (v.modelName || "").toLowerCase().includes(q) ||
-      (v.regNo || "").toLowerCase().includes(q) ||
-      (v.ownerName || "").toLowerCase().includes(q)
-    )
-  }, [vehicles, searchQuery])
+    const q = searchQuery.toLowerCase();
+    return vehicles.filter(
+      (v) =>
+        (v.makeName || "").toLowerCase().includes(q) ||
+        (v.modelName || "").toLowerCase().includes(q) ||
+        (v.regNo || "").toLowerCase().includes(q) ||
+        (v.ownerName || "").toLowerCase().includes(q)
+    );
+  }, [vehicles, searchQuery]);
 
-  const handleAddSubmit = async () => {
-    if (!onAddVehicle) {
-      setShowAddDialog(false)
-      return
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.regNo.trim()) {
+      setAddError("Registration number is required");
+      return;
     }
-    await onAddVehicle(formData)
-    setShowAddDialog(false)
-  }
+
+    try {
+      setAddLoading(true);
+      setAddError(null);
+      await onAddVehicle(formData);
+      setShowAddDialog(false);
+      setFormData({
+        makeId: "",
+        model: "",
+        regNo: "",
+        year: "",
+        color: "",
+        odometer: "",
+        ownerPhone: "",
+      });
+    } catch (err) {
+      console.error("Error adding vehicle:", err);
+      setAddError(err instanceof Error ? err.message : "Failed to add vehicle");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleViewDetails = (vehicle: VehicleViewModel) => {
+    setSelectedVehicle(vehicle);
+    setShowDetailDialog(true);
+  };
+
+  const handleEdit = (vehicle: VehicleViewModel) => {
+    setSelectedVehicle(vehicle);
+    setShowEditDialog(true);
+    setShowDetailDialog(false);
+  };
+
+  const handleDelete = (vehicle: VehicleViewModel) => {
+    setSelectedVehicle(vehicle);
+    setShowDeleteDialog(true);
+    setShowDetailDialog(false);
+  };
+
+  const handleSaveEdit = async (id: string, data: VehicleEditFormData) => {
+    if (onEditVehicle) {
+      await onEditVehicle(id, data);
+      onRetry();
+    }
+  };
+
+  const handleConfirmDelete = async (id: string) => {
+    if (onDeleteVehicle) {
+      await onDeleteVehicle(id);
+      onRetry();
+    }
+  };
+
+  const handleCreateJob = (vehicle: VehicleViewModel) => {
+    setShowDetailDialog(false);
+    onCreateJob?.(vehicle);
+  };
 
   return (
     <div className="h-full flex flex-col p-3 md:p-6 space-y-4 md:space-y-6 overflow-auto">
@@ -125,99 +213,118 @@ export function VehiclesView({
                 Enter vehicle details to create a new record.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Make</Label>
-                  <Select
-                    value={formData.makeId}
-                    onValueChange={(val) =>
-                      setFormData({ ...formData, makeId: val })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select make" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {makes.map((make) => (
-                        <SelectItem key={make.id} value={make.id}>
-                          {make.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <form onSubmit={handleAddSubmit}>
+              <div className="space-y-4 py-4">
+                {addError && (
+                  <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+                    {addError}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Make</Label>
+                    <Select
+                      value={formData.makeId}
+                      onValueChange={(val) =>
+                        setFormData({ ...formData, makeId: val })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select make" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {makes.map((make) => (
+                          <SelectItem key={make.id} value={make.id}>
+                            {make.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Model</Label>
+                    <Input
+                      placeholder="Enter model"
+                      value={formData.model}
+                      onChange={(e) =>
+                        setFormData({ ...formData, model: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Registration No. <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="KA 01 AB 1234"
+                      value={formData.regNo}
+                      onChange={(e) =>
+                        setFormData({ ...formData, regNo: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Year</Label>
+                    <Input
+                      placeholder="2024"
+                      type="number"
+                      value={formData.year}
+                      onChange={(e) =>
+                        setFormData({ ...formData, year: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Color</Label>
+                    <Input
+                      placeholder="Enter color"
+                      value={formData.color}
+                      onChange={(e) =>
+                        setFormData({ ...formData, color: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Odometer (km)</Label>
+                    <Input
+                      placeholder="0"
+                      type="number"
+                      value={formData.odometer}
+                      onChange={(e) =>
+                        setFormData({ ...formData, odometer: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Model</Label>
+                  <Label>Owner Phone (for linking)</Label>
                   <Input
-                    placeholder="Enter model"
-                    value={formData.model}
+                    placeholder="+91 99999 99999"
+                    value={formData.ownerPhone}
                     onChange={(e) =>
-                      setFormData({ ...formData, model: e.target.value })
+                      setFormData({ ...formData, ownerPhone: e.target.value })
                     }
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Registration No.</Label>
-                  <Input
-                    placeholder="KA 01 AB 1234"
-                    value={formData.regNo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, regNo: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Year</Label>
-                  <Input
-                    placeholder="2024"
-                    type="number"
-                    value={formData.year}
-                    onChange={(e) =>
-                      setFormData({ ...formData, year: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <Input
-                    placeholder="Enter color"
-                    value={formData.color}
-                    onChange={(e) =>
-                      setFormData({ ...formData, color: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Odometer (km)</Label>
-                  <Input
-                    placeholder="0"
-                    type="number"
-                    value={formData.odometer}
-                    onChange={(e) =>
-                      setFormData({ ...formData, odometer: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Owner Phone (for linking)</Label>
-                <Input
-                  placeholder="+91 99999 99999"
-                  value={formData.ownerPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ownerPhone: e.target.value })
-                  }
-                />
-              </div>
-              <Button className="w-full" onClick={handleAddSubmit}>
-                Add Vehicle
-              </Button>
-            </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddDialog(false)}
+                  disabled={addLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addLoading}>
+                  {addLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Add Vehicle
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -325,7 +432,10 @@ export function VehiclesView({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
+              <Card 
+                className="hover:border-primary/50 transition-colors cursor-pointer group"
+                onClick={() => handleViewDetails(vehicle)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -343,15 +453,37 @@ export function VehiclesView({
                       </div>
                     </div>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View History</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Vehicle</DropdownMenuItem>
-                        <DropdownMenuItem>Create Job</DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(vehicle); }}>
+                          View History
+                        </DropdownMenuItem>
+                        {onEditVehicle && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(vehicle); }}>
+                            Edit Vehicle
+                          </DropdownMenuItem>
+                        )}
+                        {onCreateJob && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(vehicle); }}>
+                            Create Job
+                          </DropdownMenuItem>
+                        )}
+                        {onDeleteVehicle && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(vehicle); }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -409,6 +541,37 @@ export function VehiclesView({
             </motion.div>
           ))}
         </div>
+      )}
+
+      {/* Detail Dialog */}
+      <VehicleDetailDialog
+        vehicle={selectedVehicle}
+        isOpen={showDetailDialog}
+        onClose={() => setShowDetailDialog(false)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCreateJob={onCreateJob ? handleCreateJob : undefined}
+      />
+
+      {/* Edit Dialog */}
+      {onEditVehicle && (
+        <VehicleEditDialog
+          vehicle={selectedVehicle}
+          isOpen={showEditDialog}
+          onClose={() => setShowEditDialog(false)}
+          onSave={handleSaveEdit}
+          makes={makes}
+        />
+      )}
+
+      {/* Delete Dialog */}
+      {onDeleteVehicle && (
+        <VehicleDeleteDialog
+          vehicle={selectedVehicle}
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={handleConfirmDelete}
+        />
       )}
     </div>
   );
