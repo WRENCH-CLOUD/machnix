@@ -50,12 +50,6 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6 flex-shrink min-w-0">
           {/* Mobile Sidebar Trigger */}
           <SidebarTrigger className="md:hidden flex-shrink-0" />
-          
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold px-2 md:px-3 py-0.5 md:py-1 text-xs md:text-sm max-w-[120px] md:max-w-none">
-              <span className="truncate">{tenantName}</span>
-            </Badge>
-          </div>
 
           {/* Search trigger button - icon only on mobile */}
           <button
@@ -83,10 +77,14 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
           </Button>
 
           {/* Theme Toggle */}
-          <ThemeToggle />
+          <div className="scale-85 origin-center">
+            <ThemeToggle />
+          </div>
 
           {/* User Profile Dropdown */}
-          <ProfileDropdown data={profileData} onSignOut={signOut} />
+          <div className="scale-80 origin-center">
+            <ProfileDropdown data={profileData} onSignOut={signOut}  />
+          </div>
         </div>
       </header>
 
