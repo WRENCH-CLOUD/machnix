@@ -181,9 +181,6 @@ export async function POST(request: NextRequest) {
       },
       {
         status: getHttpStatus(result.error!.code),
-        headers: {
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-        },
       }
     )
 
