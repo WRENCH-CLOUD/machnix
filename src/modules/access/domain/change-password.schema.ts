@@ -148,37 +148,3 @@ export function validateChangePasswordInput(
   }
 }
 
-/**
- * Password strength levels
- */
-export type PasswordStrength = 'weak' | 'fair' | 'good' | 'strong'
-
-/**
- * Evaluates password strength for UI feedback
- * This is purely for UX - server enforces minimum requirements
- * 
- * @param password - Password to evaluate
- * @returns Strength level
- */
-export function evaluatePasswordStrength(password: string): PasswordStrength {
-  if (!password) return 'weak'
-
-  let score = 0
-
-  // Length checks
-  if (password.length >= 8) score += 1
-  if (password.length >= 12) score += 1
-  if (password.length >= 16) score += 1
-
-  // Character diversity checks
-  if (/[a-z]/.test(password)) score += 1
-  if (/[A-Z]/.test(password)) score += 1
-  if (/[0-9]/.test(password)) score += 1
-  if (/[^a-zA-Z0-9]/.test(password)) score += 1
-
-  // Map score to strength
-  if (score <= 2) return 'weak'
-  if (score <= 4) return 'fair'
-  if (score <= 6) return 'good'
-  return 'strong'
-}
