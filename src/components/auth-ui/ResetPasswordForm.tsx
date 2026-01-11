@@ -19,7 +19,7 @@ interface ValidationErrors {
   confirmPassword?: string
 }
 
-export function ResetPasswordForm() {
+export function ChangePasswordForm() {
   // Form state
   const [existingPassword, setExistingPassword] = useState<PasswordField>({
     value: "",
