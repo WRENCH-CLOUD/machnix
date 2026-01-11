@@ -131,7 +131,7 @@ export async function setUserJwtClaims(
       }
     }
 
-    console.log(`[SET_JWT_CLAIMS] Successfully set claims for user ${userId}:`, appMetadata)
+    // Claims set successfully
 
     return {
       success: true,
@@ -374,7 +374,7 @@ export async function clearUserJwtClaims(
       }
     }
 
-    console.log(`[CLEAR_JWT_CLAIMS] Successfully cleared claims for user ${userId}`)
+    // Claims cleared successfully
 
     return {
       success: true,

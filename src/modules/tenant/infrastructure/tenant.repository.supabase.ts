@@ -1,6 +1,6 @@
 import { supabase as defaultSupabase } from "@/lib/supabase/client";
 import { TenantRepository } from "./tenant.repository";
-import { Tenant } from "../domain/tenant.entity";
+import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -49,21 +49,6 @@ export class SupabaseTenantRepository implements TenantRepository {
   }
 
   async findAll(): Promise<Tenant[]> {
-    console.log('[TenantRepository] Fetching all tenants from tenant.tenants...')
-    
-    // Check current session to debug
-    const { data: sessionData } = await this.supabase.auth.getSession()
-    const appMetadata = sessionData.session?.user?.app_metadata as any
-    console.log('[TenantRepository] Session check:', {
-      hasSession: !!sessionData.session,
-      userId: sessionData.session?.user?.id,
-      email: sessionData.session?.user?.email,
-      appMetadata: JSON.stringify(appMetadata),
-      role: appMetadata?.role,
-      tenant_id: appMetadata?.tenant_id,
-      user_type: appMetadata?.user_type
-    })
-    
     const { data, error } = await this.supabase
       .schema("tenant")
       .from("tenants")
@@ -71,10 +56,8 @@ export class SupabaseTenantRepository implements TenantRepository {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('[TenantRepository] Error fetching tenants:', error)
       throw error;
     }
-    console.log('[TenantRepository] Found tenants:', data?.length || 0)
     return (data || []).map(row => this.toDomain(row));
   }
 
@@ -152,13 +135,17 @@ export class SupabaseTenantRepository implements TenantRepository {
       throw error;
     }
 
-    return (data || []).map(job => ({
-      id: job.job_number || job.id,
-      customer: job.customer?.name || 'Unknown',
-      vehicle: job.vehicle?.reg_no || 'Unknown',
-      status: job.status,
-      priority: 'Medium' // Default since it's not in schema
-    }));
+    return (data || []).map(job => {
+      const customer = job.customer as unknown as { name: string } | null;
+      const vehicle = job.vehicle as unknown as { reg_no: string } | null;
+      return {
+        id: job.job_number || job.id,
+        customer: customer?.name || 'Unknown',
+        vehicle: vehicle?.reg_no || 'Unknown',
+        status: job.status,
+        priority: 'Medium' // Default since it's not in schema
+      };
+    });
   }
 
   async isSlugAvailable(slug: string): Promise<boolean> {
@@ -180,7 +167,7 @@ export class SupabaseTenantRepository implements TenantRepository {
     return (data || []).length > 0;
   }
 
-  async create(input: { name: string; slug: string; subscription: string; status: 'active' | 'inactive' }): Promise<Tenant> {
+  async create(input: { name: string; slug: string; subscription: string; status: TenantStatus }): Promise<Tenant> {
     const { data, error } = await this.supabase
       .schema("tenant")
       .from("tenants")
