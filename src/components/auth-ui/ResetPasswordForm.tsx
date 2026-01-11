@@ -19,7 +19,7 @@ interface ValidationErrors {
   confirmPassword?: string
 }
 
-export function ResetPasswordForm() {
+export function ChangePasswordForm() {
   // Form state
   const [existingPassword, setExistingPassword] = useState<PasswordField>({
     value: "",
@@ -152,7 +152,7 @@ export function ResetPasswordForm() {
   return (
     <Card className="max-w-2xl">
       <CardHeader>
-        <CardTitle>Reset Password</CardTitle>
+        <CardTitle>Change Password</CardTitle>
         <CardDescription>Change your password by verifying your existing password first</CardDescription>
       </CardHeader>
       <CardContent>
