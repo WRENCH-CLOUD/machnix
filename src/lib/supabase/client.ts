@@ -9,7 +9,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 // Allow build to succeed without env vars (they'll be available at runtime)
 const isBuildTime = !supabaseUrl || !supabaseKey
 
-const AUTH_STORAGE_KEY = 'mechanix-auth'
+const AUTH_STORAGE_KEY = 'wrench-cloud-auth'
 
 // Create a single supabase client for interacting with your database
 // Use placeholder values during build time to avoid breaking the build

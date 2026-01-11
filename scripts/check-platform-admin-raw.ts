@@ -56,7 +56,7 @@ async function run() {
 
     const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
-    const email = process.env.CHECK_ADMIN_EMAIL || 'admin@mechanix.com';
+    const email = process.env.CHECK_ADMIN_EMAIL || 'admin@wrench-cloud.com';
     const password = process.env.CHECK_ADMIN_PASSWORD || 'admin123';
 
     const signIn = await anonClient.auth.signInWithPassword({ email, password });

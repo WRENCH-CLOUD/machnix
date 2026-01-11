@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -197,9 +196,6 @@ export default function TenantsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Tenant Management</CardTitle>
-              <CardDescription>
-                Detailed tenant administration and management
-              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Button

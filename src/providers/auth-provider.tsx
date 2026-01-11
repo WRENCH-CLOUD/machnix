@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, setTenantContext, clearTenantContext, getSafeSession } from "@/lib/supabase/client";
 
@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { role, tenantId } = extractClaims(session);
     setUserRole(role);
     setTenantId(tenantId);
+    const { role, tenantId } = extractClaims(session);
+    setUserRole(role);
+    setTenantId(tenantId);
 
     if (session && tenantId) {
       setTenantContext(tenantId);
@@ -52,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
@@ -73,7 +76,6 @@ useEffect(() => {
           if (res.ok && mounted) {
             const { user: serverUser } = await res.json();
             if (serverUser?.isImpersonating && serverUser.tenantId) {
-              // Override tenantId with impersonated value
               console.log("[AuthProvider] Impersonation active, tenantId:", serverUser.tenantId);
               setTenantId(serverUser.tenantId);
               setTenantContext(serverUser.tenantId);
@@ -100,11 +102,11 @@ useEffect(() => {
         }
       } catch (err) {
         console.error("[AuthProvider] Initialization error:", err);
+        if (mounted) applySession(null);
       } finally {
         if (mounted) setLoading(false);
       }
     };
-
 
     initAuth();
 
@@ -119,11 +121,11 @@ useEffect(() => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase, applySession]);
 
 
   const signIn = async (email: string, password: string) => {
-    // Use server-side login to set HttpOnly cookies, then sync client session
+    // Use server-side login to set HttpOnly cookies
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,7 +140,7 @@ useEffect(() => {
 
       if (contentType.includes("application/json")) {
         try {
-          const err= await res.json();
+          const err = await res.json();
           errorMessage = err?.error?.message || errorMessage;
         } catch (e) {
           console.error("Failed to parse error JSON from /api/auth/login", e);

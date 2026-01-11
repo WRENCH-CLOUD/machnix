@@ -1,7 +1,7 @@
 // Application configuration constants
 
 export const APP_CONFIG = {
-  name: "Mechanix",
+  name: "wrench-cloud",
   description: "Professional multi-tenant garage management system",
   version: "1.0.0",
 } as const

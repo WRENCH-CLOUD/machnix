@@ -11,7 +11,6 @@ import {
   MoreHorizontal,
   User,
   Wrench,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,28 +44,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// TODO: scptical about this needed revision
-// TODO: somehow need to import this to where lol???!!! @sagun25
-export interface Vehicle {
-  id: string;
-  makeName: string;
-  modelName: string;
-  reg_no: string;
-  year?: number;
-  color?: string;
-  odometer?: number;
-  ownerName?: string;
-  totalJobs?: number;
-  lastService?: Date;
-}
+import { VehicleViewModel, VehicleFormData } from "@/lib/transformers";
 
 interface VehiclesViewProps {
-  vehicles: Vehicle[];
+  vehicles: VehicleViewModel[];
   loading: boolean;
   error: string | null;
   makes?: { id: string; name: string }[];
-  onAddVehicle: (data: any) => Promise<void>;
+  onAddVehicle: (data: VehicleFormData) => Promise<void>;
   onRetry: () => void;
 }
 
@@ -80,7 +65,7 @@ export function VehiclesView({
 }: VehiclesViewProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<VehicleFormData>({
     makeId: "",
     model: "",
     regNo: "",
@@ -102,7 +87,7 @@ export function VehiclesView({
     return vehicles.filter(v =>
       (v.makeName || "").toLowerCase().includes(q) ||
       (v.modelName || "").toLowerCase().includes(q) ||
-      (v.reg_no || "").toLowerCase().includes(q) ||
+      (v.regNo || "").toLowerCase().includes(q) ||
       (v.ownerName || "").toLowerCase().includes(q)
     )
   }, [vehicles, searchQuery])
@@ -354,7 +339,7 @@ export function VehiclesView({
                           {vehicle.modelName || "Unknown"}
                         </CardTitle>
                         <CardDescription className="font-mono">
-                          {vehicle.reg_no}
+                          {vehicle.regNo}
                         </CardDescription>
                       </div>
                     </div>

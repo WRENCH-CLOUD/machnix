@@ -1,7 +1,7 @@
-# Mechanix Supabase Integration Setup Guide
+# Wrench Cloud Supabase Integration Setup Guide
 
 ## Overview
-This guide walks you through setting up Supabase for the Mechanix garage management system.
+This guide walks you through setting up Supabase for the Wrench Cloud garage management system.
 
 ## Prerequisites
 - Supabase account (sign up at https://supabase.com)
@@ -13,7 +13,7 @@ This guide walks you through setting up Supabase for the Mechanix garage managem
 1. Go to https://supabase.com/dashboard
 2. Click "New Project"
 3. Fill in:
-   - Project name: `mechanix`
+   - Project name: `wrench-cloud`
    - Database password: (save this securely)
    - Region: (choose closest to your location)
 4. Click "Create new project"

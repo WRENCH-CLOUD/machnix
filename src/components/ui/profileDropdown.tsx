@@ -36,7 +36,7 @@ const SAMPLE_PROFILE_DATA: Profile = {
     name: "User",
     email: "user@example.com",
     role: "Tenant Admin",
-    tenantName: "Mechanix Garage",
+    tenantName: "Wrench Cloud Garage",
 };
 
 interface ProfileDropdownProps extends React.HTMLAttributes<HTMLDivElement> {

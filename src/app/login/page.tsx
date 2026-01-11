@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react"
 import { LoginView } from "@/components/auth-ui/login-view"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
+
 export default function LoginPage() {
   const { signIn } = useAuth()
 

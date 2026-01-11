@@ -154,7 +154,7 @@ function LoginComponent() {
 │   ├── auth-provider.tsx     # Supabase auth context
 │   ├── supabaseClient.ts     # Backward compat export
 │   └── supabase/             # Main Supabase code
-└── components/mechanix/      # App components
+└── components/wrench-cloud/      # App components
 ```
 
 ## Migration Notes
