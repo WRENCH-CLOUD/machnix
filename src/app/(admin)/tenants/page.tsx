@@ -50,6 +50,8 @@ import { TenantDetailsDialog } from "@/features/admin/tenant-details-dialog";
 import { CreateTenantDialog } from "@/features/admin/create-tenant-dialog";
 import { EditTenantDialog } from "@/features/admin/edit-tenant-dialog";
 import { DeleteTenantDialog } from "@/features/admin/delete-tenant-dialog";
+import { SuspendTenantDialog } from "@/features/admin/suspend-tenant-dialog";
+import { UnsuspendTenantDialog } from "@/features/admin/unsuspend-tenant-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 // Admin-only permissions
@@ -60,6 +62,7 @@ const ADMIN_PERMISSIONS = {
 
 export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "suspended">("active");
   const [tenants, setTenants] = useState<TenantWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +78,8 @@ export default function TenantsPage() {
   const [showCreateTenant, setShowCreateTenant] = useState(false);
   const [showEditTenant, setShowEditTenant] = useState(false);
   const [showDeleteTenant, setShowDeleteTenant] = useState(false);
+  const [showSuspendTenant, setShowSuspendTenant] = useState(false);
+  const [showUnsuspendTenant, setShowUnsuspendTenant] = useState(false);
   const [isAdmin, setIsAdmin] = useState(true); // Check admin status from session/auth
 
   useEffect(() => {
@@ -146,6 +151,24 @@ export default function TenantsPage() {
     loadTenants();
   };
 
+  const handleSuspendTenant = (tenant: TenantWithStats) => {
+    setSelectedTenant(tenant);
+    setShowSuspendTenant(true);
+  };
+
+  const handleSuspendSuccess = () => {
+    loadTenants();
+  };
+
+  const handleUnsuspendTenant = (tenant: TenantWithStats) => {
+    setSelectedTenant(tenant);
+    setShowUnsuspendTenant(true);
+  };
+
+  const handleUnsuspendSuccess = () => {
+    loadTenants();
+  };
+
   const { toast } = useToast();
 
   const handleLoginAsTenant = async (tenant: TenantWithStats) => {
@@ -179,10 +202,12 @@ export default function TenantsPage() {
   };
 
   const filteredTenants = useMemo(() => {
-    return tenants.filter((t) =>
-      t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return tenants.filter(
+      (t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        (t.status || "active") === statusFilter
     );
-  }, [searchQuery, tenants]);
+  }, [searchQuery, tenants, statusFilter]);
 
   const statusColors: Record<string, string> = {
     active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -203,6 +228,22 @@ export default function TenantsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Tenant Management</CardTitle>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant={statusFilter === "active" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("active")}
+                >
+                  Active Tenants
+                </Button>
+                <Button
+                  variant={statusFilter === "suspended" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("suspended")}
+                >
+                  Suspended Tenants
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -387,15 +428,23 @@ export default function TenantsPage() {
                             <DropdownMenuItem>
                               Manage Subscription
                             </DropdownMenuItem>
-                            {isAdmin && (
-                              <>
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  title={ADMIN_PERMISSIONS.suspension}
-                                >
-                                  Suspend Tenant
-                                </DropdownMenuItem>
-                              </>
+                            {isAdmin && (tenant.status || "active") === "active" && (
+                              <DropdownMenuItem
+                                onClick={() => handleSuspendTenant(tenant)}
+                                className="text-destructive focus:text-destructive"
+                                title={ADMIN_PERMISSIONS.suspension}
+                              >
+                                Suspend Tenant
+                              </DropdownMenuItem>
+                            )}
+                            {isAdmin && tenant.status === "suspended" && (
+                              <DropdownMenuItem
+                                onClick={() => handleUnsuspendTenant(tenant)}
+                                className="text-emerald-500 focus:text-emerald-500"
+                                title="Un-suspend this tenant"
+                              >
+                                Un-suspend Tenant
+                              </DropdownMenuItem>
                             )}
                             {!isAdmin && (
                               <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
@@ -437,6 +486,18 @@ export default function TenantsPage() {
         open={showDeleteTenant}
         onOpenChange={setShowDeleteTenant}
         onSuccess={handleDeleteSuccess}
+      />
+      <SuspendTenantDialog
+        tenant={selectedTenant}
+        open={showSuspendTenant}
+        onOpenChange={setShowSuspendTenant}
+        onSuccess={handleSuspendSuccess}
+      />
+      <UnsuspendTenantDialog
+        tenant={selectedTenant}
+        open={showUnsuspendTenant}
+        onOpenChange={setShowUnsuspendTenant}
+        onSuccess={handleUnsuspendSuccess}
       />
     </div>
   );
