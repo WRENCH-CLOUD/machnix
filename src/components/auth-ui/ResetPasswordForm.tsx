@@ -292,7 +292,7 @@ export function ResetPasswordForm() {
           {submitSuccess && (
             <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-sm flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>Password reset successfully!</span>
+              <span>Password changed successfully!</span>
             </div>
           )}
 
@@ -302,12 +302,12 @@ export function ResetPasswordForm() {
               {isLoading ? (
                 <>
                   <Spinner className="text-primary-foreground" />
-                  Resetting Password...
+                  Changing Password...
                 </>
               ) : (
                 <>
                   <Lock className="w-4 h-4" />
-                  Reset Password
+                  Change Password
                 </>
               )}
             </Button>

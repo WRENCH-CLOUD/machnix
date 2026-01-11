@@ -111,8 +111,9 @@ function validateInput(input: ChangePasswordInput): ValidationResult {
     }
   }
 
-  // Check password length requirements
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+  // Check password length requirements using trimmed length to prevent whitespace-only passwords
+  const trimmedPassword = newPassword.trim()
+  if (trimmedPassword.length < MIN_PASSWORD_LENGTH) {
     return {
       isValid: false,
       errorCode: 'PASSWORD_REQUIREMENTS_NOT_MET',
@@ -120,7 +121,7 @@ function validateInput(input: ChangePasswordInput): ValidationResult {
     }
   }
 
-  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+  if (trimmedPassword.length > MAX_PASSWORD_LENGTH) {
     return {
       isValid: false,
       errorCode: 'PASSWORD_REQUIREMENTS_NOT_MET',

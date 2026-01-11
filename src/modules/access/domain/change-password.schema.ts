@@ -106,14 +106,16 @@ export function validateChangePasswordInput(
       message: 'New password is required',
     })
   } else {
-    if (input.newPassword.length < PASSWORD_MIN_LENGTH) {
+    // Use trimmed length to prevent whitespace-only passwords
+    const trimmedPassword = input.newPassword.trim()
+    if (trimmedPassword.length < PASSWORD_MIN_LENGTH) {
       errors.push({
         field: 'newPassword',
         message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
       })
     }
 
-    if (input.newPassword.length > PASSWORD_MAX_LENGTH) {
+    if (trimmedPassword.length > PASSWORD_MAX_LENGTH) {
       errors.push({
         field: 'newPassword',
         message: `Password must not exceed ${PASSWORD_MAX_LENGTH} characters`,
