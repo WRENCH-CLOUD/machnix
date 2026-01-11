@@ -390,18 +390,10 @@ export default function TenantsPage() {
                             {isAdmin && (
                               <>
                                 <DropdownMenuItem
-                                  className="text-amber-500 focus:text-amber-500"
+                                  className="text-destructive focus:text-destructive"
                                   title={ADMIN_PERMISSIONS.suspension}
                                 >
                                   Suspend Tenant
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteTenant(tenant)}
-                                  className="text-destructive focus:text-destructive"
-                                  title={ADMIN_PERMISSIONS.deletion}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete Tenant
                                 </DropdownMenuItem>
                               </>
                             )}
