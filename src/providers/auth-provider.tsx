@@ -37,13 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const applySession = (session: Session | null) => {
+  const applySession = useCallback((session: Session | null) => {
     setSession(session);
     setUser(session?.user ?? null);
 
-    const { role, tenantId } = extractClaims(session);
-    setUserRole(role);
-    setTenantId(tenantId);
     const { role, tenantId } = extractClaims(session);
     setUserRole(role);
     setTenantId(tenantId);
@@ -53,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       clearTenantContext();
     }
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -121,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase, applySession]);
+  }, [applySession]);
 
 
   const signIn = async (email: string, password: string) => {
