@@ -52,6 +52,12 @@ import { EditTenantDialog } from "@/features/admin/edit-tenant-dialog";
 import { DeleteTenantDialog } from "@/features/admin/delete-tenant-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+// Admin-only permissions
+const ADMIN_PERMISSIONS = {
+  suspension: "tenant:suspend",
+  deletion: "tenant:delete",
+} as const;
+
 export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tenants, setTenants] = useState<TenantWithStats[]>([]);
@@ -69,6 +75,7 @@ export default function TenantsPage() {
   const [showCreateTenant, setShowCreateTenant] = useState(false);
   const [showEditTenant, setShowEditTenant] = useState(false);
   const [showDeleteTenant, setShowDeleteTenant] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true); // Check admin status from session/auth
 
   useEffect(() => {
     loadTenants();
@@ -380,13 +387,29 @@ export default function TenantsPage() {
                             <DropdownMenuItem>
                               Manage Subscription
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteTenant(tenant)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Tenant
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <>
+                                <DropdownMenuItem
+                                  className="text-amber-500 focus:text-amber-500"
+                                  title={ADMIN_PERMISSIONS.suspension}
+                                >
+                                  Suspend Tenant
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteTenant(tenant)}
+                                  className="text-destructive focus:text-destructive"
+                                  title={ADMIN_PERMISSIONS.deletion}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Tenant
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {!isAdmin && (
+                              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                                Admin only actions
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
