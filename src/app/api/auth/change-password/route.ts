@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       console.warn('[CHANGE_PASSWORD_API] Rate limit exceeded:', {
         userId: user.id,
-        email: user.email,
         timestamp: new Date().toISOString(),
       })
 
