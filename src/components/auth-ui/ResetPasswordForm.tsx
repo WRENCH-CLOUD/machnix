@@ -152,7 +152,7 @@ export function ChangePasswordForm() {
   return (
     <Card className="max-w-2xl">
       <CardHeader>
-        <CardTitle>Reset Password</CardTitle>
+        <CardTitle>Change Password</CardTitle>
         <CardDescription>Change your password by verifying your existing password first</CardDescription>
       </CardHeader>
       <CardContent>
