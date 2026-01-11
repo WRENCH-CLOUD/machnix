@@ -41,6 +41,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
+import { cn } from "@/lib/utils";
 
 interface AllJobsViewProps {
   jobs: UIJob[];
@@ -182,56 +183,61 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">All Jobs</h1>
-          <p className="text-muted-foreground">Manage and track all job cards</p>
+          <h1 className="text-lg md:text-2xl font-bold text-foreground">All Jobs</h1>
+          <p className="text-muted-foreground text-xs md:text-sm">Manage and track all job cards</p>
         </div>
-        <Button variant="outline" className="gap-2 bg-transparent" onClick={handleExportCSV}>
+        <Button variant="outline" size="sm" className="gap-2 bg-transparent w-fit" onClick={handleExportCSV}>
           <Download className="w-4 h-4" />
-          Export CSV
+          <span className="hidden sm:inline">Export</span> CSV
         </Button>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      {/* Stats Grid - responsive: 3 on first row, 2 on second for mobile */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
         {[
           { label: "Total Jobs", value: stats.total, color: "bg-primary/10 text-primary" },
           { label: "Received", value: stats.received, color: "bg-blue-500/10 text-blue-500" },
           { label: "Working", value: stats.working, color: "bg-amber-500/10 text-amber-500" },
           { label: "Ready", value: stats.ready, color: "bg-emerald-500/10 text-emerald-500" },
           { label: "Completed", value: stats.completed, color: "bg-slate-500/10 text-slate-400" },
-        ].map((stat) => (
+        ].map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-xl p-4"
+            className={cn(
+              "bg-card border border-border rounded-xl p-2 md:p-4",
+              index >= 3 && "col-span-1 md:col-span-1" // Last two take normal width on mobile
+            )}
           >
-            <div className="text-sm text-muted-foreground">{stat.label}</div>
-            <div className={`text-2xl font-bold mt-1 ${stat.color.split(" ")[1]}`}>
+            <div className="text-[10px] md:text-sm text-muted-foreground truncate">{stat.label}</div>
+            <div className={`text-lg md:text-2xl font-bold mt-0.5 md:mt-1 ${stat.color.split(" ")[1]}`}>
               {stat.value}
             </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* Search and Filter - stack on mobile */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search jobs, customers, vehicles..."
+            placeholder="Search jobs, customers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-9 md:h-10"
           />
         </div>
         <Select
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as JobStatus | "all")}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48 h-9 md:h-10">
             <Filter className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -246,11 +252,13 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
         </Select>
       </div>
 
+      {/* Table with horizontal scroll on mobile */}
       <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden">
-        <Table aria-label="All Jobs">
-          <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead
+        <div className="overflow-x-auto">
+          <Table aria-label="All Jobs" className="min-w-[800px]">
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead
                 className="cursor-pointer select-none"
                 onClick={() => handleSort("jobNumber")}
                 aria-sort={sortField === "jobNumber" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -399,6 +407,7 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
             })}
           </TableBody>
         </Table>
+        </div>
         {filteredAndSortedJobs.length === 0 && (
           <div className="p-8">
             <Empty>
