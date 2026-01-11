@@ -86,22 +86,22 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-4 md:space-y-6">
+      {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         {stats.map((stat, i) => (
           <Card key={i} className="border-border/50 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-4">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate pr-2">
                 {stat.title}
               </CardTitle>
-              <div className={`p-2 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <div className={`p-1.5 md:p-2 rounded-lg ${stat.bg} flex-shrink-0`}>
+                <stat.icon className={`w-3 h-3 md:w-4 md:h-4 ${stat.color}`} />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-3 md:p-4 pt-0">
+              <div className="text-lg md:text-2xl font-bold truncate">{stat.value}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
                 {stat.change}
               </p>
             </CardContent>
@@ -109,39 +109,39 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
         {/* Recent Jobs */}
         <Card className="lg:col-span-2 border-border/50 shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Recent Jobs</CardTitle>
-                <CardDescription>Latest service requests and ongoing repairs</CardDescription>
+          <CardHeader className="p-3 md:p-4 lg:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <CardTitle className="text-base md:text-lg">Recent Jobs</CardTitle>
+                <CardDescription className="text-xs md:text-sm truncate">Latest service requests and ongoing repairs</CardDescription>
               </div>
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="gap-1 flex-shrink-0 text-xs">
                 <Calendar className="w-3 h-3" />
-                Today
+                <span className="hidden sm:inline">Today</span>
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="relative w-full overflow-auto">
-              <table className="w-full text-sm text-left" aria-label="Recent Jobs">
+          <CardContent className="p-0 md:p-4 lg:p-6 pt-0">
+            <div className="relative w-full overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[500px]" aria-label="Recent Jobs">
                 <thead className="text-xs text-muted-foreground uppercase border-b border-border/50">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Job ID</th>
-                    <th className="px-4 py-3 font-medium">Customer</th>
-                    <th className="px-4 py-3 font-medium">Vehicle</th>
-                    <th className="px-4 py-3 font-medium text-right">Status</th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Job ID</th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Customer</th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Vehicle</th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {recentJobs.map((job) => (
                     <tr key={job.id} className="group hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-primary">{job.id}</td>
-                      <td className="px-4 py-3">{job.customer}</td>
-                      <td className="px-4 py-3">{job.vehicle}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium text-primary whitespace-nowrap">{job.id}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap">{job.customer}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap">{job.vehicle}</td>
+                      <td className="px-3 md:px-4 py-2 md:py-3 text-right">
                         {getStatusBadge(job.status)}
                       </td>
                     </tr>

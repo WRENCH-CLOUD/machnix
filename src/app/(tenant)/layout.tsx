@@ -69,7 +69,7 @@ export default function TenantLayoutWrapper({
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-slate-900 text-white">
+      <div className="flex h-screen flex-col items-center justify-center">
         <Loader
           title="Verifying access..."
           subtitle="Please wait"
@@ -86,14 +86,14 @@ export default function TenantLayoutWrapper({
   // We'll show a brief redirecting state instead of the diagnostic UI
   if (!user || !tenantId) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-slate-900 text-white">
+      <div className="flex h-screen flex-col items-center justify-center">
         <div className="text-center space-y-4">
           <h2 className="text-xl font-semibold">Redirecting...</h2>
-          <p className="text-slate-400">Verifying your permissions</p>
+          <p className="text-muted-foreground">Verifying your permissions</p>
           <div className="mt-8">
             <button 
               onClick={() => router.replace("/login")}
-              className="px-4 py-2 bg-transparent border border-white/20 hover:bg-white/10 text-white rounded-md"
+              className="px-4 py-2 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-md"
             >
               Go to Login
             </button>
@@ -109,7 +109,7 @@ export default function TenantLayoutWrapper({
         activeView={activeView} 
         onViewChange={(view) => router.push(`/${view}`)} 
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         <TopHeader
           tenantName={tenantName}
           onCreateJob={() => {
@@ -121,7 +121,7 @@ export default function TenantLayoutWrapper({
             }
           }}
         />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
           {children}
         </main>
       </div>

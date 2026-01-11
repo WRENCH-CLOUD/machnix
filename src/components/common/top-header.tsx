@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react"
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import  ProfileDropdown from "@/components/ui/profileDropdown"
+import ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers/auth-provider"
 import { GlobalSearch } from "@/components/common/global-search"
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface TopHeaderProps {
   tenantName: string;
@@ -17,6 +19,7 @@ interface TopHeaderProps {
 export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
   const { user, signOut, userRole } = useAuth()
   const [searchOpen, setSearchOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   // Keyboard shortcut (Cmd+K or Ctrl+K)
   useEffect(() => {
@@ -42,41 +45,46 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
 
   return (
     <>
-      <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
-        {/* Left Section - Tenant & Search */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold px-3 py-1">
-              {tenantName}
-            </Badge>
-          </div>
+      <header className="h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-4 lg:px-6 gap-2">
+        {/* Left Section - Sidebar Trigger, Tenant & Search */}
+        <div className="flex items-center gap-2 md:gap-4 lg:gap-6 flex-shrink min-w-0">
+          {/* Mobile Sidebar Trigger */}
+          <SidebarTrigger className="md:hidden flex-shrink-0" />
 
-          {/* Search trigger button */}
+          {/* Search trigger button - icon only on mobile */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="relative w-90 flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground bg-secondary border border-border rounded-md hover:bg-secondary/80 transition-colors"
+            className="relative flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 text-sm text-muted-foreground bg-secondary border border-border rounded-md hover:bg-secondary/80 transition-colors flex-shrink-0 md:flex-shrink md:w-auto md:min-w-[200px] lg:min-w-[280px]"
           >
-            <Search className="w-5 h-5" />
-            <span className="flex-1 text-left">Search</span>
-            <kbd className="hidden sm:inline-flex h-1 w-1 items-center justify-end gap-1 font-mono text-[12px]">
-              <span className="text-[12px]">⌘/Ctrl </span>K
+            <Search className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+            <span className="hidden sm:block flex-1 text-left">Search</span>
+            <kbd className="hidden lg:inline-flex h-5 items-center justify-center gap-1 font-mono text-[11px] text-muted-foreground">
+              <span>⌘K</span>
             </kbd>
           </button>
         </div>
 
         {/* Right Section - Actions, User */}
-        <div className="flex items-center gap-4">
-          {/* Create Job Button */}
-          <Button onClick={onCreateJob} className="gap-2">
+        <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-shrink-0">
+          {/* Create Job Button - icon only on mobile */}
+          <Button 
+            onClick={onCreateJob} 
+            size={isMobile ? "sm" : "default"}
+            className="gap-1 md:gap-2 px-2 md:px-4"
+          >
             <Plus className="w-4 h-4" />
-            Create Job
+            <span className="hidden sm:inline">Create Job</span>
           </Button>
 
           {/* Theme Toggle */}
-          <ThemeToggle />
+          <div className="scale-85 origin-center">
+            <ThemeToggle />
+          </div>
 
           {/* User Profile Dropdown */}
-          <ProfileDropdown data={profileData} onSignOut={signOut} />
+          <div className="scale-80 origin-center">
+            <ProfileDropdown data={profileData} onSignOut={signOut}  />
+          </div>
         </div>
       </header>
 

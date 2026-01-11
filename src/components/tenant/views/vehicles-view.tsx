@@ -102,20 +102,20 @@ export function VehiclesView({
   }
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6 overflow-auto">
+    <div className="h-full flex flex-col p-3 md:p-6 space-y-4 md:space-y-6 overflow-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Vehicles</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-lg md:text-2xl font-bold text-foreground">Vehicles</h1>
+          <p className="text-muted-foreground text-xs md:text-sm">
             Vehicle registry and service history
           </p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button size="sm" className="gap-2 w-fit">
               <Plus className="w-4 h-4" />
-              Add Vehicle
+              <span className="hidden sm:inline">Add</span> Vehicle
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -223,20 +223,19 @@ export function VehiclesView({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2 md:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card px-4 py-8 rounded-xl border border-border" // Updated to match card style (or maintain legacy style if preferred) - checking legacy
+          className="bg-card px-3 md:px-4 py-4 md:py-8 rounded-xl border border-border"
         >
-          {/* Using legacy structure for card content to match exact look */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Car className="w-5 h-5 text-primary" />
+          <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Car className="w-4 h-4 md:w-5 md:h-5 text-primary" />
             </div>
-            <div>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">
+            <div className="text-center sm:text-left">
+              <div className="text-lg md:text-2xl font-bold">{stats.total}</div>
+              <div className="text-[10px] md:text-sm text-muted-foreground">
                 Total Vehicles
               </div>
             </div>
@@ -247,17 +246,17 @@ export function VehiclesView({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card px-4 py-8 rounded-xl border border-border"
+          className="bg-card px-3 md:px-4 py-4 md:py-8 rounded-xl border border-border"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-emerald-500" />
+          <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Wrench className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
             </div>
-            <div>
-              <div className="text-2xl font-bold">
+            <div className="text-center sm:text-left">
+              <div className="text-lg md:text-2xl font-bold">
                 {stats.servicedThisMonth}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[10px] md:text-sm text-muted-foreground">
                 Serviced This Month
               </div>
             </div>
@@ -266,13 +265,13 @@ export function VehiclesView({
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="relative w-full sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search by make, model, reg no, or owner..."
+          placeholder="Search by make, model, reg no..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-10 bg-background"
+          className="pl-10 h-9 md:h-10 bg-background"
         />
       </div>
 
