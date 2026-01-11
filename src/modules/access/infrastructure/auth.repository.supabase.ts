@@ -46,17 +46,21 @@ export class SupabaseAuthRepository implements AuthRepository {
   async verifyPassword(email: string, password: string): Promise<boolean> {
     // Create a temporary client for password verification
     // We don't use admin client here as we want to verify the actual password
-    const tempClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error(
+        "Supabase environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set for password verification."
+      );
+    }
+
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
     let signInError: unknown = null;
     try {
       const { error } = await tempClient.auth.signInWithPassword({
