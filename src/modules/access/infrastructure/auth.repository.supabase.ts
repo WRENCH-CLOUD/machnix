@@ -57,15 +57,21 @@ export class SupabaseAuthRepository implements AuthRepository {
       }
     );
 
-    const { error } = await tempClient.auth.signInWithPassword({
-      email,
-      password,
-    });
+    let signInError: unknown = null;
+    try {
+      const { error } = await tempClient.auth.signInWithPassword({
+        email,
+        password,
+      });
+      signInError = error;
+    } finally {
+      // Sign out immediately to clean up the temporary session
+      await tempClient.auth.signOut().catch(() => {
+        // Ignore sign-out errors to avoid masking sign-in result
+      });
+    }
 
-    // Sign out immediately to clean up the temporary session
-    await tempClient.auth.signOut();
-
-    return !error;
+    return !signInError;
   }
 
   /**
