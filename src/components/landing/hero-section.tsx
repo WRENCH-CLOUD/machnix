@@ -1,8 +1,10 @@
+"use client"
+
 import React from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Header } from "./header"
-import Link from "next/link"
+import { CallbackForm } from "./callback-form"
 
 export function HeroSection() {
   return (
@@ -447,11 +449,13 @@ export function HeroSection() {
         </p>
       </div>
 
-      <Link href="/login">
-        <Button className="relative z-10 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 py-3 rounded-full font-medium text-base shadow-lg ring-1 ring-white/10">
-          Start Free Trial
-        </Button>
-      </Link>
+      <CallbackForm
+        trigger={
+          <Button className="relative z-10 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 py-3 rounded-full font-medium text-base shadow-lg ring-1 ring-white/10">
+            Request Demo
+          </Button>
+        }
+      />
 
       {/* Dashboard Preview Image */}
       <div className="relative z-10 mt-10 md:mt-14 lg:mt-16 w-full max-w-[1160px] px-4">
