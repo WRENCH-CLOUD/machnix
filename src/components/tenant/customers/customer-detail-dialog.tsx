@@ -2,7 +2,6 @@
 
 import { Phone, Mail, MapPin, Car, X, Edit, Trash2, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sheet,
