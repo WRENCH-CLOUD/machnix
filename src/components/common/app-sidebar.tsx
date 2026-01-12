@@ -34,7 +34,7 @@ const navItems = [
   { id: "all-jobs", label: "All Jobs", icon: List },
   { id: "customers", label: "Customers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: Car },
-  { id: "reports", label: "Reports", icon: BarChart3 },
+  // removed as whats the point of reports if we have dashboard
 ]
 
 const bottomNavItems = [
