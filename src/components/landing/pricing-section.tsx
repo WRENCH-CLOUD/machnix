@@ -10,8 +10,8 @@ export function PricingSection() {
   const pricingPlans = [
     {
       name: "Basic",
-      monthlyPrice: "₹1500", //TODO: Update to the real price
-      annualPrice: "₹15000",
+      monthlyPrice: "coming soon", //TODO: Update to the real price
+      annualPrice: "₹coming soon", //TODO: Update to the real price
       description: "Perfect for small shops getting started.",
       features: [
         "Up to 50 jobs/month",
@@ -20,14 +20,17 @@ export function PricingSection() {
         "Customer notifications",
         "Wrench Cloud branding on invoices",
       ],
-      buttonText: "Get Started",
+      // buttonText: "Get Started",
+      // buttonClass:
+      //   "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
+      buttonText: "Coming Soon",//TODO: Update to "Get Started" when launching
       buttonClass:
-        "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
+        "bg-zinc-200 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-500 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] cursor-not-allowed",
     },
     {
       name: "Pro",
-      monthlyPrice: "₹2099",
-      annualPrice: "₹100990",
+      monthlyPrice: "coming soon", //TODO: Update to the real price
+      annualPrice: "₹coming soon", //TODO: Update to the real price
       description: "Ideal for growing shops.",
       features: [
         "Unlimited jobs",
@@ -37,7 +40,7 @@ export function PricingSection() {
         "Customer approval portal",
         "Advanced reporting",
       ],
-      buttonText: "Start Free Trial",
+      buttonText: "Coming Soon",//TODO: Update to "Get Started" when launching
       buttonClass:
       "bg-primary-foreground shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-primary text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-primary-foreground/90",
       popular: true,
@@ -55,7 +58,7 @@ export function PricingSection() {
         "Dedicated account manager",
         "Custom integrations",
       ],
-      buttonText: "Contact Sales",
+      buttonText: "coming soon", //TODO: Update to "Contact Sales" when launching
       buttonClass:
         "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(0,0,0,0.20)] text-secondary-foreground text-shadow-[0px_1px_1px_rgba(0,0,0,0.08)] hover:bg-secondary/90",
     },

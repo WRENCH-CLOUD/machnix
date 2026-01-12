@@ -1,6 +1,3 @@
-//auth.repository.ts
-import {User} from "../domain/auth.entity";
-
 export interface AuthRepository {
     createUser(input: CreateUserInput): Promise<AuthUser>
     deleteUser(userId: string): Promise<void>
