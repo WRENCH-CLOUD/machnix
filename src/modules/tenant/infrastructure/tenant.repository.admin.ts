@@ -141,10 +141,11 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
     if (error) throw error
     if (!data?.length) return []
 
-    // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
+    // Fetch vehicles separately (now in tenant schema)
     const vehicleIds = data.map(job => job.vehicle_id).filter(Boolean)
     const { data: vehicles } = await this.supabase
-      .from('vehicles')  // public.vehicles
+      .schema('tenant')
+      .from('vehicles')
       .select('id, reg_no')
       .in('id', vehicleIds)
     

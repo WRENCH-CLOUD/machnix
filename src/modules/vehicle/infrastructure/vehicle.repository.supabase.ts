@@ -11,8 +11,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
       id: row.id,
       tenantId: row.tenant_id,
       customerId: row.customer_id,
-      make: row.make,
-      model: row.model,
+      makeId: row.make_id,
+      modelId: row.model_id,
+      make: row.make || row.vehicle_make?.name || '',
+      model: row.model || row.vehicle_model?.name || '',
       year: row.year,
       vin: row.vin,
       licensePlate: row.license_plate || row.reg_no,
@@ -28,13 +30,13 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
   private toDomainWithCustomer(row: any): VehicleWithCustomer {
     return {
       ...this.toDomain(row),
-      // Use view's built-in customer fields (views don't support PostgREST embedded relations)
-      customer: row.customer_name ? {
-        id: row.customer_id,
-        name: row.customer_name,
-        phone: row.customer_phone,
-        email: row.customer_email,
-      } : row.customer,
+      // Use PostgREST embedded relation for customer
+      customer: row.customers ? {
+        id: row.customers.id,
+        name: row.customers.name,
+        phone: row.customers.phone,
+        email: row.customers.email,
+      } : undefined,
     }
   }
 
@@ -49,6 +51,8 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     return {
       tenant_id: vehicle.tenantId,
       customer_id: vehicle.customerId,
+      make_id: vehicle.makeId || null,
+      model_id: vehicle.modelId || null,
       make: vehicle.make,
       model: vehicle.model,
       year: vehicle.year,
@@ -66,8 +70,9 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select('*, customers(*)')  // PostgREST embedded relation
       .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -80,9 +85,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select('*, customers(*)')  // PostgREST embedded relation
       .eq('id', id)
       .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .single()
 
     if (error) {
@@ -102,6 +108,7 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
       .select('*')
       .eq('customer_id', customerId)
       .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -114,9 +121,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select('*, customers(*)')  // PostgREST embedded relation
       .eq('tenant_id', tenantId)
-      .or(`license_plate.ilike.%${query}%`)
+      .is('deleted_at', null)
+      .or(`license_plate.ilike.%${query}%,reg_no.ilike.%${query}%`)
       .order('created_at', { ascending: false })
 
     if (error) throw error

@@ -1,77 +1,70 @@
--- Move vehicles to public schema with tenant-aware columns and text make/model
--- Also rewire jobcards.vehicle_id to reference the new public.vehicles table
--- Keeps vehicle data accessible across tenants (no RLS) and drops make_id/model_id indirection.
+-- Add missing columns to tenant.vehicles table (mileage, color, license_plate, make, model, updated_at, soft delete)
+-- Keep FK columns (make_id, model_id) and add text columns as denormalized cache for display
 
--- 1) Create public.vehicles with text make/model and extra attributes
-CREATE TABLE IF NOT EXISTS public.vehicles (
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL,
-  customer_id uuid NOT NULL,
-  reg_no text NOT NULL,
-  vin text,
-  make text,
-  model text,
-  year smallint,
-  odometer integer,
-  mileage integer,
-  color text,
-  license_plate text,
-  notes text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  deleted_at timestamptz,
-  deleted_by uuid
-);
+-- 1) Add missing columns to tenant.vehicles
+ALTER TABLE IF EXISTS tenant.vehicles 
+  ADD COLUMN IF NOT EXISTS make text,
+  ADD COLUMN IF NOT EXISTS model text,
+  ADD COLUMN IF NOT EXISTS mileage integer,
+  ADD COLUMN IF NOT EXISTS color text,
+  ADD COLUMN IF NOT EXISTS license_plate text,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS deleted_by uuid;
 
--- Ensure the table is readable (no RLS on public schema tables by default)
-ALTER TABLE IF EXISTS public.vehicles DISABLE ROW LEVEL SECURITY;
+-- 2) Populate text make/model from FK references if available
+UPDATE tenant.vehicles v
+SET 
+  make = COALESCE(v.make, (SELECT name FROM public.vehicle_make WHERE id = v.make_id)),
+  model = COALESCE(v.model, (SELECT name FROM public.vehicle_model WHERE id = v.model_id)),
+  license_plate = COALESCE(v.license_plate, v.reg_no)
+WHERE v.make IS NULL OR v.model IS NULL OR v.license_plate IS NULL;
 
--- 2) Copy existing tenant.vehicles data if present
+-- 3) Create updated_at trigger for tenant.vehicles
+DROP TRIGGER IF EXISTS trg_vehicles_updated_at ON tenant.vehicles;
+CREATE TRIGGER trg_vehicles_updated_at
+  BEFORE UPDATE ON tenant.vehicles
+  FOR EACH ROW EXECUTE FUNCTION public.update_timestamps();
+
+-- 4) Ensure jobcards.vehicle_id references tenant.vehicles (should already be correct from initial setup)
+-- Only modify if it was previously changed to public.vehicles
 DO $$
 BEGIN
+  -- Drop the FK if it points to public.vehicles
   IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'tenant' AND table_name = 'vehicles'
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+    WHERE tc.table_schema = 'tenant' AND tc.table_name = 'jobcards' 
+    AND tc.constraint_name = 'jobcards_vehicle_id_fkey'
+    AND ccu.table_schema = 'public' AND ccu.table_name = 'vehicles'
   ) THEN
-    INSERT INTO public.vehicles (id, tenant_id, customer_id, reg_no, vin, make, model, year, odometer, mileage, color, license_plate, notes, created_at, updated_at, deleted_at, deleted_by)
-    SELECT 
-      id,
-      tenant_id,
-      customer_id,
-      reg_no,
-      vin,
-      COALESCE(make, ''),
-      COALESCE(model, ''),
-      year,
-      odometer,
-      NULLIF(mileage, 0),
-      color,
-      COALESCE(license_plate, reg_no),
-      notes,
-      created_at,
-      COALESCE(updated_at, created_at),
-      deleted_at,
-      deleted_by
-    FROM tenant.vehicles
-    ON CONFLICT (id) DO NOTHING;
+    ALTER TABLE tenant.jobcards DROP CONSTRAINT jobcards_vehicle_id_fkey;
+    ALTER TABLE tenant.jobcards
+      ADD CONSTRAINT jobcards_vehicle_id_fkey
+      FOREIGN KEY (vehicle_id)
+      REFERENCES tenant.vehicles(id)
+      ON DELETE RESTRICT;
   END IF;
 END $$;
 
--- 3) Re-point jobcards.vehicle_id to public.vehicles
-ALTER TABLE IF EXISTS tenant.jobcards DROP CONSTRAINT IF EXISTS jobcards_vehicle_id_fkey;
-ALTER TABLE IF EXISTS tenant.jobcards
-  ADD CONSTRAINT jobcards_vehicle_id_fkey
-  FOREIGN KEY (vehicle_id)
-  REFERENCES public.vehicles(id)
-  ON DELETE RESTRICT;
+-- 5) Same for estimates.vehicle_id
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+    WHERE tc.table_schema = 'tenant' AND tc.table_name = 'estimates' 
+    AND tc.constraint_name = 'estimates_vehicle_id_fkey'
+    AND ccu.table_schema = 'public' AND ccu.table_name = 'vehicles'
+  ) THEN
+    ALTER TABLE tenant.estimates DROP CONSTRAINT estimates_vehicle_id_fkey;
+    ALTER TABLE tenant.estimates
+      ADD CONSTRAINT estimates_vehicle_id_fkey
+      FOREIGN KEY (vehicle_id)
+      REFERENCES tenant.vehicles(id)
+      ON DELETE RESTRICT;
+  END IF;
+END $$;
 
--- 3b) Re-point estimates.vehicle_id to public.vehicles
-ALTER TABLE IF EXISTS tenant.estimates DROP CONSTRAINT IF EXISTS estimates_vehicle_id_fkey;
-ALTER TABLE IF EXISTS tenant.estimates
-  ADD CONSTRAINT estimates_vehicle_id_fkey
-  FOREIGN KEY (vehicle_id)
-  REFERENCES public.vehicles(id)
-  ON DELETE RESTRICT;
-
--- 4) Drop tenant.vehicles (keep for rollback safety if needed)
-DROP TABLE IF EXISTS tenant.vehicles;
+-- 6) Drop public.vehicles if it exists (it shouldn't be used)
+DROP TABLE IF EXISTS public.vehicles;
