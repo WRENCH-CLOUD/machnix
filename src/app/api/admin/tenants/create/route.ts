@@ -23,8 +23,6 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json()
 
-    console.log(`[TENANT_CREATE] Initiating tenant creation for: ${body.tenantName} (${body.tenantSlug})`)
-
     // Create use case with all dependencies
     const usecase = new CreateTenantWithOwnerUseCase(
       new AdminSupabaseTenantRepository(supabaseAdmin),
@@ -36,8 +34,6 @@ export async function POST(request: NextRequest) {
 
     // Execute the use case
     const result = await usecase.execute(body)
-
-    console.log(`[TENANT_CREATE] Tenant creation completed successfully for: ${body.tenantName}`)
 
     return NextResponse.json({
       success: true,

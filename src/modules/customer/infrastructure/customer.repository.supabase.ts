@@ -1,6 +1,7 @@
 import { CustomerRepository } from '../domain/customer.repository'
 import { Customer, CustomerWithVehicles } from '../domain/customer.entity'
 import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
+import { escapePostgrestOperator } from '@/lib/utils/escape-postgrest'
 
 /**
  * Supabase implementation of CustomerRepository
@@ -90,13 +91,15 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
 
   async search(query: string): Promise<Customer[]> {
     const tenantId = this.getContextTenantId()
+    // Escape special characters to prevent filter injection
+    const safeQuery = escapePostgrestOperator(query.trim())
 
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .or(`name.ilike.%${query}%,phone.ilike.%${query}%,email.ilike.%${query}%`)
+      .or(`name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
       .order('name', { ascending: true })
 
     if (error) throw error
@@ -108,13 +111,16 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
 
     // Clean up phone number
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+    // Escape special characters to prevent filter injection
+    const safePhone = escapePostgrestOperator(phone)
+    const safeCleanPhone = escapePostgrestOperator(cleanPhone)
 
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .or(`phone.eq.${phone},phone.eq.${cleanPhone},phone.ilike.%${cleanPhone}%`)
+      .or(`phone.eq.${safePhone},phone.eq.${safeCleanPhone},phone.ilike.%${safeCleanPhone}%`)
       .limit(1)
       .maybeSingle()
 
