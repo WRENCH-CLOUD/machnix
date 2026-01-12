@@ -5,7 +5,7 @@
 CREATE TYPE tenant.tenant_status AS ENUM ('active', 'suspended', 'trial', 'inactive');
 
 ALTER TABLE tenant.tenants 
-  ADD COLUMN IF NOT EXISTS status tenant.tenant_status DEFAULT 'trial' NOT NULL;
+  ADD COLUMN IF NOT EXISTS status tenant.tenant_status DEFAULT 'active' NOT NULL;
 
 -- Add subscription column with enum type  
 CREATE TYPE tenant.subscription_tier AS ENUM ('starter', 'pro', 'enterprise');
