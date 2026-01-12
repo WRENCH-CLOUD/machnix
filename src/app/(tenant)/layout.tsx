@@ -1,13 +1,51 @@
 "use client"
 
 import "reflect-metadata"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
-import {  SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable"
+
+// Inner layout component that uses sidebar context
+function TenantLayoutContent({
+  children,
+  tenantName,
+  activeView,
+  onViewChange,
+  onCreateJob,
+}: {
+  children: ReactNode
+  tenantName: string
+  activeView: string
+  onViewChange: (view: string) => void
+  onCreateJob: () => void
+}) {
+  return (
+    <>
+      <AppSidebar 
+        activeView={activeView} 
+        onViewChange={onViewChange} 
+      />
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <TopHeader
+          tenantName={tenantName}
+          onCreateJob={onCreateJob}
+        />
+        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6 bg-background">
+          {children}
+        </main>
+      </div>
+    </>
+  )
+}
 
 export default function TenantLayoutWrapper({
   children,
@@ -42,6 +80,19 @@ export default function TenantLayoutWrapper({
   // Extract active view from pathname (e.g., /dashboard -> dashboard)
   const segments = pathname.split('/').filter(Boolean)
   const activeView = segments[0] || "dashboard"
+
+  const handleViewChange = useCallback((view: string) => {
+    router.push(`/${view}`)
+  }, [router])
+
+  const handleCreateJob = useCallback(() => {
+    if (pathname === "/jobs-board") {
+      // Dispatch a custom event that JobsPage can listen to
+      window.dispatchEvent(new CustomEvent('open-create-job'))
+    } else {
+      router.push("/jobs-board?create=true")
+    }
+  }, [pathname, router])
 
   useEffect(() => {
     if (loading) return
@@ -105,26 +156,14 @@ export default function TenantLayoutWrapper({
 
   return (
     <SidebarProvider>
-      <AppSidebar 
-        activeView={activeView} 
-        onViewChange={(view) => router.push(`/${view}`)} 
-      />
-      <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <TopHeader
-          tenantName={tenantName}
-          onCreateJob={() => {
-            if (pathname === "/jobs-board") {
-              // Dispatch a custom event that JobsPage can listen to
-              window.dispatchEvent(new CustomEvent('open-create-job'));
-            } else {
-              router.push("/jobs-board?create=true");
-            }
-          }}
-        />
-        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
-          {children}
-        </main>
-      </div>
+      <TenantLayoutContent
+        tenantName={tenantName}
+        activeView={activeView}
+        onViewChange={handleViewChange}
+        onCreateJob={handleCreateJob}
+      >
+        {children}
+      </TenantLayoutContent>
     </SidebarProvider>
   )
 }
