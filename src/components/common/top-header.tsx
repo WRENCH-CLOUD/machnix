@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers/auth-provider"
 import { GlobalSearch } from "@/components/common/global-search"
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 interface TopHeaderProps {
