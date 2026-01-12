@@ -77,7 +77,6 @@ export async function updateSession(request: NextRequest) {
 }
 export function redirectByRole(request: NextRequest, user: any) {
   const role = user.app_metadata?.role
-  const tenantId = user.app_metadata?.tenant_id
 
   const url = request.nextUrl.clone()
 

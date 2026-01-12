@@ -27,7 +27,6 @@ import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight } from "lucide
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
@@ -168,7 +167,6 @@ function SortableJobCard({
 export function JobBoardView({
   jobs,
   loading,
-  isMechanicMode,
   onJobClick,
   onStatusChange,
 }: JobBoardProps) {
