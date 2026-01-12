@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Menu } from "lucide-react"
+import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
