@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       make: makeName,
       model: body.model || '',
       year: body.year ? parseInt(body.year) : undefined,
-      licensePlate: body.regNo || body.licensePlate,
+      licensePlate: body.reg_no || body.regNo || body.licensePlate,
       color: body.color,
       mileage: body.odometer ? parseInt(body.odometer) : undefined,
     }

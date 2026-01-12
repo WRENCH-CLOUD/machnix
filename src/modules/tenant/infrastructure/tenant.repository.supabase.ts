@@ -123,8 +123,8 @@ export class SupabaseTenantRepository implements TenantRepository {
         job_number,
         status,
         created_at,
-        customer:customers(name),
-        vehicle:vehicles(reg_no)
+        vehicle_id,
+        customer:customers(name)
       `)
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false })
@@ -135,9 +135,20 @@ export class SupabaseTenantRepository implements TenantRepository {
       throw error;
     }
 
-    return (data || []).map(job => {
+    if (!data?.length) return [];
+
+    // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
+    const vehicleIds = data.map(job => job.vehicle_id).filter(Boolean);
+    const { data: vehicles } = await this.supabase
+      .from('vehicles')  // public.vehicles
+      .select('id, reg_no')
+      .in('id', vehicleIds);
+    
+    const vehicleMap = new Map((vehicles || []).map(v => [v.id, v]));
+
+    return data.map(job => {
       const customer = job.customer as unknown as { name: string } | null;
-      const vehicle = job.vehicle as unknown as { reg_no: string } | null;
+      const vehicle = vehicleMap.get(job.vehicle_id);
       return {
         id: job.job_number || job.id,
         customer: customer?.name || 'Unknown',

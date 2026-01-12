@@ -13,7 +13,7 @@ const createJobSchema = z.object({
   notes: z.string().max(5000, 'Notes too long').optional(),
   assignedMechanicId: z.string().uuid('Invalid mechanic ID').optional().transform(v => v ?? undefined),
   serviceType: z.string().max(100, 'Service type too long').optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  priority: z.enum(['low', 'normal', 'medium', 'high', 'urgent']).optional(),
   estimatedCompletion: z.string().optional(),
   details: z.record(z.unknown()).optional(),
 })
@@ -55,7 +55,12 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
-    console.error('Error creating job:', error)
+    console.error('Error creating job:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      stack: error.stack
+    })
     return NextResponse.json(
       { error: error.message || 'Failed to create job' },
       { status: 400 }
