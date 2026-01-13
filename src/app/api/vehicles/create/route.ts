@@ -45,28 +45,43 @@ export async function POST(request: NextRequest) {
     const vehicleRepository = new SupabaseVehicleRepository(supabase, tenantId)
     const useCase = new CreateVehicleUseCase(vehicleRepository)
 
-    // Look up make name if makeId is a UUID
+    // Look up make name from makeId
     let makeName = body.make || ''
-    if (body.makeId && body.makeId.includes('-')) {
-      // makeId looks like a UUID, look up the name
+    let makeId = null
+    if (body.makeId) {
       const { data: makeData } = await supabase
         .from('vehicle_make')
-        .select('name')
+        .select('id, name')
         .eq('id', body.makeId)
         .single()
-      if (makeData?.name) {
+      if (makeData) {
+        makeId = makeData.id
         makeName = makeData.name
       }
-    } else if (body.makeId) {
-      // makeId is actually a name string
-      makeName = body.makeId
+    }
+
+    // Look up model name from modelId
+    let modelName = body.model || ''
+    let modelId = null
+    if (body.modelId) {
+      const { data: modelData } = await supabase
+        .from('vehicle_model')
+        .select('id, name')
+        .eq('id', body.modelId)
+        .single()
+      if (modelData) {
+        modelId = modelData.id
+        modelName = modelData.name
+      }
     }
 
     // Map form data to DTO
     const createDTO = {
       customerId,
+      makeId,
+      modelId,
       make: makeName,
-      model: body.model || '',
+      model: modelName,
       year: body.year ? parseInt(body.year) : undefined,
       licensePlate: body.reg_no || body.regNo || body.licensePlate,
       color: body.color,
