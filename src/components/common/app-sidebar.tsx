@@ -301,7 +301,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
           "transition-all duration-300",
           "group-data-[collapsible=icon]:hidden"
         )}>
-          v1.0.0 Beta
+          v0.5.0 Beta
         </div>
       </SidebarFooter>
 
