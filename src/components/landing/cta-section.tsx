@@ -1,5 +1,7 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { CallbackForm } from "./callback-form"
 
 export function CTASection() {
   return (
@@ -107,17 +109,19 @@ export function CTASection() {
             Ready to Modernize Your Shop?
           </h2>
           <p className="text-muted-foreground text-sm md:text-base font-medium leading-[18.20px] md:leading-relaxed break-words max-w-2xl">
-            Join thousands of auto shops using Wrench Cloud to streamline operations and boost customer satisfaction.
+            Built for modern auto repair shops. Streamline operations and boost customer satisfaction.
           </p>
         </div>
-        <Link href="/login">
-          <Button
-            className="px-[30px] py-2 bg-secondary text-secondary-foreground text-base font-medium leading-6 rounded-[99px] shadow-[0px_0px_0px_4px_rgba(255,255,255,0.13)] hover:bg-secondary/90 transition-all duration-200"
-            size="lg"
-          >
-            Start Free Trial
-          </Button>
-        </Link>
+        <CallbackForm
+          trigger={
+            <Button
+              className="px-[30px] py-2 bg-secondary text-secondary-foreground text-base font-medium leading-6 rounded-[99px] shadow-[0px_0px_0px_4px_rgba(255,255,255,0.13)] hover:bg-secondary/90 transition-all duration-200"
+              size="lg"
+            >
+              Request Demo
+            </Button>
+          }
+        />
       </div>
     </section>
   )

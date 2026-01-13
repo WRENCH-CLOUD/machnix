@@ -137,8 +137,7 @@ export function TestimonialGridSection() {
             What Shop Owners Are Saying
           </h2>
           <p className="self-stretch text-center text-muted-foreground text-sm md:text-sm lg:text-base font-medium leading-[18.20px] md:leading-relaxed lg:leading-relaxed">
-            {"See how auto shops across the country are streamlining operations"} <br />{" "}
-            {"and growing their business with Wrench Cloud."}
+            Designed with real garages in mind. See what shop owners have to say.
           </p>
         </div>
       </div>

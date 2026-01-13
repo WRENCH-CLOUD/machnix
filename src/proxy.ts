@@ -62,6 +62,7 @@ export async function proxy(request: NextRequest) {
       "/api/auth/login",
       "/api/auth/logout",
       "/api/auth/me",
+      "/api/callbacks",
     ];
 
     if (!user && !PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))) {
