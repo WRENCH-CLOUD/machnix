@@ -36,7 +36,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Wrench Cloud - Garage Management System",
+  title: "Wrench Cloud – Garage Management Software",
   description: "Professional multi-tenant garage management system for automotive service businesses",
   icons: {
     // Prefer using existing assets in /public; you can add favicon.ico for full compatibility

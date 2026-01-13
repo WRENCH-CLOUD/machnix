@@ -60,18 +60,11 @@ export function LoginView({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-12 grid grid-cols-3 gap-6"
+            className="mt-12"
           >
-            {[
-              { value: "500+", label: "Garages" },
-              { value: "50K+", label: "Jobs/Month" },
-              { value: "99.9%", label: "Uptime" },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-3xl font-bold text-primary">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+            <p className="text-muted-foreground text-sm">
+              Built for modern auto repair shops.
+            </p>
           </motion.div>
         </div>
       </div>
