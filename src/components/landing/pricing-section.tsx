@@ -11,7 +11,7 @@ export function PricingSection() {
     {
       name: "Basic",
       monthlyPrice: "coming soon", //TODO: Update to the real price
-      annualPrice: "₹coming soon", //TODO: Update to the real price
+      annualPrice: "coming soon", //TODO: Update to the real price
       description: "Perfect for small shops getting started.",
       features: [
         "Up to 50 jobs/month",
@@ -30,7 +30,7 @@ export function PricingSection() {
     {
       name: "Pro",
       monthlyPrice: "coming soon", //TODO: Update to the real price
-      annualPrice: "₹coming soon", //TODO: Update to the real price
+      annualPrice: "coming soon", //TODO: Update to the real price
       description: "Ideal for growing shops.",
       features: [
         "Unlimited jobs",
@@ -60,7 +60,7 @@ export function PricingSection() {
       ],
       buttonText: "coming soon", //TODO: Update to "Contact Sales" when launching
       buttonClass:
-        "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(0,0,0,0.20)] text-secondary-foreground text-shadow-[0px_1px_1px_rgba(0,0,0,0.08)] hover:bg-secondary/90",
+        "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(0,0,0,0.20)] text-secondary-white text-shadow-[0px_1px_1px_rgba(0,0,0,0.08)] hover:bg-secondary/90",
     },
   ]
 
@@ -170,7 +170,7 @@ export function PricingSection() {
               >
                 <div className="px-1.5 flex justify-center items-center gap-2">
                   <span
-                    className={`text-center text-sm font-medium leading-tight ${plan.name === "Free" ? "text-gray-800" : plan.name === "Pro" ? "text-primary" : "text-zinc-950"}`}
+                    className={`text-center text-sm font-medium leading-tight ${plan.name === "Basic" ? "text-gray-500" : plan.name === "Pro" ? "text-primary" : "text-white"}`}
                   >
                     {plan.buttonText}
                   </span>

@@ -24,6 +24,7 @@ interface CallbackFormProps {
 export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -35,6 +36,7 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
     try {
       const response = await fetch("/api/callbacks", {
@@ -46,9 +48,22 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
       if (response.ok) {
         setIsSuccess(true)
         setFormData({ name: "", email: "", phone: "", garageName: "", message: "" })
+      } else {
+        // Extract error message from response
+        let errorMessage = "Failed to submit request. Please try again."
+        try {
+          const data = await response.json()
+          if (data?.error) {
+            errorMessage = data.error
+          }
+        } catch {
+          // Use default error message
+        }
+        setError(errorMessage)
       }
-    } catch (error) {
-      console.error("Failed to submit callback request:", error)
+    } catch (err) {
+      console.error("Failed to submit callback request:", err)
+      setError("Network error. Please check your connection and try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -60,6 +75,7 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
 
   const resetForm = () => {
     setIsSuccess(false)
+    setError(null)
     setFormData({ name: "", email: "", phone: "", garageName: "", message: "" })
   }
 
@@ -154,6 +170,11 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
                   rows={3}
                 />
               </div>
+              {error && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>

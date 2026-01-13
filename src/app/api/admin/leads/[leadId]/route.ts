@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { ensurePlatformAdmin } from "@/lib/auth/is-platform-admin"
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
   try {
+    // Authorization check - only platform admins can update leads
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: auth.message || "Unauthorized" },
+        { status: auth.status || 401 }
+      )
+    }
+
     const { leadId } = await params
     const body = await request.json()
     const { status, notes } = body
@@ -15,7 +25,6 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (notes !== undefined) updateData.notes = notes
-
 
     const { data, error } = await supabase
       .from("leads")
@@ -41,6 +50,15 @@ export async function DELETE(
   { params }: { params: Promise<{ leadId: string }> }
 ) {
   try {
+    // Authorization check - only platform admins can delete leads
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: auth.message || "Unauthorized" },
+        { status: auth.status || 401 }
+      )
+    }
+
     const { leadId } = await params
     const supabase = getSupabaseAdmin()
     
