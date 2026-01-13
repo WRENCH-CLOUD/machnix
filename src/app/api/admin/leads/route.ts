@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { ensurePlatformAdmin } from "@/lib/auth/is-platform-admin"
 
 export async function GET() {
   try {
+    // Authorization check - only platform admins can access leads
+    const auth = await ensurePlatformAdmin()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: auth.message || "Unauthorized" },
+        { status: auth.status || 401 }
+      )
+    }
+
     const supabase = getSupabaseAdmin()
     
     const { data: leads, error } = await supabase
