@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
   closestCorners,
   KeyboardSensor,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -27,10 +26,10 @@ import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight } from "lucide
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface JobBoardProps {
   jobs: UIJob[];
@@ -54,12 +53,10 @@ function DroppableColumn({
   status,
   children,
   onContextMenu,
-  isMobile,
 }: {
   status: JobStatus;
   children: React.ReactNode;
   onContextMenu?: (e: React.MouseEvent) => void;
-  isMobile?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `droppable-${status}`,
@@ -69,8 +66,7 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all snap-start",
-        isMobile ? "w-[calc(100vw-3rem)] min-w-70" : "w-72 lg:w-80",
+        "w-80 shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all",
         isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
       )}
       onContextMenu={onContextMenu}
@@ -80,11 +76,11 @@ function DroppableColumn({
   );
 }
 
-function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus; isMobile?: boolean }) {
+function JobCardBody({ job, status }: { job: UIJob; status: JobStatus }) {
   const config = statusConfig[status] || statusConfig.received;
 
   return (
-    <div className={cn("space-y-2", isMobile ? "p-3" : "p-4 space-y-3")}>
+    <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono font-bold text-primary">{job.jobNumber}</span>
         <Badge className={`${config.bgColor} ${config.color} border-0 text-[10px] px-1.5 py-0`}>
@@ -93,18 +89,18 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
       </div>
 
       <div className="space-y-1">
-        <div className="flex items-center gap-2 font-medium text-sm truncate">
-          <User className="w-3 h-3 text-muted-foreground shrink-0" />
-          <span className="truncate">{job.customer.name}</span>
+        <div className="flex items-center gap-2 font-medium text-sm">
+          <User className="w-3 h-3 text-muted-foreground" />
+          {job.customer.name}
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Car className="w-3 h-3 shrink-0" />
-          <span className="truncate">{job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}</span>
+          <Car className="w-3 h-3" />
+          {job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <Clock className="w-3 h-3" />
             {new Date(job.updatedAt).toLocaleDateString()}
@@ -113,7 +109,7 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
         <Button
           variant="ghost"
           size="icon"
-          className={cn("h-6 w-6 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
@@ -167,34 +163,33 @@ function SortableJobCard({
 export function JobBoardView({
   jobs,
   loading,
+  isMechanicMode,
   onJobClick,
   onStatusChange,
 }: JobBoardProps) {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [hiddenStatuses, setHiddenStatuses] = useState<JobStatus[]>([]);
-  const [uiJobs, setUiJobs] = useState<UIJob[]>(jobs);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     status: JobStatus;
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
-  const isMobile = useIsMobile();
+  const [optimisticJobs, setOptimisticJobs] = useState<UIJob[]>(jobs);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const prevJobsRef = useRef<UIJob[]>(jobs);
 
   useEffect(() => {
-    setUiJobs(jobs);
-  }, [jobs]);
+    if (!isUpdating && jobs !== prevJobsRef.current) {
+      prevJobsRef.current = jobs;
+      setOptimisticJobs(jobs);
+    }
+  }, [jobs, isUpdating]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: isMobile ? 10 : 5,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -208,7 +203,7 @@ export function JobBoardView({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        acc[status] = uiJobs.filter((job) => {
+        acc[status] = optimisticJobs.filter((job) => {
           if (job.status !== status) return false;
 
           const updatedDate = new Date(job.updatedAt);
@@ -217,7 +212,7 @@ export function JobBoardView({
           return updatedDate.getTime() === today.getTime();
         });
       } else {
-        acc[status] = uiJobs.filter((job) => job.status === status);
+        acc[status] = optimisticJobs.filter((job) => job.status === status);
       }
       return acc;
     },
@@ -230,7 +225,7 @@ export function JobBoardView({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const job = uiJobs.find((j) => j.id === active.id);
+    const job = optimisticJobs.find((j) => j.id === active.id);
     if (job) {
       setActiveJob(job);
     }
@@ -269,7 +264,7 @@ export function JobBoardView({
         (status) => overId === `droppable-${status}`
       );
     } else {
-      const overJob = uiJobs.find((j) => j.id === overId);
+      const overJob = optimisticJobs.find((j) => j.id === overId);
       if (overJob) {
         targetStatus = overJob.status as JobStatus;
       }
@@ -285,11 +280,11 @@ export function JobBoardView({
         return;
       }
 
-      // Update UI immediately to keep drag/drop smooth.
       const updatedAt = new Date().toISOString();
-      const previousUiJobs = uiJobs;
-      setUiJobs((prev) =>
-        prev.map((job) =>
+
+      setIsUpdating(true);
+      setOptimisticJobs((prevJobs) =>
+        prevJobs.map((job) =>
           job.id === activeId
             ? {
                 ...job,
@@ -306,8 +301,12 @@ export function JobBoardView({
           await onStatusChange(activeId, targetStatus);
         } catch (error) {
           console.error("Failed to update job status:", error);
-          setUiJobs(previousUiJobs);
+          setOptimisticJobs(jobs);
+        } finally {
+          setTimeout(() => setIsUpdating(false), 100);
         }
+      } else {
+        setIsUpdating(false);
       }
     }
   };
@@ -398,35 +397,35 @@ export function JobBoardView({
 
   return (
     <div className="h-full flex flex-col" onClick={handleClickOutside}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 md:px-6 py-3 md:py-4 border-b border-border shrink-0 gap-2">
-        <div className="min-w-0">
-          <h1 className="text-lg md:text-2xl font-bold text-foreground">Job Board</h1>
-          <p className="text-muted-foreground text-xs md:text-sm truncate">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Job Board</h1>
+          <p className="text-muted-foreground text-sm">
             {jobs.length} active jobs •{" "}
             {jobs.filter((j) => j.status !== "completed").length} in progress
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
           {hiddenStatuses.length > 0 && (
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 text-xs"
+              className="gap-2"
               onClick={unhideAll}
             >
-              <span className="hidden sm:inline">Unhide All</span> ({hiddenStatuses.length})
+              Unhide All ({hiddenStatuses.length})
             </Button>
           )}
-          <Button variant="outline" size="sm" className="gap-1 md:gap-2 bg-transparent">
+          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
             <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filter</span>
+            Filter
           </Button>
           <div className="flex rounded-lg border border-border overflow-hidden">
             <Button
               variant={viewMode === "kanban" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("kanban")}
-              className="rounded-none px-2 md:px-3"
+              className="rounded-none"
             >
               <LayoutGrid className="w-4 h-4" />
             </Button>
@@ -434,7 +433,7 @@ export function JobBoardView({
               variant={viewMode === "list" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
-              className="rounded-none px-2 md:px-3"
+              className="rounded-none"
             >
               <List className="w-4 h-4" />
             </Button>
@@ -442,7 +441,7 @@ export function JobBoardView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-3 md:px-6 py-3 md:py-4">
+      <div className="flex-1 overflow-hidden px-6 py-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -450,10 +449,7 @@ export function JobBoardView({
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className={cn(
-            "flex gap-2 md:gap-3 h-full w-full overflow-x-auto pb-2",
-            isMobile && "snap-x snap-mandatory scroll-smooth"
-          )}>
+          <div className="flex gap-3 h-full w-full overflow-x-auto">
             {visibleStatuses.map((status) => {
               const statusInfo = statusConfig[status];
               const columnJobs = groupedJobs[status];
@@ -462,7 +458,6 @@ export function JobBoardView({
                 <DroppableColumn
                   key={status}
                   status={status}
-                  isMobile={isMobile}
                   onContextMenu={(e) => handleContextMenu(e, status)}
                 >
                   <div className="p-3 border-b border-border shrink-0">

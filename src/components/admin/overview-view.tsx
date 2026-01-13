@@ -23,9 +23,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
-import { type GlobalAnalytics } from "@/modules/analytics"
+import { type GlobalAnalytics } from "@/app/modules/analytics.service"
 
-import { type TenantWithStats } from "@/modules/tenant"
+import { type TenantWithStats } from "@/app/modules/tenant-management"
 
 interface OverviewViewProps {
   tenants: TenantWithStats[]

@@ -23,7 +23,7 @@ const BentoCard = ({ title, description, graphic }: BentoCardProps) => (
       }}
     />
     {/* Additional subtle gradient overlay */}
-    <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent rounded-2xl" />
+    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-2xl" />
 
     <div className="self-stretch p-6 flex flex-col justify-start items-start gap-2 relative z-10">
       <div className="self-stretch flex flex-col justify-start items-start gap-1.5">
@@ -74,12 +74,9 @@ export function BentoSection() {
   ]
 
   return (
-    <section id="features-section" className="w-full px-5 flex flex-col justify-center items-center overflow-hidden bg-transparent">
-      <div className="w-full py-8 md:py-16 relative flex flex-col justify-start items-start gap-6 overflow-hidden">
-        <div
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[520px] sm:top-[614px] origin-top-left rotate-[-33.39deg] bg-primary/5 sm:bg-primary/10 blur-[80px] sm:blur-[130px] z-0 w-[320px] sm:w-[547px] h-[520px] sm:h-[938px]"
-          aria-hidden="true"
-        />
+    <section id="features-section" className="w-full px-5 flex flex-col justify-center items-center overflow-visible bg-transparent">
+      <div className="w-full py-8 md:py-16 relative flex flex-col justify-start items-start gap-6">
+        <div className="w-[547px] h-[938px] absolute top-[614px] left-[80px] origin-top-left rotate-[-33.39deg] bg-primary/10 blur-[130px] z-0" />
         <div className="self-stretch py-8 md:py-14 flex flex-col justify-center items-center gap-2 z-10">
           <div className="flex flex-col justify-start items-center gap-4">
             <h2 className="w-full max-w-[655px] text-center text-foreground text-4xl md:text-6xl font-semibold leading-tight md:leading-[66px]">

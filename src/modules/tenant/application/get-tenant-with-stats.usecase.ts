@@ -1,4 +1,5 @@
 import { TenantRepository } from '../infrastructure/tenant.repository'
+import { TenantWithStats } from '../domain/tenant-stats.entity'
 
 /**
  * Use Case: Get single tenant with statistics

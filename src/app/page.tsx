@@ -10,7 +10,7 @@ import { FooterSection } from "@/components/landing/footer-section"
 
 export default function HomePage() {
   return (
-    <div className="dark min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-primary selection:text-primary-foreground scroll-smooth overflow-x-hidden">
+    <div className="dark min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-primary selection:text-primary-foreground scroll-smooth">
       <HeroSection />
       {/* <SocialProof /> */}
       <BentoSection />

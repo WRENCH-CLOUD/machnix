@@ -57,27 +57,6 @@ export async function POST(request: NextRequest) {
       redirectUrl: '/dashboard', // Redirect to tenant dashboard
     })
 
-    // Audit log: Record impersonation start for security tracking
-    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
-      || request.headers.get('x-real-ip') 
-      || 'unknown'
-    
-    await supabaseAdmin
-      .schema('tenant')
-      .from('activities')
-      .insert({
-        tenant_id: tenantId,
-        activity_type: 'admin_impersonation_started',
-        user_id: auth.user!.id,
-        description: `Platform admin ${auth.user!.email} started impersonating tenant`,
-        metadata: { 
-          admin_email: auth.user!.email,
-          admin_id: auth.user!.id,
-          ip_address: clientIp,
-          tenant_name: tenant.name,
-        }
-      })
-
     // Set impersonation cookie (expires in 1 hour)
     response.cookies.set('impersonate_tenant_id', tenantId, {
       httpOnly: true,

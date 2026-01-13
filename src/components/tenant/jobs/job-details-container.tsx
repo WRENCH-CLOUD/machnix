@@ -548,6 +548,7 @@ export function JobDetailsContainer({
 
   const handlePaymentComplete = async (
     method: string,
+    ref: string | undefined
   ) => {
     if (!invoice) return;
 

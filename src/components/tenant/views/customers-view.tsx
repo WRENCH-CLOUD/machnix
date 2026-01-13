@@ -78,18 +78,18 @@ export function CustomersView({
   }
 
   return (
-    <div className="h-full flex flex-col space-y-4 md:space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg md:text-2xl font-bold text-foreground">Customers</h1>
-          <p className="text-muted-foreground text-xs md:text-sm">Manage your customer database</p>
+          <h1 className="text-2xl font-bold text-foreground">Customers</h1>
+          <p className="text-muted-foreground">Manage your customer database</p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-2 w-fit">
+            <Button className="gap-2">
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add</span> Customer
+              Add Customer
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -125,19 +125,19 @@ export function CustomersView({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-xl p-2 md:p-4"
+          className="bg-card border border-border rounded-xl p-4"
         >
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <User className="w-5 h-5 text-primary" />
             </div>
-            <div className="text-center md:text-left">
-              <div className="text-lg md:text-2xl font-bold">{stats.total}</div>
-              <div className="text-[10px] md:text-sm text-muted-foreground">Customers</div>
+            <div>
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-sm text-muted-foreground">Total Customers</div>
             </div>
           </div>
         </motion.div>
@@ -145,15 +145,15 @@ export function CustomersView({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card border border-border rounded-xl p-2 md:p-4"
+          className="bg-card border border-border rounded-xl p-4"
         >
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-emerald-500" />
             </div>
-            <div className="text-center md:text-left">
-              <div className="text-lg md:text-2xl font-bold">{stats.totalJobs}</div>
-              <div className="text-[10px] md:text-sm text-muted-foreground">Total Jobs</div>
+            <div>
+              <div className="text-2xl font-bold">{stats.totalJobs}</div>
+              <div className="text-sm text-muted-foreground">Total Jobs</div>
             </div>
           </div>
         </motion.div>
@@ -161,29 +161,29 @@ export function CustomersView({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-card border border-border rounded-xl p-2 md:p-4"
+          className="bg-card border border-border rounded-xl p-4"
         >
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Car className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Car className="w-5 h-5 text-amber-500" />
             </div>
-            <div className="text-center md:text-left">
-              <div className="text-lg md:text-2xl font-bold">{stats.avgJobs}</div>
-              <div className="text-[10px] md:text-sm text-muted-foreground">Avg. Jobs</div>
+            <div>
+              <div className="text-2xl font-bold">{stats.avgJobs}</div>
+              <div className="text-sm text-muted-foreground">Avg. Jobs/Customer</div>
             </div>
           </div>
         </motion.div>
       </div>
 
       {/* Search */}
-      <div className="relative w-full sm:max-w-md">
+      <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search by name, phone, or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-9 md:h-10"
+          className="pl-10"
         />
       </div>
 

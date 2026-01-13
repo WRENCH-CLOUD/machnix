@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS tenant.payments (
   payment_date timestamptz NOT NULL DEFAULT now(),
   payment_method text NOT NULL DEFAULT 'cash',
   reference_number text,
+  notes text,
   received_by uuid
 );
 

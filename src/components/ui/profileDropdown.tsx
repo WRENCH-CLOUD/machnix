@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Settings, LogOut, User } from "lucide-react";
+import { Settings, CreditCard, FileText, LogOut, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Avatar from "boring-avatars";
@@ -77,10 +77,10 @@ export default function ProfileDropdown({
                             className="flex items-center gap-16 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 hover:shadow-sm transition-all duration-200 focus:outline-none"
                         >
                             <div className="text-left flex-1">
-                                <div className="text-[16px] font-bold font-medium text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
+                                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
                                     {data.name}
                                 </div>
-                                <div className="text-[14px] text-zinc-500 dark:text-zinc-400 tracking-tight leading-tight">
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400 tracking-tight leading-tight">
                                     {data.email}
                                 </div>
                             </div>
@@ -153,7 +153,7 @@ export default function ProfileDropdown({
                                 <div className="px-3 py-2.5 mb-1">
                                     <div className="flex items-center gap-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                        <span className="text-[14px] font-medium text-primary/80 uppercase tracking-wider">
+                                        <span className="text-[10px] font-medium text-primary/80 uppercase tracking-wider">
                                             {data.tenantName}
                                         </span>
                                     </div>
@@ -171,7 +171,7 @@ export default function ProfileDropdown({
                                     >
                                         <div className="flex items-center gap-2 flex-1">
                                             {item.icon}
-                                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight whitespace-nowrap group-hover:text-zinc-950 dark:group-hover:text-zinc-50 transition-colors">
+                                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight whitespace-nowrap group-hover:text-zinc-950 dark:group-hover:text-zinc-50 transition-colors">
                                                 {item.label}
                                             </span>
                                         </div>

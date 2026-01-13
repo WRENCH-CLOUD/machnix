@@ -41,33 +41,14 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
     };
   }
 
-  private toDomainWithRelations(row: any, vehicle?: any): EstimateWithRelations {
+  private toDomainWithRelations(row: any): EstimateWithRelations {
     return {
       ...this.toDomain(row),
       customer: row.customer,
-      vehicle: vehicle || row.vehicle,
+      vehicle: row.vehicle,
       jobcard: row.jobcard,
       items: row.items || [],
     };
-  }
-
-  /**
-   * Helper to fetch vehicles from public.vehicles for a list of vehicle IDs
-   */
-  private async fetchVehicles(vehicleIds: string[]): Promise<Map<string, any>> {
-    const uniqueIds = [...new Set(vehicleIds.filter(Boolean))];
-    if (uniqueIds.length === 0) return new Map();
-    
-    const { data } = await this.supabase
-      .from('vehicles')  // public.vehicles
-      .select('*')
-      .in('id', uniqueIds);
-    
-    const vehicleMap = new Map<string, any>();
-    for (const v of data || []) {
-      vehicleMap.set(v.id, v);
-    }
-    return vehicleMap;
   }
 
   protected toDatabase(
@@ -103,6 +84,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
         `
         *,
         customer:customers(*),
+        vehicle:vehicles(*),
         jobcard:jobcards(*),
         items:estimate_items(*)
       `
@@ -111,12 +93,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    if (!data?.length) return [];
-
-    // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
-    const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id));
-    
-    return data.map((row) => this.toDomainWithRelations(row, vehicleMap.get(row.vehicle_id)));
+    return (data || []).map((row) => this.toDomainWithRelations(row));
   }
 
   async findByStatus(status: EstimateStatus): Promise<EstimateWithRelations[]> {
@@ -129,6 +106,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
         `
         *,
         customer:customers(*),
+        vehicle:vehicles(*),
         jobcard:jobcards(*),
         items:estimate_items(*)
       `
@@ -138,12 +116,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    if (!data?.length) return [];
-
-    // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
-    const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id));
-    
-    return data.map((row) => this.toDomainWithRelations(row, vehicleMap.get(row.vehicle_id)));
+    return (data || []).map((row) => this.toDomainWithRelations(row));
   }
 
   async findById(id: string): Promise<EstimateWithRelations | null> {
@@ -156,6 +129,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
         `
         *,
         customer:customers(*),
+        vehicle:vehicles(*),
         jobcard:jobcards(*),
         items:estimate_items(*)
       `
@@ -169,12 +143,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       throw error;
     }
 
-    if (!data) return null;
-
-    // Fetch vehicle separately (cross-schema FK not detected by PostgREST)
-    const vehicleMap = await this.fetchVehicles([data.vehicle_id]);
-
-    return this.toDomainWithRelations(data, vehicleMap.get(data.vehicle_id));
+    return data ? this.toDomainWithRelations(data) : null;
   }
 
   async findByCustomerId(customerId: string): Promise<Estimate[]> {

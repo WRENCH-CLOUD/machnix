@@ -3,6 +3,7 @@ export class jobLifecycleRules {
 
   static ensureCanCompletePayment(
     paymentStatus: string,
+    jobStatus: string
   ): void {
     if (paymentStatus !== "COMPLETED") {
       throw new Error(

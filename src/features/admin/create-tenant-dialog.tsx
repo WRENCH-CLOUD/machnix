@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ export function CreateTenantDialog({
     adminEmail: "",
     adminPhone: "",
     subscription: "pro",
+    notes: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +75,8 @@ export function CreateTenantDialog({
         adminName: "",
         adminEmail: "",
         adminPhone: "",
-        subscription: "pro"
+        subscription: "pro",
+        notes: "",
       });
     } catch (error) {
       toast({
@@ -207,6 +210,19 @@ export function CreateTenantDialog({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder="Any additional notes..."
+              rows={3}
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

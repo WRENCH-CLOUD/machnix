@@ -23,5 +23,5 @@ export default function MechanicPage() {
     );
   }
 
-  // return <MechanicDashboardView />;
+  return <MechanicDashboardView />;
 }

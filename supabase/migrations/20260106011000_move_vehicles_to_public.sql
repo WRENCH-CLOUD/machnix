@@ -1,77 +1,82 @@
--- Move vehicles to public schema with tenant-aware columns and text make/model
--- Also rewire jobcards.vehicle_id to reference the new public.vehicles table
--- Keeps vehicle data accessible across tenants (no RLS) and drops make_id/model_id indirection.
+-- REVERT MIGRATION: Keep vehicles in tenant schema (do NOT move to public)
+-- NOTE: The filename '20260106011000_move_vehicles_to_public.sql' is legacy
+-- and does not reflect the current behavior; this migration enforces the
+-- correct design: tenant.vehicles with text make/model columns and
+-- FK references to public.vehicle_make/model for lookup
 
--- 1) Create public.vehicles with text make/model and extra attributes
-CREATE TABLE IF NOT EXISTS public.vehicles (
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL,
-  customer_id uuid NOT NULL,
-  reg_no text NOT NULL,
-  vin text,
-  make text,
-  model text,
-  year smallint,
-  odometer integer,
-  mileage integer,
-  color text,
-  license_plate text,
-  notes text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  deleted_at timestamptz,
-  deleted_by uuid
-);
+-- 1) If public.vehicles was created by accident, drop it
+DROP TABLE IF EXISTS public.vehicles;
 
--- Ensure the table is readable (no RLS on public schema tables by default)
-ALTER TABLE IF EXISTS public.vehicles DISABLE ROW LEVEL SECURITY;
+-- 2) Ensure tenant.vehicles exists with proper schema
+-- Add text-based make/model columns if missing (for direct storage)
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS make text;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS model text;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS color text;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS license_plate text;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS mileage integer;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE IF EXISTS tenant.vehicles ADD COLUMN IF NOT EXISTS deleted_by uuid;
 
--- 2) Copy existing tenant.vehicles data if present
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'tenant' AND table_name = 'vehicles'
-  ) THEN
-    INSERT INTO public.vehicles (id, tenant_id, customer_id, reg_no, vin, make, model, year, odometer, mileage, color, license_plate, notes, created_at, updated_at, deleted_at, deleted_by)
-    SELECT 
-      id,
-      tenant_id,
-      customer_id,
-      reg_no,
-      vin,
-      COALESCE(make, ''),
-      COALESCE(model, ''),
-      year,
-      odometer,
-      NULLIF(mileage, 0),
-      color,
-      COALESCE(license_plate, reg_no),
-      notes,
-      created_at,
-      COALESCE(updated_at, created_at),
-      deleted_at,
-      deleted_by
-    FROM tenant.vehicles
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-END $$;
-
--- 3) Re-point jobcards.vehicle_id to public.vehicles
+-- 3) Ensure jobcards.vehicle_id FK points to tenant.vehicles
 ALTER TABLE IF EXISTS tenant.jobcards DROP CONSTRAINT IF EXISTS jobcards_vehicle_id_fkey;
 ALTER TABLE IF EXISTS tenant.jobcards
   ADD CONSTRAINT jobcards_vehicle_id_fkey
   FOREIGN KEY (vehicle_id)
-  REFERENCES public.vehicles(id)
+  REFERENCES tenant.vehicles(id)
   ON DELETE RESTRICT;
 
--- 3b) Re-point estimates.vehicle_id to public.vehicles
-ALTER TABLE IF EXISTS tenant.estimates DROP CONSTRAINT IF EXISTS estimates_vehicle_id_fkey;
-ALTER TABLE IF EXISTS tenant.estimates
-  ADD CONSTRAINT estimates_vehicle_id_fkey
-  FOREIGN KEY (vehicle_id)
-  REFERENCES public.vehicles(id)
-  ON DELETE RESTRICT;
+-- 4) Ensure estimates.vehicle_id FK points to tenant.vehicles (if column exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'tenant' 
+      AND table_name = 'estimates' 
+      AND column_name = 'vehicle_id'
+  ) THEN
+    EXECUTE 'ALTER TABLE IF EXISTS tenant.estimates DROP CONSTRAINT IF EXISTS estimates_vehicle_id_fkey';
+    EXECUTE 'ALTER TABLE IF EXISTS tenant.estimates ADD CONSTRAINT estimates_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES tenant.vehicles(id) ON DELETE RESTRICT';
+  END IF;
+END $$;
 
--- 4) Drop tenant.vehicles (keep for rollback safety if needed)
-DROP TABLE IF EXISTS tenant.vehicles;
+-- 5) Ensure RLS is enabled on tenant.vehicles
+ALTER TABLE IF EXISTS tenant.vehicles ENABLE ROW LEVEL SECURITY;
+
+-- 6) Re-create RLS policies for tenant.vehicles
+DROP POLICY IF EXISTS vehicles_select ON tenant.vehicles;
+CREATE POLICY vehicles_select ON tenant.vehicles FOR SELECT
+  USING (
+    (auth.jwt() ->> 'role') IN ('service_role','platform_admin')
+    OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'platform_admin'
+    OR (auth.jwt() ->> 'tenant_id') = tenant_id::text
+  );
+
+DROP POLICY IF EXISTS vehicles_insert ON tenant.vehicles;
+CREATE POLICY vehicles_insert ON tenant.vehicles FOR INSERT
+  WITH CHECK (
+    (auth.jwt() ->> 'role') IN ('service_role','platform_admin')
+    OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'platform_admin'
+    OR (auth.jwt() ->> 'tenant_id') = tenant_id::text
+  );
+
+DROP POLICY IF EXISTS vehicles_update ON tenant.vehicles;
+CREATE POLICY vehicles_update ON tenant.vehicles FOR UPDATE
+  USING (
+    (auth.jwt() ->> 'role') IN ('service_role','platform_admin')
+    OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'platform_admin'
+    OR (auth.jwt() ->> 'tenant_id') = tenant_id::text
+  )
+  WITH CHECK (
+    (auth.jwt() ->> 'role') IN ('service_role','platform_admin')
+    OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'platform_admin'
+    OR (auth.jwt() ->> 'tenant_id') = tenant_id::text
+  );
+
+DROP POLICY IF EXISTS vehicles_delete ON tenant.vehicles;
+CREATE POLICY vehicles_delete ON tenant.vehicles FOR DELETE
+  USING (
+    (auth.jwt() ->> 'role') IN ('service_role','platform_admin')
+    OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'platform_admin'
+    OR (auth.jwt() ->> 'tenant_id') = tenant_id::text
+  );

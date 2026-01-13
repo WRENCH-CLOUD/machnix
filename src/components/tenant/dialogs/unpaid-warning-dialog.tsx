@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DollarSign,
@@ -38,6 +38,7 @@ interface UnpaidWarningDialogProps {
   onClose: () => void;
   jobNumber?: string;
   outstandingBalance: number;
+  invoiceId: string;
   onCancel: () => void;
   onMarkPaidAndComplete: (
     paymentMethod: string,
@@ -66,6 +67,7 @@ export function UnpaidWarningDialog({
   onClose,
   jobNumber,
   outstandingBalance,
+  invoiceId,
   onCancel,
   onMarkPaidAndComplete,
 }: UnpaidWarningDialogProps) {
@@ -106,7 +108,7 @@ export function UnpaidWarningDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => {
+          onClick={(e) => {
             if (!isProcessing && !isCompleted) {
               onClose();
             }

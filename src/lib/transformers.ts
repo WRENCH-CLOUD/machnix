@@ -26,7 +26,7 @@ export interface VehicleFormData {
 export function transformVehicleToViewModel(vehicle: Record<string, any>): VehicleViewModel {
   return {
     id: vehicle.id,
-    makeName: vehicle.make || "Unknown",
+    makeName: vehicle.make?.name || "Unknown",
     modelName: vehicle.model || "Unknown",
     regNo: vehicle.reg_no,
     year: vehicle.year,

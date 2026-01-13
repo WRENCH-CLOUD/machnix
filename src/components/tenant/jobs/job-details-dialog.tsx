@@ -34,8 +34,8 @@ interface JobDetailsDialogProps {
   isMechanicMode: boolean;
   activeTab: string;
   onTabChange: (tab: string) => void;
-  onStatusChange?: (newStatus: JobStatus) => void;
-  onMechanicChange?: (mechanicId: string) => void;
+  onStatusChange?: (newStatus: JobStatus) => void; // made optional to match legacy
+  onMechanicChange?: (mechanicId: string) => void; // made optional
   isRefreshing?: boolean;
 
   // Estimate props

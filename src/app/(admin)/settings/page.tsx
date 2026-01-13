@@ -1,15 +1,17 @@
 "use client"
 
-import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function SettingsView() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
-      </div>
-      <ChangePasswordForm />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Admin Settings</CardTitle>
+        <CardDescription>Platform configuration and settings</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground">Admin settings interface coming soon...</p>
+      </CardContent>
+    </Card>
   )
 }

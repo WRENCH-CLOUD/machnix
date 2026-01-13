@@ -22,10 +22,14 @@ export async function GET(
 
     const { jobId } = await context.params;
 
+    console.log('[DEBUG] Fetching invoice for jobId:', jobId, 'tenantId:', tenantId);
+
     const repository = new SupabaseInvoiceRepository(supabase, tenantId);
     const useCase = new GetInvoiceByJobIdUseCase(repository);
 
     const invoice = await useCase.execute(jobId);
+
+    console.log('[DEBUG] Invoice result:', invoice ? 'Found' : 'Not found', invoice?.id);
 
     if (!invoice) {
       return NextResponse.json(

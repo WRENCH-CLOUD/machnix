@@ -28,13 +28,7 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
   private toDomainWithCustomer(row: any): VehicleWithCustomer {
     return {
       ...this.toDomain(row),
-      // Use view's built-in customer fields (views don't support PostgREST embedded relations)
-      customer: row.customer_name ? {
-        id: row.customer_id,
-        name: row.customer_name,
-        phone: row.customer_phone,
-        email: row.customer_email,
-      } : row.customer,
+      customer: row.customer,
     }
   }
 
@@ -66,7 +60,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select(`
+        *,
+        customer:customers(*)
+      `)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
 
@@ -80,7 +77,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select(`
+        *,
+        customer:customers(*)
+      `)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single()
@@ -114,7 +114,10 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('vehicles')
-      .select('*')  // View includes customer_name, customer_phone, customer_email
+      .select(`
+        *,
+        customer:customers(*)
+      `)
       .eq('tenant_id', tenantId)
       .or(`license_plate.ilike.%${query}%`)
       .order('created_at', { ascending: false })

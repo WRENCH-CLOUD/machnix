@@ -23,7 +23,7 @@ export function JobOverview({ job }: JobOverviewProps) {
 
   return (
     <ScrollArea className="h-[calc(100vh-280px)]">
-      <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="p-6 grid grid-cols-3 gap-6">
         {/* Customer Info */}
         <Card>
           <CardHeader className="pb-3">
@@ -34,26 +34,26 @@ export function JobOverview({ job }: JobOverviewProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="font-medium text-foreground wrap-break-word">{job.customer.name}</p>
+              <p className="font-medium text-foreground">{job.customer.name}</p>
             </div>
             <a
               href={`tel:${job.customer.phone}`}
-              className="flex items-center gap-2 text-sm text-primary hover:underline min-w-0"
+              className="flex items-center gap-2 text-sm text-primary hover:underline"
             >
               <Phone className="w-4 h-4" />
-              <span className="truncate">{job.customer.phone}</span>
+              {job.customer.phone}
             </a>
             <a
               href={`mailto:${job.customer.email}`}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground min-w-0"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <Mail className="w-4 h-4" />
-              <span className="truncate">{job.customer.email}</span>
+              {job.customer.email}
             </a>
             {job.customer.address && (
-              <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5" />
-                <span className="wrap-break-word">{job.customer.address}</span>
+                {job.customer.address}
               </div>
             )}
           </CardContent>
@@ -68,25 +68,25 @@ export function JobOverview({ job }: JobOverviewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Make</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.make}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Make</span>
+              <span className="font-medium">{job.vehicle.make}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Model</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.model}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Model</span>
+              <span className="font-medium">{job.vehicle.model}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Year</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.year}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Year</span>
+              <span className="font-medium">{job.vehicle.year}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Reg No</span>
-              <span className="font-mono font-medium min-w-0 text-right truncate">{job.vehicle.regNo}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reg No</span>
+              <span className="font-mono font-medium">{job.vehicle.regNo}</span>
             </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Color</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.color || "N/A"}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Color</span>
+              <span className="font-medium">{job.vehicle.color || "N/A"}</span>
             </div>
           </CardContent>
         </Card>
@@ -101,7 +101,7 @@ export function JobOverview({ job }: JobOverviewProps) {
           </CardHeader>
           <CardContent>
             {job.mechanic ? (
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3">
                 <Avatar className="w-12 h-12">
                   <AvatarImage
                     src={job.mechanic.avatar || "/placeholder.svg"}
@@ -113,8 +113,8 @@ export function JobOverview({ job }: JobOverviewProps) {
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{job.mechanic.name}</p>
+                <div>
+                  <p className="font-medium">{job.mechanic.name}</p>
                   <p className="text-sm text-muted-foreground">
                     {job.mechanic.specialty || "Mechanic"}
                   </p>
@@ -122,7 +122,7 @@ export function JobOverview({ job }: JobOverviewProps) {
                     href={`tel:${job.mechanic.phone}`}
                     className="text-sm text-primary hover:underline"
                   >
-                    <span className="truncate">{job.mechanic.phone}</span>
+                    {job.mechanic.phone}
                   </a>
                 </div>
               </div>
@@ -135,14 +135,14 @@ export function JobOverview({ job }: JobOverviewProps) {
         </Card>
 
         {/* Complaints */}
-        <Card className="md:col-span-2">
+        <Card className="col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">
               Customer Complaint
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-foreground wrap-break-word">{job.complaints}</p>
+            <p className="text-foreground">{job.complaints}</p>
           </CardContent>
         </Card>
 
@@ -181,7 +181,7 @@ export function JobOverview({ job }: JobOverviewProps) {
         </Card>
 
         {/* Activity Timeline */}
-        <Card className="md:col-span-3">
+        <Card className="col-span-3">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Clock className="w-4 h-4" />

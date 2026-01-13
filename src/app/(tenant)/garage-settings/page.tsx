@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
-import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 
 interface TenantProfile {
   name: string
@@ -209,17 +208,6 @@ export default function TenantSettingsPage() {
           </CardDescription>
         </CardHeader>
       </Card>
-
-      <Separator />
-
-      {/* Change Password Section */}
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Account Security</h2>
-        <p className="text-muted-foreground mb-4">
-          Update your password to keep your account secure
-        </p>
-        <ChangePasswordForm />
-      </div>
 
       {/* Save Button */}
       <div className="flex justify-end">

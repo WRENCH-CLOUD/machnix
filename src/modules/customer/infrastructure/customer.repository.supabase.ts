@@ -1,7 +1,6 @@
 import { CustomerRepository } from '../domain/customer.repository'
 import { Customer, CustomerWithVehicles } from '../domain/customer.entity'
 import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
-import { escapePostgrestOperator } from '@/lib/utils/escape-postgrest'
 
 /**
  * Supabase implementation of CustomerRepository
@@ -53,45 +52,30 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
   async findAll(): Promise<CustomerWithVehicles[]> {
     const tenantId = this.getContextTenantId()
 
-    // Fetch customers
-    const { data: customers, error } = await this.supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
-      .select('*')
+      .select(`
+        *,
+        vehicles:vehicles(*)
+      `)
       .eq('tenant_id', tenantId)
       .order('name', { ascending: true })
 
     if (error) throw error
-    if (!customers?.length) return []
-
-    // Fetch vehicles separately (views don't support PostgREST embedded relations)
-    const customerIds = customers.map(c => c.id)
-    const { data: vehicles } = await this.supabase
-      .from('vehicles')  // public.vehicles
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .in('customer_id', customerIds)
-
-    // Group vehicles by customer_id
-    const vehiclesByCustomer = (vehicles || []).reduce((acc: Record<string, any[]>, v) => {
-      if (!acc[v.customer_id]) acc[v.customer_id] = []
-      acc[v.customer_id].push(v)
-      return acc
-    }, {})
-
-    return customers.map(row => ({
-      ...this.toDomain(row),
-      vehicles: vehiclesByCustomer[row.id] || [],
-    }))
+    return (data || []).map(row => this.toDomainWithVehicles(row))
   }
 
   async findById(id: string): Promise<CustomerWithVehicles | null> {
     const tenantId = this.getContextTenantId()
 
-    const { data: customer, error } = await this.supabase
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
-      .select('*')
+      .select(`
+        *,
+        vehicles:vehicles(*)
+      `)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single()
@@ -101,32 +85,18 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       throw error
     }
 
-    if (!customer) return null
-
-    // Fetch vehicles separately (views don't support PostgREST embedded relations)
-    const { data: vehicles } = await this.supabase
-      .from('vehicles')  // public.vehicles
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('customer_id', id)
-
-    return {
-      ...this.toDomain(customer),
-      vehicles: vehicles || [],
-    }
+    return data ? this.toDomainWithVehicles(data) : null
   }
 
   async search(query: string): Promise<Customer[]> {
     const tenantId = this.getContextTenantId()
-    // Escape special characters to prevent filter injection
-    const safeQuery = escapePostgrestOperator(query.trim())
 
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .or(`name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
+      .or(`name.ilike.%${query}%,phone.ilike.%${query}%,email.ilike.%${query}%`)
       .order('name', { ascending: true })
 
     if (error) throw error
@@ -138,16 +108,13 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
 
     // Clean up phone number
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
-    // Escape special characters to prevent filter injection
-    const safePhone = escapePostgrestOperator(phone)
-    const safeCleanPhone = escapePostgrestOperator(cleanPhone)
 
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
       .eq('tenant_id', tenantId)
-      .or(`phone.eq.${safePhone},phone.eq.${safeCleanPhone},phone.ilike.%${safeCleanPhone}%`)
+      .or(`phone.eq.${phone},phone.eq.${cleanPhone},phone.ilike.%${cleanPhone}%`)
       .limit(1)
       .maybeSingle()
 

@@ -4,8 +4,6 @@ import { GetAllJobsUseCase } from '@/modules/job/application/get-all-jobs.use-ca
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 
-export const dynamic = 'force-dynamic'
-
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -31,11 +29,7 @@ export async function GET() {
     
     const jobs = await useCase.execute()
     
-    return NextResponse.json(jobs, {
-      headers: {
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    })
+    return NextResponse.json(jobs)
   } catch (error: any) {
     console.error('Error fetching jobs:', error)
     return NextResponse.json(
