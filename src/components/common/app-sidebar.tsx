@@ -206,22 +206,24 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
           "flex items-center gap-3 h-14 px-3",
           "transition-all duration-300 ease-out"
         )}>
-          {/* Logo Icon */}
-          <div className={cn(
-            "flex items-center justify-center",
-            "w-10 h-10 rounded-xl",
-            "bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80",
-            "text-sidebar-primary-foreground",
-            "shadow-lg shadow-sidebar-primary/25",
-            "transition-all duration-300",
-            "group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8",
-            "group-data-[collapsible=icon]:rounded-lg"
-          )}>
-            <Wrench className={cn(
+          {/* Logo Icon (hide in collapsed state to avoid overlap with collapse button) */}
+          {!isCollapsed && (
+            <div className={cn(
+              "flex items-center justify-center",
+              "w-10 h-10 rounded-xl",
+              "bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80",
+              "text-sidebar-primary-foreground",
+              "shadow-lg shadow-sidebar-primary/25",
               "transition-all duration-300",
-              isCollapsed ? "h-4 w-4" : "h-5 w-5"
-            )} />
-          </div>
+              "group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8",
+              "group-data-[collapsible=icon]:rounded-lg"
+            )}>
+              <Wrench className={cn(
+                "transition-all duration-300",
+                isCollapsed ? "h-4 w-4" : "h-5 w-5"
+              )} />
+            </div>
+          )}
           
           {/* Brand Text */}
           <div className={cn(
