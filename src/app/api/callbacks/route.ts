@@ -11,8 +11,8 @@ const RATE_LIMIT = {
   windowMs: 60 * 1000, // 1 minute window
 }
 
-function getRateLimitKey(request: Request): string {
-  const headersList = headers()
+async function getRateLimitKey(request: Request): Promise<string> {
+  const headersList = await headers()
   // Use X-Forwarded-For for proxied requests, fallback to a hash of user agent
   const forwarded = headersList.get("x-forwarded-for")
   const ip = forwarded?.split(",")[0]?.trim() || "unknown"
@@ -67,7 +67,7 @@ function sanitize(input: string): string {
 export async function POST(request: Request) {
   try {
     // Rate limiting
-    const rateLimitKey = getRateLimitKey(request)
+    const rateLimitKey = await getRateLimitKey(request)
     const { allowed, retryAfter } = checkRateLimit(rateLimitKey)
 
     if (!allowed) {
