@@ -1,7 +1,8 @@
 "use client"
 
 import "reflect-metadata"
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { JobBoardView } from "@/components/tenant/views/jobs-board-view"
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { CreateJobWizard } from "@/components/tenant/jobs/create-job-wizard"
@@ -14,9 +15,10 @@ import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
-  const [jobs, setJobs] = useState<UIJob[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateJob, setShowCreateJob] = useState(false)
+  const queryClient = useQueryClient()
+
+  const jobsQueryKey = useMemo(() => ["jobs", tenantId] as const, [tenantId])
 
   useEffect(() => {
     const handleOpenCreateJob = () => setShowCreateJob(true);
@@ -51,31 +53,75 @@ export default function JobsPage() {
     }
     return validTransitions[fromStatus]?.includes(toStatus) ?? false
   }
-  useEffect(() => {
-    if (user && tenantId) {
-      loadJobs()
-    }
-  }, [user, tenantId])
 
-  const loadJobs = async () => {
-    try {
-      setLoading(true)
-      // Call API routes
-      const jobsRes = await api.get('/api/jobs')
-
+  const jobsQuery = useQuery({
+    queryKey: jobsQueryKey,
+    enabled: Boolean(user && tenantId),
+    queryFn: async () => {
+      const jobsRes = await api.get('/api/jobs', { cache: 'no-store' })
       if (!jobsRes.ok) throw new Error('Failed to fetch jobs')
-      
+
       const dbJobs = await jobsRes.json()
-      const transformedJobs = await Promise.all(
-        dbJobs.map((job: any) => transformDatabaseJobToUI(job))
+      return Promise.all(dbJobs.map((job: any) => transformDatabaseJobToUI(job)))
+    },
+  })
+
+  const jobs = jobsQuery.data ?? []
+
+  // Keep the selected job in sync so status changes reflect in details panel too
+  useEffect(() => {
+    if (!selectedJob) return
+    const fresh = jobs.find((j) => j.id === selectedJob.id)
+    if (fresh) setSelectedJob(fresh)
+  }, [jobs, selectedJob?.id])
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ jobId, status }: { jobId: string; status: JobStatus }) => {
+      const response = await api.post(`/api/jobs/${jobId}/update-status`, { status })
+
+      if (response.status === 402) {
+        const data = await response.json()
+        const err: any = new Error('PAYMENT_REQUIRED')
+        err.paymentRequired = true
+        err.data = data
+        throw err
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to update job status')
+      }
+
+      return await response.json()
+    },
+    onMutate: async ({ jobId, status }) => {
+      await queryClient.cancelQueries({ queryKey: jobsQueryKey })
+      const previousJobs = queryClient.getQueryData<UIJob[]>(jobsQueryKey)
+      const updatedAt = new Date().toISOString()
+
+      queryClient.setQueryData<UIJob[]>(jobsQueryKey, (oldJobs = []) =>
+        oldJobs.map((job) =>
+          job.id === jobId
+            ? {
+                ...job,
+                status,
+                updatedAt,
+                updated_at: updatedAt,
+              }
+            : job
+        )
       )
-      setJobs(transformedJobs)
-    } catch (err) {
-      console.error('Error loading jobs board data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+
+      return { previousJobs }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previousJobs) {
+        queryClient.setQueryData(jobsQueryKey, ctx.previousJobs)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: jobsQueryKey })
+    },
+  })
 
   const handleJobClick = async (job: UIJob) => {
     setSelectedJob(job)
@@ -156,33 +202,20 @@ export default function JobsPage() {
         }
       }
 
-      // 3. Update Status
-      let response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
-      
-      // Handle payment required response (402)
-      if (response.status === 402) {
-        const data = await response.json()
-        if (data.paymentRequired) {
-          setPendingCompletion({
-            jobId,
-            invoiceId: data.invoiceId,
-            balance: data.balance,
-            jobNumber: data.jobNumber || oldJob?.jobNumber,
-          })
-          setShowUnpaidWarning(true)
-          return
-        }
+      // 3. Update Status (optimistic via TanStack Query)
+      await updateStatusMutation.mutateAsync({ jobId, status: newStatus })
+    } catch (err: any) {
+      if (err?.paymentRequired && err?.data?.paymentRequired) {
+        setPendingCompletion({
+          jobId,
+          invoiceId: err.data.invoiceId,
+          balance: err.data.balance,
+          jobNumber: err.data.jobNumber || oldJob?.jobNumber,
+        })
+        setShowUnpaidWarning(true)
+        return
       }
 
-      if (!response.ok) {
-        response = await api.patch(`/api/jobs/${jobId}`, { status: newStatus })
-        if (!response.ok) {
-          throw new Error("Failed to update job status");
-        }
-      }
-
-      await loadJobs()
-    } catch (err) {
       console.error('Error updating job status:', err)
       throw err
     }
@@ -204,15 +237,11 @@ export default function JobsPage() {
       }
 
       // 2. Update Job Status to completed
-      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, { 
-        status: 'completed' 
+      await updateStatusMutation.mutateAsync({
+        jobId: pendingCompletion.jobId,
+        status: 'completed',
       })
 
-      if (!statusRes.ok) {
-        throw new Error('Failed to complete job')
-      }
-
-      await loadJobs()
       setShowUnpaidWarning(false)
       setPendingCompletion(null)
     } catch (err) {
@@ -227,21 +256,18 @@ export default function JobsPage() {
       if (!response.ok) {
         throw new Error('Failed to assign mechanic')
       }
-      await loadJobs()
+      await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
     } catch (err) {
       console.error('Error updating mechanic:', err)
       alert('Failed to assign mechanic')
     }
   }
 
-  if (loading) {
-    return null
-  }
-
   return (
     <>
       <JobBoardView
         jobs={jobs}
+        loading={jobsQuery.isLoading}
         onJobClick={handleJobClick}
         onStatusChange={handleStatusChange}
       />
@@ -252,7 +278,7 @@ export default function JobsPage() {
           isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}
           onJobUpdate={async () => {
-            await loadJobs()
+            await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
         />
       )}
@@ -263,7 +289,7 @@ export default function JobsPage() {
           onClose={() => setShowCreateJob(false)}
           onSuccess={async () => {
             setShowCreateJob(false)
-            await loadJobs()
+            await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
         />
       )}

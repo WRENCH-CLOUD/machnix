@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -70,7 +70,7 @@ function DroppableColumn({
       ref={setNodeRef}
       className={cn(
         "shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all snap-start",
-        isMobile ? "w-[calc(100vw-3rem)] min-w-[280px]" : "w-72 lg:w-80",
+        isMobile ? "w-[calc(100vw-3rem)] min-w-70" : "w-72 lg:w-80",
         isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
       )}
       onContextMenu={onContextMenu}
@@ -94,11 +94,11 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
 
       <div className="space-y-1">
         <div className="flex items-center gap-2 font-medium text-sm truncate">
-          <User className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+          <User className="w-3 h-3 text-muted-foreground shrink-0" />
           <span className="truncate">{job.customer.name}</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Car className="w-3 h-3 flex-shrink-0" />
+          <Car className="w-3 h-3 shrink-0" />
           <span className="truncate">{job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}</span>
         </div>
       </div>
@@ -172,23 +172,18 @@ export function JobBoardView({
 }: JobBoardProps) {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [hiddenStatuses, setHiddenStatuses] = useState<JobStatus[]>([]);
+  const [uiJobs, setUiJobs] = useState<UIJob[]>(jobs);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     status: JobStatus;
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
-  const [optimisticJobs, setOptimisticJobs] = useState<UIJob[]>(jobs);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const prevJobsRef = useRef<UIJob[]>(jobs);
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!isUpdating && jobs !== prevJobsRef.current) {
-      prevJobsRef.current = jobs;
-      setOptimisticJobs(jobs);
-    }
-  }, [jobs, isUpdating]);
+    setUiJobs(jobs);
+  }, [jobs]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -213,7 +208,7 @@ export function JobBoardView({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        acc[status] = optimisticJobs.filter((job) => {
+        acc[status] = uiJobs.filter((job) => {
           if (job.status !== status) return false;
 
           const updatedDate = new Date(job.updatedAt);
@@ -222,7 +217,7 @@ export function JobBoardView({
           return updatedDate.getTime() === today.getTime();
         });
       } else {
-        acc[status] = optimisticJobs.filter((job) => job.status === status);
+        acc[status] = uiJobs.filter((job) => job.status === status);
       }
       return acc;
     },
@@ -235,7 +230,7 @@ export function JobBoardView({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const job = optimisticJobs.find((j) => j.id === active.id);
+    const job = uiJobs.find((j) => j.id === active.id);
     if (job) {
       setActiveJob(job);
     }
@@ -274,7 +269,7 @@ export function JobBoardView({
         (status) => overId === `droppable-${status}`
       );
     } else {
-      const overJob = optimisticJobs.find((j) => j.id === overId);
+      const overJob = uiJobs.find((j) => j.id === overId);
       if (overJob) {
         targetStatus = overJob.status as JobStatus;
       }
@@ -290,11 +285,11 @@ export function JobBoardView({
         return;
       }
 
+      // Update UI immediately to keep drag/drop smooth.
       const updatedAt = new Date().toISOString();
-
-      setIsUpdating(true);
-      setOptimisticJobs((prevJobs) =>
-        prevJobs.map((job) =>
+      const previousUiJobs = uiJobs;
+      setUiJobs((prev) =>
+        prev.map((job) =>
           job.id === activeId
             ? {
                 ...job,
@@ -311,12 +306,8 @@ export function JobBoardView({
           await onStatusChange(activeId, targetStatus);
         } catch (error) {
           console.error("Failed to update job status:", error);
-          setOptimisticJobs(jobs);
-        } finally {
-          setTimeout(() => setIsUpdating(false), 100);
+          setUiJobs(previousUiJobs);
         }
-      } else {
-        setIsUpdating(false);
       }
     }
   };
@@ -415,7 +406,7 @@ export function JobBoardView({
             {jobs.filter((j) => j.status !== "completed").length} in progress
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {hiddenStatuses.length > 0 && (
             <Button
               variant="outline"
