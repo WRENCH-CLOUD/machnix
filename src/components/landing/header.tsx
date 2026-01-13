@@ -33,7 +33,6 @@ export function Header() {
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
               <span className="text-foreground text-lg md:text-xl font-semibold leading-tight">Wrench Cloud</span>
-              <span className="text-muted-foreground text-xs font-normal">Garage Management Software</span>
             </div>
             <nav className="hidden md:flex items-center gap-2">
               {navItems.map((item) => (
@@ -78,7 +77,6 @@ export function Header() {
                 <SheetHeader className="mb-6">
                   <div className="flex flex-col">
                     <SheetTitle className="text-left text-xl font-semibold text-foreground">Wrench Cloud</SheetTitle>
-                    <span className="text-muted-foreground text-sm">Garage Management Software</span>
                   </div>
                 </SheetHeader>
                 
