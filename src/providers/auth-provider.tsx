@@ -154,19 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(errorMessage);
     }
 
-    // On success, do NOT consume tokens. Fetch the client session (cookie-backed).
-    // This keeps tokens out of JS memory and Local Storage.
-    const { session: sessionData, error, recovered } = await getSafeSession();
-    if (recovered || !sessionData) {
-      throw new Error("Session could not be established. Please sign in again.");
-    }
-
-    if (error) {
-      console.error("Failed to fetch session after login:", error);
-      throw error;
-    }
-
-    applySession(sessionData);
+    // Server has set HttpOnly cookies. Reload page to pick up the session.
+    // This is the simplest and most reliable approach for SSR auth.
+    window.location.reload();
   };
 
   const signOut = async () => {
