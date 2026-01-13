@@ -56,12 +56,9 @@ function isValidPhone(phone: string): boolean {
   return /^\+?[0-9]{10,15}$/.test(cleaned)
 }
 
-// Sanitize input to prevent XSS
+// Normalize input and limit length; HTML encoding should be done at render time
 function sanitize(input: string): string {
-  return input
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .slice(0, 500) // Limit length
+  return input.trim().slice(0, 500) // Limit length
 }
 
 export async function POST(request: Request) {
