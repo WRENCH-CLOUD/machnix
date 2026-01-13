@@ -220,7 +220,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
           </div>
         )}
 
-        <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/50 text-xs text-muted-foreground">
+        <div className="hidden sm:flex items-center justify-between px-3 py-2 border-t bg-muted/50 text-xs text-muted-foreground">
           <div className="flex gap-2">
             <kbd className="px-1.5 py-0.5 bg-background border rounded text-[10px]">↑↓</kbd>
             <span>Navigate</span>

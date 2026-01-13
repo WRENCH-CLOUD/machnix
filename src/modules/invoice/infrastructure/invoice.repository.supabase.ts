@@ -54,6 +54,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       discount_amount: invoice.discountAmount,
       total_amount: invoice.totalAmount,
       paid_amount: invoice.paidAmount,
+      balance: invoice.balance,
       invoice_date: invoice.invoiceDate.toISOString(),
       due_date: invoice.dueDate?.toISOString(),
       metadata: invoice.metadata,
@@ -71,7 +72,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false })
@@ -91,7 +92,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
@@ -104,8 +105,6 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
   async findById(id: string): Promise<InvoiceWithRelations | null> {
     const tenantId = this.getContextTenantId()
 
-    console.log('[DEBUG] findById - id:', id, 'tenantId:', tenantId);
-
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
@@ -114,18 +113,16 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
         customer:customers(*),
         jobcard:jobcards(*),
         estimate:estimates(*),
-        payments:payments(*)
+        payments:payment_transactions(*)
       `)
       .eq('tenant_id', tenantId)
       .eq('id', id)
       .single()
 
     if (error) {
-      console.error('[DEBUG] findById - Error fetching detailed invoice:', error);
       return null
     }
     
-    console.log('[DEBUG] findById - Success, found data for ID:', data.id);
     return this.toDomainWithRelations(data)
   }
 
@@ -147,8 +144,6 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
   async findByJobcardId(jobcardId: string): Promise<Invoice[]> {
     const tenantId = this.getContextTenantId()
 
-    console.log('[DEBUG] findByJobcardId - jobcardId:', jobcardId, 'tenantId:', tenantId);
-
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('invoices')
@@ -156,8 +151,6 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       .eq('jobcard_id', jobcardId)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false })
-
-    console.log('[DEBUG] findByJobcardId - result count:', data?.length, 'error:', error);
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))
@@ -185,6 +178,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
     if (updates.discountAmount !== undefined) dbUpdates.discount_amount = updates.discountAmount
     if (updates.totalAmount !== undefined) dbUpdates.total_amount = updates.totalAmount
     if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount
+    if (updates.balance !== undefined) dbUpdates.balance = updates.balance
     if (updates.invoiceDate !== undefined) dbUpdates.invoice_date = updates.invoiceDate.toISOString()
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate?.toISOString()
     if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata
@@ -231,7 +225,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
 
     if (paymentError) throw paymentError
 
-    // Update invoice paid amount (balance is computed by DB)
+    // Update invoice paid amount and balance
     const newPaidAmount = invoice.paidAmount + payment.amount
     const newBalance = invoice.totalAmount - newPaidAmount
     let newStatus: InvoiceStatus = invoice.status

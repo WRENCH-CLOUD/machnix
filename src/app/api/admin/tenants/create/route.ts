@@ -23,8 +23,6 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json()
 
-    console.log(`[TENANT_CREATE] Initiating tenant creation for: ${body.tenantName} (${body.tenantSlug})`)
-
     // Create use case with all dependencies
     const usecase = new CreateTenantWithOwnerUseCase(
       new AdminSupabaseTenantRepository(supabaseAdmin),
@@ -37,8 +35,6 @@ export async function POST(request: NextRequest) {
     // Execute the use case
     const result = await usecase.execute(body)
 
-    console.log(`[TENANT_CREATE] Tenant creation completed successfully for: ${body.tenantName}`)
-
     return NextResponse.json({
       success: true,
       message: 'Tenant created successfully',
@@ -46,10 +42,28 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create tenant'
+    
+    // Handle known business rule errors with 400
+    const businessErrors = [
+      'Tenant slug already exists',
+      'Owner email already registered',
+      'Invalid tenant data',
+    ]
+    const isBusinessError = businessErrors.some(e => message.includes(e))
+    
+    if (isBusinessError) {
+      return NextResponse.json(
+        { success: false, error: message },
+        { status: 400 }
+      )
+    }
+    
     console.error('[TENANT_CREATE] Unexpected error:', error)
     return NextResponse.json(
       { 
-        error: error instanceof Error ? error.message : 'Failed to create tenant',
+        success: false,
+        error: 'Failed to create tenant. Please try again.',
         details: 'Please check server logs for more information'
       },
       { status: 500 }

@@ -2,25 +2,29 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Search, Plus, Phone, Mail, MapPin, Car, MoreHorizontal, User, Briefcase } from "lucide-react"
+import { Search, Plus, Phone, Mail, MapPin, Car, MoreHorizontal, User, Briefcase, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CustomerDetailDialog } from "./customer-detail-dialog"
+import { CustomerEditDialog } from "./customer-edit-dialog"
+import { CustomerDeleteDialog } from "./customer-delete-dialog"
 
-interface CustomerWithStats {
+export interface CustomerWithStats {
   id: string
   name: string
   phone: string | null
@@ -32,12 +36,22 @@ interface CustomerWithStats {
   vehicles: Array<{ make: string | null; model: string | null }>
 }
 
+export interface CustomerFormData {
+  name: string
+  phone: string
+  email: string
+  address: string
+}
+
 interface CustomersViewProps {
   customers: CustomerWithStats[]
   loading: boolean
   error: string | null
-  onAddCustomer: () => void
+  onAddCustomer: (data: CustomerFormData) => Promise<void>
+  onEditCustomer: (id: string, data: CustomerFormData & { notes: string }) => Promise<void>
+  onDeleteCustomer: (id: string) => Promise<void>
   onRefresh: () => void
+  onCreateJob?: (customer: CustomerWithStats) => void
 }
 
 export function CustomersView({
@@ -45,10 +59,27 @@ export function CustomersView({
   loading,
   error,
   onAddCustomer,
+  onEditCustomer,
+  onDeleteCustomer,
   onRefresh,
+  onCreateJob,
 }: CustomersViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [addFormData, setAddFormData] = useState<CustomerFormData>({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+  })
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+
+  // Dialog states
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(
@@ -71,9 +102,58 @@ export function CustomersView({
     [customers],
   )
 
-  const handleAddCustomer = () => {
-    setShowAddDialog(false)
-    onAddCustomer()
+  const handleAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!addFormData.name.trim()) {
+      setAddError("Customer name is required")
+      return
+    }
+
+    try {
+      setAddLoading(true)
+      setAddError(null)
+      await onAddCustomer(addFormData)
+      setShowAddDialog(false)
+      setAddFormData({ name: "", phone: "", email: "", address: "" })
+    } catch (err) {
+      console.error("Error adding customer:", err)
+      setAddError(err instanceof Error ? err.message : "Failed to add customer")
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  const handleViewDetails = (customer: CustomerWithStats) => {
+    setSelectedCustomer(customer)
+    setShowDetailDialog(true)
+  }
+
+  const handleEdit = (customer: CustomerWithStats) => {
+    setSelectedCustomer(customer)
+    setShowEditDialog(true)
+    setShowDetailDialog(false)
+  }
+
+  const handleDelete = (customer: CustomerWithStats) => {
+    setSelectedCustomer(customer)
+    setShowDeleteDialog(true)
+    setShowDetailDialog(false)
+  }
+
+  const handleSaveEdit = async (id: string, data: CustomerFormData & { notes: string }) => {
+    await onEditCustomer(id, data)
+    onRefresh()
+  }
+
+  const handleConfirmDelete = async (id: string) => {
+    await onDeleteCustomer(id)
+    onRefresh()
+  }
+
+  const handleCreateJob = (customer: CustomerWithStats) => {
+    setShowDetailDialog(false)
+    onCreateJob?.(customer)
   }
 
   return (
@@ -96,29 +176,64 @@ export function CustomersView({
               <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>Enter customer details to create a new record.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input placeholder="Enter customer name" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleAddCustomer}>
+              <div className="space-y-4 py-4">
+                {addError && (
+                  <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+                    {addError}
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input placeholder="+91 99999 99999" />
+                  <Label htmlFor="add-name">Full Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="add-name"
+                    placeholder="Enter customer name"
+                    value={addFormData.name}
+                    onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="add-phone">Phone Number</Label>
+                    <Input
+                      id="add-phone"
+                      placeholder="+91 99999 99999"
+                      value={addFormData.phone}
+                      onChange={(e) => setAddFormData({ ...addFormData, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="add-email">Email</Label>
+                    <Input
+                      id="add-email"
+                      placeholder="customer@email.com"
+                      type="email"
+                      value={addFormData.email}
+                      onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input placeholder="customer@email.com" type="email" />
+                  <Label htmlFor="add-address">Address</Label>
+                  <Input
+                    id="add-address"
+                    placeholder="Enter full address"
+                    value={addFormData.address}
+                    onChange={(e) => setAddFormData({ ...addFormData, address: e.target.value })}
+                  />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Address</Label>
-                <Input placeholder="Enter full address" />
-              </div>
-              <Button className="w-full" onClick={handleAddCustomer}>
-                Create Customer
-              </Button>
-            </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)} disabled={addLoading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addLoading}>
+                  {addLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Create Customer
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -235,7 +350,10 @@ export function CustomersView({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <Card 
+                className="hover:border-primary/50 transition-colors cursor-pointer"
+                onClick={() => handleViewDetails(customer)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -248,20 +366,36 @@ export function CustomersView({
                         <CardTitle className="text-base">{customer.name}</CardTitle>
                         <CardDescription className="flex items-center gap-1">
                           <Phone className="w-3 h-3" />
-                          {customer.phone}
+                          {customer.phone || "No phone"}
                         </CardDescription>
                       </div>
                     </div>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Customer</DropdownMenuItem>
-                        <DropdownMenuItem>Create Job</DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(customer); }}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>
+                          Edit Customer
+                        </DropdownMenuItem>
+                        {onCreateJob && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(customer); }}>
+                            Create Job
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(customer); }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -319,6 +453,32 @@ export function CustomersView({
           ))}
         </div>
       )}
+
+      {/* Detail Dialog */}
+      <CustomerDetailDialog
+        customer={selectedCustomer}
+        isOpen={showDetailDialog}
+        onClose={() => setShowDetailDialog(false)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCreateJob={onCreateJob ? handleCreateJob : undefined}
+      />
+
+      {/* Edit Dialog */}
+      <CustomerEditDialog
+        customer={selectedCustomer}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSave={handleSaveEdit}
+      />
+
+      {/* Delete Dialog */}
+      <CustomerDeleteDialog
+        customer={selectedCustomer}
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

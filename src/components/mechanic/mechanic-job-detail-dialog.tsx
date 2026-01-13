@@ -1,19 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Car,
   Clock,
   ChevronLeft,
   ChevronRight,
-  ClipboardCheck,
   CheckCircle2,
-  AlertCircle,
   AlertTriangle,
   Circle,
-  MessageSquare,
-  Camera,
   User,
   Phone,
 } from "lucide-react";
@@ -21,8 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import {type JobStatus, statusConfig } from "@/modules/job/domain/job.entity";
+import { statusConfig } from "@/modules/job/domain/job.entity";
 import { cn } from "@/lib/utils";
 import {
   statusFlow,
@@ -40,8 +34,6 @@ export function MechanicJobDetailDialog({
   // onDviItemStatusChange,
   // onDviItemNoteAdd,
 }: MechanicJobDetailProps) {
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
-  const [itemNote, setItemNote] = useState("");
 
   const statusInfo = statusConfig[currentStatus] || statusConfig.received;
 

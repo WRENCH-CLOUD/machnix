@@ -131,21 +131,35 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
         job_number,
         status,
         created_at,
-        customer:customers(name),
-        vehicle:vehicles(reg_no)
+        vehicle_id,
+        customer:customers(name)
       `)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(limit)
 
     if (error) throw error
+    if (!data?.length) return []
 
-    return (data || []).map(job => ({
-      id: job.job_number || job.id,
-      customer: job.customer?.name || 'Unknown',
-      vehicle: job.vehicle?.reg_no || 'Unknown',
-      status: job.status,
-      priority: 'Medium' // Default since it's not in schema
-    }))
+    // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
+    const vehicleIds = data.map(job => job.vehicle_id).filter(Boolean)
+    const { data: vehicles } = await this.supabase
+      .from('vehicles')  // public.vehicles
+      .select('id, reg_no')
+      .in('id', vehicleIds)
+    
+    const vehicleMap = new Map((vehicles || []).map(v => [v.id, v]))
+
+    return data.map(job => {
+      const vehicle = vehicleMap.get(job.vehicle_id)
+      const customer = job.customer as unknown as { name: string } | null
+      return {
+        id: job.job_number || job.id,
+        customer: customer?.name || 'Unknown',
+        vehicle: vehicle?.reg_no || 'Unknown',
+        status: job.status,
+        priority: 'Medium' // Default since it's not in schema
+      }
+    })
   }
 }

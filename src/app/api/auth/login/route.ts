@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import {createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter';
+
 export async function POST(req: Request) {
+  // Rate limit: 10 attempts per minute per IP to prevent brute force attacks
+  const rateLimitResult = checkRateLimit(req, RATE_LIMITS.AUTH, 'login');
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
   const { email, password } = await req.json();
   
   const supabase = await createClient();
@@ -18,7 +26,6 @@ export async function POST(req: Request) {
   }
 
   const meta = data.session.user.app_metadata;
-  console.log("User metadata:", meta);
 
   // Return only minimal user info; tokens are NOT returned.
   // Supabase SSR client already set HttpOnly cookies via next/headers cookies adapter.
