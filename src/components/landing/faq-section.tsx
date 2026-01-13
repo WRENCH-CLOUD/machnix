@@ -7,9 +7,9 @@ import { ChevronDown } from "lucide-react"
 //TODO: Update the faq data to a realsonable data
 const faqData = [
   {
-    question: "What is Wrench Cloud and who is it for?",
+    question: "What is Wrench Cloud?",
     answer:
-      "Wrench Cloud is a professional garage management platform designed for auto repair shops of all sizes. Whether you're a single-bay operation or managing multiple locations, Wrench Cloud helps you streamline job tracking, customer communication, and shop operations.",
+      "Wrench Cloud is garage management software designed for auto repair shops of all sizes. Whether you're a single-bay operation or managing multiple locations, it helps you streamline job tracking, customer communication, and shop operations.",
   },
   {
     question: "How do Digital Vehicle Inspections work?",
