@@ -377,9 +377,6 @@ export default function TenantsPage() {
                               <LogIn className="w-4 h-4 mr-2" />
                               Login as Tenant (Coming Soon)
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              Manage Subscription
-                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteTenant(tenant)}
                               className="text-destructive focus:text-destructive"
