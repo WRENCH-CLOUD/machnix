@@ -6,8 +6,10 @@ export interface Vehicle {
   id: string
   tenantId: string
   customerId: string
-  make: string
-  model: string
+  makeId?: string      // FK to public.vehicle_make
+  modelId?: string     // FK to public.vehicle_model
+  make: string         // text (denormalized for display)
+  model: string        // text (denormalized for display)
   year?: number
   vin?: string
   licensePlate?: string

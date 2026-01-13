@@ -202,6 +202,11 @@ export interface JwtAppMetadata {
    * Tenant ID (UUID string) - only present for tenant-scoped roles
    */
   [JWT_CLAIM_TENANT_ID]?: string
+  
+  /**
+   * User type - 'tenant' or 'platform'
+   */
+  user_type?: 'tenant' | 'platform'
 }
 
 /**

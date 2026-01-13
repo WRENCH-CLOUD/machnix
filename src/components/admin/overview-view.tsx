@@ -35,7 +35,7 @@ interface OverviewViewProps {
   onSearchChange: (query: string) => void
   onRefresh: () => void
   onViewDetails: (tenantId: string) => void
-  globalAnalytics: GlobalAnalytics | null
+  globalAnalytics?: GlobalAnalytics | null
   analyticsLoading: boolean
 }
 

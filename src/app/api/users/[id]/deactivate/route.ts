@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,7 +24,7 @@ export async function POST(
     const repository = new SupabaseUserRepository(supabase, tenantId)
     const useCase = new DeactivateUserUseCase(repository)
     
-    const deactivatedUser = await useCase.execute(params.id)
+    const deactivatedUser = await useCase.execute(id)
     
     return NextResponse.json(deactivatedUser)
   } catch (error: any) {

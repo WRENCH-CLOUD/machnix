@@ -30,6 +30,10 @@ export default function AdminOverviewPage() {
   //   useState<GlobalAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  useEffect(() => {
+    loadTenants();
+    loadGlobalAnalytics();
+  }, []);
 
   const loadTenants = async () => {
     try {

@@ -67,6 +67,8 @@ interface VehiclesViewProps {
   loading: boolean;
   error: string | null;
   makes?: { id: string; name: string }[];
+  models?: { id: string; name: string }[];
+  onMakeChange?: (makeId: string) => void;
   onAddVehicle: (data: VehicleFormData) => Promise<void>;
   onEditVehicle?: (id: string, data: VehicleEditFormData) => Promise<void>;
   onDeleteVehicle?: (id: string) => Promise<void>;
@@ -79,6 +81,8 @@ export function VehiclesView({
   loading = false,
   error = null,
   makes = [],
+  models = [],
+  onMakeChange,
   onAddVehicle,
   onEditVehicle,
   onDeleteVehicle,
@@ -89,7 +93,7 @@ export function VehiclesView({
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<VehicleFormData>({
     makeId: "",
-    model: "",
+    modelId: "",
     regNo: "",
     year: "",
     color: "",
@@ -138,7 +142,7 @@ export function VehiclesView({
       setShowAddDialog(false);
       setFormData({
         makeId: "",
-        model: "",
+        modelId: "",
         regNo: "",
         year: "",
         color: "",
@@ -225,9 +229,10 @@ export function VehiclesView({
                     <Label>Make</Label>
                     <Select
                       value={formData.makeId}
-                      onValueChange={(val) =>
-                        setFormData({ ...formData, makeId: val })
-                      }
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, makeId: val, modelId: "" });
+                        onMakeChange?.(val);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select make" />
@@ -243,13 +248,24 @@ export function VehiclesView({
                   </div>
                   <div className="space-y-2">
                     <Label>Model</Label>
-                    <Input
-                      placeholder="Enter model"
-                      value={formData.model}
-                      onChange={(e) =>
-                        setFormData({ ...formData, model: e.target.value })
+                    <Select
+                      value={formData.modelId}
+                      onValueChange={(val) =>
+                        setFormData({ ...formData, modelId: val })
                       }
-                    />
+                      disabled={!formData.makeId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={formData.makeId ? "Select model" : "Select make first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

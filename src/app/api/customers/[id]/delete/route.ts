@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,7 +24,7 @@ export async function DELETE(
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new DeleteCustomerUseCase(repository)
     
-    await useCase.execute(params.id)
+    await useCase.execute(id)
     
     return NextResponse.json({ success: true })
   } catch (error: any) {

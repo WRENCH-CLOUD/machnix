@@ -64,10 +64,11 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
     if (error) throw error
     if (!customers?.length) return []
 
-    // Fetch vehicles separately (views don't support PostgREST embedded relations)
+    // Fetch vehicles separately (now in tenant schema)
     const customerIds = customers.map(c => c.id)
     const { data: vehicles } = await this.supabase
-      .from('vehicles')  // public.vehicles
+      .schema('tenant')
+      .from('vehicles')
       .select('*')
       .eq('tenant_id', tenantId)
       .in('customer_id', customerIds)
@@ -103,9 +104,10 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
 
     if (!customer) return null
 
-    // Fetch vehicles separately (views don't support PostgREST embedded relations)
+    // Fetch vehicles separately (now in tenant schema)
     const { data: vehicles } = await this.supabase
-      .from('vehicles')  // public.vehicles
+      .schema('tenant')
+      .from('vehicles')
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('customer_id', id)

@@ -22,6 +22,7 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [makes, setMakes] = useState<{ id: string; name: string }[]>([]);
+  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
 
   const loadVehicles = useCallback(async () => {
     try {
@@ -57,6 +58,23 @@ export default function VehiclesPage() {
     } catch (err) {
       console.error("Error loading makes:", err);
       // Non-blocking error - makes are optional
+    }
+  }, []);
+
+  const loadModels = useCallback(async (makeId: string) => {
+    if (!makeId) {
+      setModels([]);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/vehicle-models?makeId=${makeId}`);
+      if (response.ok) {
+        const modelsData = await response.json();
+        setModels(modelsData);
+      }
+    } catch (err) {
+      console.error("Error loading models:", err);
+      setModels([]);
     }
   }, []);
 
@@ -132,6 +150,8 @@ export default function VehiclesPage() {
       loading={loading}
       error={error}
       makes={makes}
+      models={models}
+      onMakeChange={loadModels}
       onAddVehicle={handleAddVehicle}
       onEditVehicle={handleEditVehicle}
       onDeleteVehicle={handleDeleteVehicle}
@@ -140,3 +160,4 @@ export default function VehiclesPage() {
     />
   );
 }
+

@@ -40,14 +40,15 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
   }
 
   /**
-   * Helper to fetch vehicles from public.vehicles for a list of vehicle IDs
+   * Helper to fetch vehicles from tenant.vehicles for a list of vehicle IDs
    */
   private async fetchVehicles(vehicleIds: string[]): Promise<Map<string, any>> {
     const uniqueIds = [...new Set(vehicleIds.filter(Boolean))]
     if (uniqueIds.length === 0) return new Map()
     
     const { data } = await this.supabase
-      .from('vehicles')  // public.vehicles
+      .schema('tenant')
+      .from('vehicles')
       .select('*')
       .in('id', uniqueIds)
     

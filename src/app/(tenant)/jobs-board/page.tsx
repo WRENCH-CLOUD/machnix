@@ -128,10 +128,11 @@ export default function JobsPage() {
   }
 
   const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
+    const oldJob = jobs.find(job => job.id === jobId)
+    const oldStatus = oldJob?.status
+    const oldJobNumber = oldJob?.jobNumber
+    
     try {
-      const oldJob = jobs.find(job => job.id === jobId)
-      const oldStatus = oldJob?.status
-      
       if (!oldStatus) {
         console.error('Job not found:', jobId)
         return
@@ -162,7 +163,7 @@ export default function JobsPage() {
               jobId,
               invoiceId: invoice.id,
               balance: total,
-              jobNumber: oldJob?.jobNumber,
+              jobNumber: oldJobNumber || '',
             })
             setShowUnpaidWarning(true)
             return
@@ -194,7 +195,7 @@ export default function JobsPage() {
               jobId,
               invoiceId: invoice.id,
               balance: total,
-              jobNumber: oldJob?.jobNumber,
+              jobNumber: oldJobNumber || '',
             })
             setShowUnpaidWarning(true)
             return
@@ -204,13 +205,14 @@ export default function JobsPage() {
 
       // 3. Update Status (optimistic via TanStack Query)
       await updateStatusMutation.mutateAsync({ jobId, status: newStatus })
-    } catch (err: any) {
-      if (err?.paymentRequired && err?.data?.paymentRequired) {
+    } catch (err: unknown) {
+      const error = err as { paymentRequired?: boolean; data?: { paymentRequired?: boolean; invoiceId?: string; balance?: number; jobNumber?: string } }
+      if (error?.paymentRequired && error?.data?.paymentRequired) {
         setPendingCompletion({
           jobId,
-          invoiceId: err.data.invoiceId,
-          balance: err.data.balance,
-          jobNumber: err.data.jobNumber || oldJob?.jobNumber,
+          invoiceId: error.data.invoiceId || '',
+          balance: error.data.balance || 0,
+          jobNumber: error.data.jobNumber || oldJobNumber || '',
         })
         setShowUnpaidWarning(true)
         return

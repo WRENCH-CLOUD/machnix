@@ -68,7 +68,6 @@ export class CreateTenantWithOwnerUseCase {
       // 5. Create auth user
       const authUser = await this.authRepo.createUser({
         email: adminEmail,
-        emailVerified: false,
         phone: adminPhone,
         password: 'Welcome123!', // default password
         metadata: {

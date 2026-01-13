@@ -3,8 +3,10 @@ import { Vehicle } from '../domain/vehicle.entity'
 
 export interface CreateVehicleDTO {
   customerId: string
-  make: string
-  model: string
+  makeId?: string       // FK to public.vehicle_make
+  modelId?: string      // FK to public.vehicle_model
+  make: string          // text for display
+  model: string         // text for display
   year?: number
   vin?: string
   licensePlate?: string

@@ -67,7 +67,11 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" });
   const [showAddVehicle, setShowAddVehicle] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({ make: "", model: "", reg_no: "", vin: "" });
+  const [newVehicle, setNewVehicle] = useState({ makeId: "", modelId: "", reg_no: "", vin: "" });
+  
+  // Vehicle makes/models for dropdowns
+  const [makes, setMakes] = useState<{ id: string; name: string }[]>([]);
+  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
 
   // Duplicate customer dialog state
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
@@ -127,7 +131,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
       const res = await fetch("/api/vehicles/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newVehicle, customerId: selectedCustomer.id }),
+        body: JSON.stringify({ 
+          makeId: newVehicle.makeId,
+          modelId: newVehicle.modelId,
+          regNo: newVehicle.reg_no,
+          vin: newVehicle.vin,
+          customerId: selectedCustomer.id 
+        }),
       });
 
       if (res.ok) {
@@ -163,6 +173,46 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
       loadCustomerVehicles();
     }
   }, [selectedCustomer, showAddVehicle]);
+
+  // Load makes when vehicle form is shown
+  useEffect(() => {
+    if (showAddVehicle && makes.length === 0) {
+      loadMakes();
+    }
+  }, [showAddVehicle]);
+
+  // Load models when make is selected
+  useEffect(() => {
+    if (newVehicle.makeId) {
+      loadModels(newVehicle.makeId);
+    } else {
+      setModels([]);
+    }
+  }, [newVehicle.makeId]);
+
+  const loadMakes = async () => {
+    try {
+      const res = await fetch("/api/vehicle-makes");
+      if (res.ok) {
+        const data = await res.json();
+        setMakes(data);
+      }
+    } catch (err) {
+      console.error("Error loading makes:", err);
+    }
+  };
+
+  const loadModels = async (makeId: string) => {
+    try {
+      const res = await fetch(`/api/vehicle-models?makeId=${makeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setModels(data);
+      }
+    } catch (err) {
+      console.error("Error loading models:", err);
+    }
+  };
 
   const searchCustomers = async () => {
     try {
@@ -337,19 +387,40 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Make</Label>
-                  <Input 
-                    placeholder="e.g. Maruti" 
-                    value={newVehicle.make}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })}
-                  />
+                  <Select
+                    value={newVehicle.makeId}
+                    onValueChange={(val) => setNewVehicle({ ...newVehicle, makeId: val, modelId: "" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select make" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {makes.map((make) => (
+                        <SelectItem key={make.id} value={make.id}>
+                          {make.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Model</Label>
-                  <Input 
-                    placeholder="e.g. Swift" 
-                    value={newVehicle.model}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
-                  />
+                  <Select
+                    value={newVehicle.modelId}
+                    onValueChange={(val) => setNewVehicle({ ...newVehicle, modelId: val })}
+                    disabled={!newVehicle.makeId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={newVehicle.makeId ? "Select model" : "Select make first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -370,7 +441,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   />
                 </div>
               </div>
-              <Button className="w-full mt-4" onClick={handleAddVehicle} disabled={!newVehicle.make || !newVehicle.model || !newVehicle.reg_no || loading}>
+              <Button className="w-full mt-4" onClick={handleAddVehicle} disabled={!newVehicle.makeId || !newVehicle.modelId || !newVehicle.reg_no || loading}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create Vehicle & Continue
               </Button>

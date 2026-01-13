@@ -1,4 +1,4 @@
-import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from './invoice.entity'
+import { Invoice, InvoiceWithRelations, InvoiceStatus, PaymentTransaction } from '../domain/invoice.entity'
 
 /**
  * Invoice Repository Interface

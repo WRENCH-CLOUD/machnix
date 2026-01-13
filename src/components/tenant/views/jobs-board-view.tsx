@@ -167,6 +167,7 @@ function SortableJobCard({
 export function JobBoardView({
   jobs,
   loading,
+  isMechanicMode = false,
   onJobClick,
   onStatusChange,
 }: JobBoardProps) {

@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -33,7 +34,7 @@ export async function POST(
     const repository = new SupabaseEstimateRepository(supabase, tenantId)
     const useCase = new ApproveEstimateUseCase(repository)
     
-    const estimate = await useCase.execute(params.id, approvedBy)
+    const estimate = await useCase.execute(id, approvedBy)
     
     return NextResponse.json(estimate)
   } catch (error: any) {

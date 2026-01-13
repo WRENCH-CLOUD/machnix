@@ -1,28 +1,154 @@
-# wrench-cloud
+# Wrench Cloud
 
-A concise garage-management platform (multi-tenant SaaS) for job cards, vehicles, invoices, and real-time collaboration — built for low-latency UX, background processing, and tenant isolation.
+Multi-tenant garage management SaaS for job cards, customers, vehicles, and invoicing.
 
-## Quick Summary
-- wrench-cloud provides job-card workflows, vehicle/customer management, parts/estimates, invoicing, and real-time updates between front‑desk and mechanics.
-- Tech highlights: `Next.js` frontend, Node.js backend (NestJS recommended), `Redis` for cache/pub-sub, `BullMQ` workers, Postgres/Prisma, and S3 (or MinIO) for media/PDFs.
-- Key patterns: tenant-scoped data (subdomain or tenantId), JWT + role-based auth, background workers for IO-heavy tasks, and audit logs for activity tracking.
+![Version](https://img.shields.io/badge/version-0.6.0-blue)
+![License](https://img.shields.io/badge/license-Private-red)
 
-## Key Features (short)
-- Real-time: Socket.IO updates, Redis adapter for multi-instance broadcasting.
-- Workers: notifications, invoice PDF generation, payment reconciliation, analytics, reminders.
-- Offline support: local cache + sync queue for mechanics; conflict resolution by timestamp + actor.
+---
 
-## Local dev (essential commands)
-1. Copy `.env.example` -> `.env` and set credentials.
-2. Start infra: `docker-compose up -d` (Postgres, Redis, MinIO).
-3. Install deps: `pnpm install` (or `yarn` / `npm install`).
-4. Migrate: `npx prisma migrate deploy` (or `migrate dev`).
-5. Start services (example):
-   - API: `pnpm --filter @wrench-cloud/api dev`
-   - Frontend: `pnpm --filter @wrench-cloud/frontend dev`
-   - Workers: `pnpm --filter @wrench-cloud/workers start`
+## Overview
 
-## Want the full details?
-The original, full README with architecture notes, lifecycle steps, and implementation guidance is preserved in `README.full.md`.
+Wrench Cloud is a comprehensive garage management platform that enables auto repair shops to manage their daily operations efficiently. Each tenant (garage) gets their own isolated workspace with subdomain access.
 
-Contributions: add tests, follow CODEOWNERS/PR guidelines, and keep DVI templates immutable.
+### Key Features
+
+- 🚗 **Customer & Vehicle Management** - Track customers and their vehicles
+- 🔧 **Job Card Workflow** - Create, assign, and track repair jobs
+- 📝 **Estimates & Invoicing** - Generate estimates and convert to invoices
+- 📊 **Dashboard & Analytics** - Business insights at a glance
+- 🔐 **Multi-tenant Security** - Complete data isolation per tenant
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 15 (App Router) |
+| Database | PostgreSQL (Supabase) |
+| Auth | Supabase Auth + JWT + RLS |
+| UI | Tailwind CSS + shadcn/ui |
+| State | React Query |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- Docker (for Supabase local development)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd machnix
+
+# Install dependencies
+npm install
+
+# Start Supabase locally
+npx supabase start
+
+# Apply migrations
+npx supabase db reset
+
+# Copy environment variables
+cp .env.example .env.local
+# Update with credentials from: npx supabase status
+
+# Start development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (admin)/           # Platform admin routes
+│   ├── (tenant)/          # Tenant user routes
+│   ├── (mechanic)/        # Mechanic routes
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── admin/             # Admin-specific components
+│   ├── tenant/            # Tenant components
+│   ├── common/            # Shared components
+│   └── ui/                # shadcn/ui components
+├── modules/               # Domain modules (DDD pattern)
+│   ├── customer/          # Customer domain
+│   ├── vehicle/           # Vehicle domain
+│   ├── job/               # Job card domain
+│   ├── estimate/          # Estimate domain
+│   ├── invoice/           # Invoice domain
+│   └── access/            # Auth & access control
+├── lib/                   # Utilities & configurations
+│   ├── supabase/          # Supabase clients
+│   └── auth/              # Auth helpers
+└── providers/             # React context providers
+```
+
+---
+
+## Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [ROADMAP.md](./ROADMAP.md) | Product roadmap & version plan |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
+| [Documentations/](./Documentations/) | Technical documentation |
+
+---
+
+## Environment Variables
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+See `.env.example` for all variables.
+
+---
+
+## Multi-Tenancy
+
+Each tenant is isolated via:
+
+1. **Subdomain routing** - `tenant-slug.wrenchcloud.com`
+2. **JWT Claims** - `tenant_id` embedded in tokens
+3. **Row Level Security** - Database-level isolation
+
+---
+
+## License
+
+Private - All rights reserved.
+
+---
+
+*Current Version: 0.6.0 (Pre-release)*

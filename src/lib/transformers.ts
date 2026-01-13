@@ -13,7 +13,7 @@ export interface VehicleViewModel {
 
 export interface VehicleFormData {
   makeId: string;
-  model: string;
+  modelId: string;
   regNo: string;
   year: string;
   color: string;
