@@ -15,7 +15,7 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (notes !== undefined) updateData.notes = notes
-    updateData.updated_at = new Date().toISOString()
+
 
     const { data, error } = await supabase
       .from("leads")
