@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,7 +24,7 @@ export async function GET(
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new GetCustomerByIdUseCase(repository)
     
-    const customer = await useCase.execute(params.id)
+    const customer = await useCase.execute(id)
     
     if (!customer) {
       return NextResponse.json(

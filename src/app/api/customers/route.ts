@@ -23,10 +23,11 @@ export async function GET() {
     const customers = await useCase.execute()
     
     return NextResponse.json(customers)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching customers:', error)
+    const message = error instanceof Error ? error.message : 'Failed to fetch customers'
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch customers' },
+      { error: message },
       { status: 500 }
     )
   }

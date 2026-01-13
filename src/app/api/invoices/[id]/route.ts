@@ -15,7 +15,7 @@ async function authorizeRequest(req: NextRequest, invoiceId: string) {
   }
 
   // Create Supabase client (uses cookies for auth)
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Get current user from session
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
@@ -52,20 +52,21 @@ async function authorizeRequest(req: NextRequest, invoiceId: string) {
   return { ok: true, user, invoice: invoiceRow, tenantId };
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const invoiceId = params.id;
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: invoiceId } = await context.params;
   const auth = await authorizeRequest(req, invoiceId);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.message }, { status: auth.code });
   }
 
-  const key = auth.invoice.file_key as string;
+  const invoice = auth.invoice!;
+  const key = invoice.file_key as string;
   if (!key) {
     return NextResponse.json({ error: "Invoice file not found" }, { status: 404 });
   }
 
   // Create Supabase server client and generate signed URL
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: signedData, error: signedError } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(key, SIGN_EXPIRES);
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ 
     signedUrl: signedData.signedUrl, 
     expiresAt,
-    filename: auth.invoice.filename 
+    filename: invoice.filename 
   });
 }
 

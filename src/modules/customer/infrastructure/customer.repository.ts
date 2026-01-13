@@ -1,4 +1,4 @@
-import { Customer, CustomerWithVehicles } from './customer.entity'
+import { Customer, CustomerWithVehicles } from '../domain/customer.entity'
 
 /**
  * Customer Repository Interface

@@ -38,6 +38,7 @@ interface UnpaidWarningDialogProps {
   onClose: () => void;
   jobNumber?: string;
   outstandingBalance: number;
+  invoiceId?: string;
   onCancel: () => void;
   onMarkPaidAndComplete: (
     paymentMethod: string,
