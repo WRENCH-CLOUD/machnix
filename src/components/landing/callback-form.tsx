@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CheckCircle2, Loader2 } from "lucide-react"
+import { ClientOnly } from "@/components/common/client-only"
 
 interface CallbackFormProps {
   trigger?: React.ReactNode
@@ -80,10 +81,13 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
   }
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      if (!newOpen) resetForm()
-      onOpenChange?.(newOpen)
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (!newOpen) resetForm()
+        onOpenChange?.(newOpen)
+      }}
+    >
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-md">
         {isSuccess ? (
@@ -95,11 +99,7 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
             <DialogDescription className="text-base">
               Thank you for your interest. We&apos;ll get back to you within 24 hours.
             </DialogDescription>
-            <Button 
-              className="mt-6" 
-              variant="outline" 
-              onClick={() => onOpenChange?.(false)}
-            >
+            <Button className="mt-6" variant="outline" onClick={() => onOpenChange?.(false)} type="button">
               Close
             </Button>
           </div>
