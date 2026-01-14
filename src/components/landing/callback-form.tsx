@@ -81,116 +81,114 @@ export function CallbackForm({ trigger, open, onOpenChange }: CallbackFormProps)
   }
 
   return (
-    <ClientOnly fallback={trigger ?? null}>
-      <Dialog
-        open={open}
-        onOpenChange={(newOpen) => {
-          if (!newOpen) resetForm()
-          onOpenChange?.(newOpen)
-        }}
-      >
-        {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-        <DialogContent className="sm:max-w-md">
-          {isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <CheckCircle2 className="w-8 h-8 text-primary" />
-              </div>
-              <DialogTitle className="text-xl mb-2">Request Received!</DialogTitle>
-              <DialogDescription className="text-base">
-                Thank you for your interest. We&apos;ll get back to you within 24 hours.
-              </DialogDescription>
-              <Button className="mt-6" variant="outline" onClick={() => onOpenChange?.(false)} type="button">
-                Close
-              </Button>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        if (!newOpen) resetForm()
+        onOpenChange?.(newOpen)
+      }}
+    >
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-md">
+        {isSuccess ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-primary" />
             </div>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Request a Demo</DialogTitle>
-                <DialogDescription>
-                  Fill out the form below and we&apos;ll reach out to schedule a personalized demo of Wrench Cloud.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Your Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="+91 98765 43210"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
+            <DialogTitle className="text-xl mb-2">Request Received!</DialogTitle>
+            <DialogDescription className="text-base">
+              Thank you for your interest. We&apos;ll get back to you within 24 hours.
+            </DialogDescription>
+            <Button className="mt-6" variant="outline" onClick={() => onOpenChange?.(false)} type="button">
+              Close
+            </Button>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Request a Demo</DialogTitle>
+              <DialogDescription>
+                Fill out the form below and we&apos;ll reach out to schedule a personalized demo of Wrench Cloud.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="name">Your Name *</Label>
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.email}
+                    id="name"
+                    name="name"
+                    placeholder="John Doe"
+                    value={formData.name}
                     onChange={handleChange}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="garageName">Garage Name</Label>
+                  <Label htmlFor="phone">Phone Number *</Label>
                   <Input
-                    id="garageName"
-                    name="garageName"
-                    placeholder="ABC Auto Repair"
-                    value={formData.garageName}
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={formData.phone}
                     onChange={handleChange}
+                    required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message (Optional)</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    placeholder="Tell us about your garage..."
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={3}
-                  />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="garageName">Garage Name</Label>
+                <Input
+                  id="garageName"
+                  name="garageName"
+                  placeholder="ABC Auto Repair"
+                  value={formData.garageName}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="message">Message (Optional)</Label>
+                <Textarea
+                  id="message"
+                  name="message"
+                  placeholder="Tell us about your garage..."
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows={3}
+                />
+              </div>
+              {error && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+                  {error}
                 </div>
-                {error && (
-                  <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
-                    {error}
-                  </div>
+              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Request Demo"
                 )}
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Request Demo"
-                  )}
-                </Button>
-              </form>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </ClientOnly>
+              </Button>
+            </form>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
