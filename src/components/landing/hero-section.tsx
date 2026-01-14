@@ -52,7 +52,7 @@ export function HeroSection() {
 
       <div className="relative z-10 w-full mx-auto space-y-4 md:space-y-5 lg:space-y-6 mb-6 md:mb-7 lg:mb-9 max-w-md md:max-w-[500px] lg:max-w-[588px] mt-16 md:mt-[120px] lg:mt-[160px] px-4 text-center">
         <h1 className="text-foreground text-3xl md:text-4xl lg:text-6xl font-semibold leading-tight">
-          Streamline Your Auto garage Operations
+          Streamline Your Auto Garage Operations
         </h1>
         <p className="text-muted-foreground text-base md:text-base lg:text-lg font-medium leading-relaxed max-w-lg mx-auto">
           Professional garage management software for modern repair shops. Track jobs, manage customers, and grow your business.
