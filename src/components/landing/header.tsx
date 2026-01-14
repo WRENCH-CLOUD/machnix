@@ -8,7 +8,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 import { Menu } from "lucide-react"
 import Link from "next/link"
 import { CallbackForm } from "./callback-form"
-import { ClientOnly } from "@/components/common/client-only"
 
 export function Header() {
   const [callbackOpen, setCallbackOpen] = useState(false)
@@ -28,7 +27,7 @@ export function Header() {
   }
 
   return (
-    <>
+    <div>
       <header className="w-full py-4 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -61,16 +60,6 @@ export function Header() {
             >
               Request Demo
             </Button>
-            
-            {/* Mobile hamburger */}
-            <ClientOnly
-              fallback={
-                <Button variant="ghost" size="icon" className="md:hidden text-foreground" type="button" aria-label="Open navigation menu">
-                  <Menu className="h-7 w-7" />
-                  <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-              }
-            >
               <Sheet>
                 <SheetTrigger asChild className="md:hidden">
                   <Button variant="ghost" size="icon" className="text-foreground" type="button">
@@ -125,13 +114,11 @@ export function Header() {
                   </div>
                 </SheetContent>
               </Sheet>
-            </ClientOnly>
           </div>
         </div>
       </header>
-      
       {/* Callback form modal */}
       <CallbackForm open={callbackOpen} onOpenChange={setCallbackOpen} />
-    </>
+      </div>
   )
 }
