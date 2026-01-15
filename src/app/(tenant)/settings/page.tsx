@@ -31,7 +31,7 @@ export default function TenantSettingsPage() {
     phone: "",
     email: "",
     gstNumber: "",
-    businessHours: "9:00 AM - 6:00 PM"
+    businessHours: ""
   })
 
   useEffect(() => {
@@ -49,7 +49,11 @@ export default function TenantSettingsPage() {
         setProfile(prev => ({
           ...prev,
           name: data.name || prev.name,
-          // Other fields will be populated when we add them to the API
+          address: data.address || prev.address,
+          phone: data.phone || prev.phone,
+          email: data.email || prev.email,
+          gstNumber: data.gstNumber || prev.gstNumber,
+          businessHours: data.businessHours || prev.businessHours,
         }))
       }
     } catch (err) {
