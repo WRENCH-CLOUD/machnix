@@ -101,9 +101,9 @@ export function JobInvoice({
                     </p>
                   </div>
                   <div className="text-right">
-                    <h3 className="font-bold text-gray-900">Garage A</h3>
+                    <h3 className="font-bold text-gray-900">{tenant.name}</h3>
                     <p className="text-sm text-gray-600">
-                      {/*TODO: {tenant.address} which is not there and need to create @sagun-py0909 */}
+                      {tenant.address}
                     </p>
                     <p className="text-sm text-gray-600">
                       {/*TODO: need to create GSTIN for tenant */}
