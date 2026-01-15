@@ -46,10 +46,10 @@ import {
   // SupabaseTenantRepository,
 } from "@/modules/tenant"
 import { Spinner } from "@/components/ui/spinner";
-import { TenantDetailsDialog } from "@/features/admin/tenant-details-dialog";
-import { CreateTenantDialog } from "@/features/admin/create-tenant-dialog";
-import { EditTenantDialog } from "@/features/admin/edit-tenant-dialog";
-import { DeleteTenantDialog } from "@/features/admin/delete-tenant-dialog";
+import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
+import { CreateTenantDialog } from "@/components/admin/create-tenant-dialog";
+import { EditTenantDialog } from "@/components/admin/edit-tenant-dialog";
+import { DeleteTenantDialog } from "@/components/admin/delete-tenant-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TenantsPage() {
