@@ -73,7 +73,7 @@ const navItems = [
 
 const bottomNavItems = [
   { 
-    id: "garage-settings", 
+    id: "settings", 
     label: "Settings", 
     icon: Settings,
     description: "Garage configuration"
