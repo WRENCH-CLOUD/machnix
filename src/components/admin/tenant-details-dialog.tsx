@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { type TenantWithStats } from "@/app/modules/tenant-management"
+import { type TenantWithStats } from "@/modules/tenant"
 import {
   Building2,
   Users,

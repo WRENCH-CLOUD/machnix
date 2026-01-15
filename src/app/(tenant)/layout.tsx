@@ -1,18 +1,14 @@
 "use client"
 
 import "reflect-metadata"
-import { type ReactNode, useEffect, useState, useCallback } from "react"
+import { type ReactNode, useEffect, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
+import { useTenantDashboard } from "@/hooks"
 import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable"
+import { SidebarProvider } from "@/components/ui/sidebar"
 
 // Inner layout component that uses sidebar context
 function TenantLayoutContent({
@@ -55,23 +51,10 @@ export default function TenantLayoutWrapper({
   const router = useRouter()
   const pathname = usePathname()
   const { user, tenantId, loading } = useAuth()
-  const [tenantName, setTenantName] = useState<string>("Loading...")
-
-  // Fetch tenant name when tenantId is available
-  useEffect(() => {
-    if (tenantId) {
-      fetch('/api/tenant/stats')
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data?.name) {
-            setTenantName(data.name)
-          }
-        })
-        .catch(err => {
-          console.error('[TenantLayout] Failed to fetch tenant name:', err)
-        })
-    }
-  }, [tenantId])
+  
+  // Use shared dashboard query for tenant name (cached, no duplicate fetch)
+  const { data: dashboardData } = useTenantDashboard()
+  const tenantName = dashboardData?.name || "Loading..."
   
   useEffect(() => {
     console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })

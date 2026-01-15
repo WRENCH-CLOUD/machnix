@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -73,18 +75,21 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         const jobsRes = await fetch('/api/jobs')
         if (jobsRes.ok) {
           const jobs = await jobsRes.json()
-          const matchingJobs = jobs.filter((j: any) => 
-            j.job_number?.toLowerCase().includes(query.toLowerCase()) ||
-            j.customer?.name?.toLowerCase().includes(query.toLowerCase())
-          ).slice(0, 3)
+          const q = query.toLowerCase()
+          
+          const matchingJobs = jobs.filter((j: any) => {
+            const jobNum = (j.jobNumber || "").toLowerCase()
+            const customerName = (j.customer?.name || "").toLowerCase()
+            return jobNum.includes(q) || customerName.includes(q)
+          }).slice(0, 3)
           
           matchingJobs.forEach((j: any) => {
             searchResults.push({
               id: j.id,
               type: "job",
-              title: `Job ${j.job_number}`,
+              title: `Job ${j.jobNumber}`,
               subtitle: `${j.customer?.name || 'Unknown'} - ${j.status}`,
-              href: `/jobs-board`
+              href: `/jobs-board?jobId=${j.id}`
             })
           })
         }
@@ -93,17 +98,20 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         const vehiclesRes = await fetch('/api/vehicles')
         if (vehiclesRes.ok) {
           const vehicles = await vehiclesRes.json()
+          const q = query.toLowerCase()
+          
           const matchingVehicles = vehicles.filter((v: any) =>
-            v.reg_no?.toLowerCase().includes(query.toLowerCase()) ||
-            v.make?.name?.toLowerCase().includes(query.toLowerCase())
+            v.licensePlate?.toLowerCase().includes(q) ||
+            v.make?.toLowerCase().includes(q) ||
+            v.model?.toLowerCase().includes(q)
           ).slice(0, 3)
           
           matchingVehicles.forEach((v: any) => {
             searchResults.push({
               id: v.id,
               type: "vehicle",
-              title: v.reg_no,
-              subtitle: `${v.make?.name || ''} ${v.model || ''}`.trim() || 'Unknown',
+              title: v.licensePlate || "Unknown Vehicle",
+              subtitle: `${v.make || ''} ${v.model || ''}`.trim() || 'No details',
               href: `/vehicles`
             })
           })
@@ -155,7 +163,11 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden">
+      <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden" showCloseButton={false}>
+        <DialogTitle className="sr-only">Global Search</DialogTitle>
+        <DialogDescription className="sr-only">
+          Search for jobs, customers, and vehicles across the platform.
+        </DialogDescription>
         <div className="flex items-center border-b px-3">
           <Search className="w-4 h-4 text-muted-foreground mr-2" />
           <Input

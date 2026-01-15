@@ -13,24 +13,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
-export interface DashboardStats {
-  customer_count: number;
-  active_jobs: number;
-  completed_jobs: number;
-  mechanic_count: number;
-  total_revenue: number;
-  // Insights data
-  pending_jobs?: number;  // Jobs in 'received' status waiting to be worked
-  ready_jobs?: number;    // Jobs in 'ready' status waiting for payment/pickup
-  jobs_this_week?: number;  // Jobs created this week
-  recentJobs?: Array<{
-    id: string;
-    customer: string;
-    vehicle: string;
-    status: string;
-    priority: string;
-  }>;
-}
+import type { TenantWithStats } from "@/modules/tenant";
+
+export type DashboardStats = TenantWithStats;
 
 export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStats }) {
   const stats = [

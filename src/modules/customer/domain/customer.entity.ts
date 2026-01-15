@@ -22,3 +22,11 @@ export interface Customer {
 export interface CustomerWithVehicles extends Customer {
   vehicles?: any[] // To avoid circular dependency, we use any here
 }
+
+/**
+ * Customer with full details from the API (jobs and vehicles)
+ */
+export interface CustomerOverview extends Customer {
+  jobcards?: Array<{ created_at: string }>;
+  vehicles?: Array<{ make?: string; model?: string }>;
+}
