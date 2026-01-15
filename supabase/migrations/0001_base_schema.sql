@@ -517,21 +517,38 @@ CREATE TABLE IF NOT EXISTS tenant.dvi_photos (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Settings
+-- Settings (includes business profile and branding)
 CREATE TABLE IF NOT EXISTS tenant.settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL UNIQUE,
+  -- Business Profile
+  legal_name text,
+  gst_number text,
+  pan_number text,
+  address text,
+  city text,
+  state text,
+  pincode text,
+  business_phone text,
+  business_email text,
+  website text,
+  -- Operational Settings
   tax_rate numeric(5,2) DEFAULT 0,
   currency text DEFAULT 'INR',
   timezone text DEFAULT 'Asia/Kolkata',
+  -- Notification Preferences
   sms_enabled boolean DEFAULT false,
   email_enabled boolean DEFAULT false,
   whatsapp_enabled boolean DEFAULT false,
+  -- Document Prefixes
   invoice_prefix text DEFAULT 'INV-',
   job_prefix text DEFAULT 'JOB-',
   estimate_prefix text DEFAULT 'EST-',
   invoice_footer text,
+  -- Branding (S3 storage paths)
   logo_url text,
+  logo_storage_path text,
+  -- Timestamps
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
