@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
               // Enforce HttpOnly and secure defaults
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
+              sameSite: 'lax' as const,
               path: '/',
               // Preserve any attributes from Supabase (expires, maxAge, domain, etc.)
               ...options,

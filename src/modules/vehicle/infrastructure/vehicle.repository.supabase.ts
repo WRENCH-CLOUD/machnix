@@ -64,16 +64,21 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
     }
   }
 
-  async findAll(): Promise<VehicleWithCustomer[]> {
+  async findAll(customerId?: string): Promise<VehicleWithCustomer[]> {
     const tenantId = this.getContextTenantId()
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .schema('tenant')
       .from('vehicles')
       .select('*, customers(*)')  // PostgREST embedded relation
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false })
+
+    if (customerId) {
+      query = query.eq('customer_id', customerId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
 
     if (error) throw error
     if (!data?.length) return []
