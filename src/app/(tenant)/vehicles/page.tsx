@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { VehiclesView } from "@/components/tenant/views/vehicles-view";
-import { useAuth } from "@/providers/auth-provider";
+import { useVehicles, useVehicleMakes, useInvalidateQueries } from "@/hooks";
 import { VehicleViewModel, VehicleFormData, transformVehicleToViewModel } from "@/lib/transformers";
 
 interface VehicleEditFormData {
@@ -17,49 +17,19 @@ interface VehicleEditFormData {
 
 export default function VehiclesPage() {
   const router = useRouter();
-  const { tenantId } = useAuth();
-  const [vehicles, setVehicles] = useState<VehicleViewModel[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [makes, setMakes] = useState<{ id: string; name: string }[]>([]);
+  const { data: vehiclesData, isLoading, error } = useVehicles();
+  const { data: makesData } = useVehicleMakes();
+  const { invalidateVehicles } = useInvalidateQueries();
+  
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
 
-  const loadVehicles = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Transform API data to UI format
+  const vehicles: VehicleViewModel[] = useMemo(() => {
+    if (!vehiclesData) return [];
+    return vehiclesData.map(transformVehicleToViewModel);
+  }, [vehiclesData]);
 
-      const response = await fetch("/api/vehicles");
-      if (!response.ok) {
-        throw new Error("Failed to fetch vehicles");
-      }
-
-      const vehiclesData = await response.json();
-      
-      // Transform API data to UI format
-      const transformedVehicles: VehicleViewModel[] = vehiclesData.map(transformVehicleToViewModel);
-
-      setVehicles(transformedVehicles);
-    } catch (err) {
-      console.error("Error loading vehicles:", err);
-      setError("Failed to load vehicles");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadMakes = useCallback(async () => {
-    try {
-      const response = await fetch("/api/vehicle-makes");
-      if (response.ok) {
-        const makesData = await response.json();
-        setMakes(makesData);
-      }
-    } catch (err) {
-      console.error("Error loading makes:", err);
-      // Non-blocking error - makes are optional
-    }
-  }, []);
+  const makes = useMemo(() => makesData || [], [makesData]);
 
   const loadModels = useCallback(async (makeId: string) => {
     if (!makeId) {
@@ -78,13 +48,6 @@ export default function VehiclesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (tenantId) {
-      loadVehicles();
-      loadMakes();
-    }
-  }, [tenantId, loadVehicles, loadMakes]);
-
   const handleAddVehicle = async (data: VehicleFormData) => {
     const response = await fetch("/api/vehicles/create", {
       method: "POST",
@@ -99,7 +62,7 @@ export default function VehiclesPage() {
       throw new Error(errorData.error || "Failed to add vehicle");
     }
 
-    await loadVehicles();
+    await invalidateVehicles();
   };
 
   const handleEditVehicle = async (id: string, data: VehicleEditFormData) => {
@@ -123,7 +86,7 @@ export default function VehiclesPage() {
       throw new Error(errorData.error || "Failed to update vehicle");
     }
 
-    await loadVehicles();
+    await invalidateVehicles();
   };
 
   const handleDeleteVehicle = async (id: string) => {
@@ -136,28 +99,26 @@ export default function VehiclesPage() {
       throw new Error(errorData.error || "Failed to delete vehicle");
     }
 
-    await loadVehicles();
+    await invalidateVehicles();
   };
 
   const handleCreateJob = (vehicle: VehicleViewModel) => {
-    // Navigate to job creation with vehicle pre-selected
     router.push(`/jobs-board?vehicleId=${vehicle.id}`);
   };
 
   return (
     <VehiclesView
       vehicles={vehicles}
-      loading={loading}
-      error={error}
+      loading={isLoading}
+      error={error?.message || null}
       makes={makes}
       models={models}
       onMakeChange={loadModels}
       onAddVehicle={handleAddVehicle}
       onEditVehicle={handleEditVehicle}
       onDeleteVehicle={handleDeleteVehicle}
-      onRetry={loadVehicles}
+      onRetry={invalidateVehicles}
       onCreateJob={handleCreateJob}
     />
   );
 }
-

@@ -19,7 +19,15 @@ export interface TenantStats {
  * Extended tenant entity with computed statistics
  * Pure domain model - no database concerns
  */
-export interface TenantWithStats extends Tenant, TenantStats {}
+export interface TenantWithStats extends Tenant, TenantStats {
+  recentJobs?: Array<{
+    id: string;
+    customer: string;
+    vehicle: string;
+    status: string;
+    priority: string;
+  }>;
+}
 
 // Backwards-compatible alias used in some parts of the codebase
 export type TenantOverview = TenantWithStats

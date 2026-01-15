@@ -353,7 +353,7 @@ export function JobBoardView({
             </Button>
             <div className="flex rounded-lg border border-border overflow-hidden">
               <Button
-                variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 onClick={() => setViewMode("kanban")}
                 className="rounded-none"
@@ -361,7 +361,7 @@ export function JobBoardView({
                 <LayoutGrid className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
+                variant="secondary"
                 size="sm"
                 onClick={() => setViewMode("list")}
                 className="rounded-none"
@@ -424,7 +424,7 @@ export function JobBoardView({
           </Button>
           <div className="flex rounded-lg border border-border overflow-hidden">
             <Button
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              variant="secondary"
               size="sm"
               onClick={() => setViewMode("kanban")}
               className="rounded-none px-2 md:px-3"
@@ -432,7 +432,7 @@ export function JobBoardView({
               <LayoutGrid className="w-4 h-4" />
             </Button>
             <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
+              variant="ghost"
               size="sm"
               onClick={() => setViewMode("list")}
               className="rounded-none px-2 md:px-3"
