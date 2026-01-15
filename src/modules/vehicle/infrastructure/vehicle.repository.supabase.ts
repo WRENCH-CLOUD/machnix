@@ -30,7 +30,7 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
   private toDomainWithCustomer(row: any): VehicleWithCustomer {
     return {
       ...this.toDomain(row),
-      // Use PostgREST embedded relation for customer
+      // Map PostgREST embedded 'customers' relation to 'customer' for the transformer
       customer: row.customers ? {
         id: row.customers.id,
         name: row.customers.name,
@@ -76,8 +76,31 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return (data || []).map(row => this.toDomainWithCustomer(row))
+    if (!data?.length) return []
+
+    // Fetch jobs for each vehicle to calculate service history
+    const vehicleIds = data.map(v => v.id)
+    const { data: jobcards } = await this.supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select('id, vehicle_id, created_at, status')
+      .eq('tenant_id', tenantId)
+      .in('vehicle_id', vehicleIds)
+      .order('created_at', { ascending: false })
+
+    // Group jobs by vehicle_id
+    const jobsByVehicle = (jobcards || []).reduce((acc: Record<string, any[]>, j) => {
+      if (!acc[j.vehicle_id]) acc[j.vehicle_id] = []
+      acc[j.vehicle_id].push(j)
+      return acc
+    }, {})
+
+    return data.map(row => ({
+      ...this.toDomainWithCustomer(row),
+      jobs: jobsByVehicle[row.id] || [],
+    }))
   }
+
 
   async findById(id: string): Promise<VehicleWithCustomer | null> {
     const tenantId = this.getContextTenantId()
