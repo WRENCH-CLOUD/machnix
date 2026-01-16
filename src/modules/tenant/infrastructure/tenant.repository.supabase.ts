@@ -130,7 +130,12 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (settings.jobPrefix !== undefined) dbSettings.job_prefix = settings.jobPrefix;
     if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
     if (settings.invoiceFooter !== undefined) dbSettings.invoice_footer = settings.invoiceFooter;
+    if (settings.logoUrl !== undefined) dbSettings.logo_url = settings.logoUrl;
 
+    // Notification toggle fields
+    if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;
+    if (settings.emailEnabled !== undefined) dbSettings.email_enabled = settings.emailEnabled;
+    if (settings.whatsappEnabled !== undefined) dbSettings.whatsapp_enabled = settings.whatsappEnabled;
     if (Object.keys(dbSettings).length > 0) {
       // Include tenant_id for upsert
       dbSettings.tenant_id = tenantId;

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Combine for frontend
     return NextResponse.json({
       name: result.name,
-      ...result.settings
+      ...(result.settings ?? {})
     })
   } catch (error: any) {
     console.error('Error fetching settings:', error)

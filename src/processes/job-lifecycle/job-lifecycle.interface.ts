@@ -55,7 +55,7 @@ export class JobLifeCycle implements JobLifecycle {
              if (result.success) {
                  return result.job;
              } else {
-                 throw new Error("Job update failed or payment required: " + JSON.stringify(result));
+                 throw new Error("Job update failed or payment required.");
              }
         });
     }
