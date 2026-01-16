@@ -13,6 +13,11 @@ interface JobDetailsContainerProps {
   onClose: () => void;
   onJobUpdate?: () => void;
   currentUser?: any; // Pass current user for mechanic mode check or auth
+  tenantDetails?: {
+    name: string;
+    address: string;
+    gstin: string;
+  };
 }
 
 export function JobDetailsContainer({
@@ -21,6 +26,7 @@ export function JobDetailsContainer({
   onClose,
   onJobUpdate,
   currentUser,
+  tenantDetails: tenantDetailsProp,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [estimate, setEstimate] = useState<any>(null);
@@ -28,6 +34,13 @@ export function JobDetailsContainer({
   const [invoice, setInvoice] = useState<any>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // Use tenant details from prop if provided, otherwise use default values
+  const tenantDetails = tenantDetailsProp || {
+    name: "",
+    address: "",
+    gstin: "",
+  };
 
   // Determine mechanic mode based on user role or prop
   // For now, let's assume if user is mechanic (TODO: robust check)
@@ -599,6 +612,8 @@ export function JobDetailsContainer({
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}
+
+      tenantDetails={tenantDetails}
     />
   );
 }

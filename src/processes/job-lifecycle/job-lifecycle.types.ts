@@ -25,7 +25,7 @@ export interface updateEstimateCommand {
     labor_cost: number;
   }>;
 }
-export interface initiatePaymentCommand {
+export interface intiatePaymentCommand {
   job_id: UUID;
   amount: number;
   payment_method: string;

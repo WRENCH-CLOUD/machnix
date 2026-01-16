@@ -4,7 +4,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    qualities: [25, 50,75],
+    
   },
   async headers() {
     return [

@@ -2,6 +2,7 @@ import { supabase as defaultSupabase } from "@/lib/supabase/client";
 import { TenantRepository } from "./tenant.repository";
 import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
+import { TenantSettings } from "../domain/tenant-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export class SupabaseTenantRepository implements TenantRepository {
@@ -59,6 +60,93 @@ export class SupabaseTenantRepository implements TenantRepository {
       throw error;
     }
     return (data || []).map(row => this.toDomain(row));
+  }
+
+  private toSettingsDomain(row: any): TenantSettings {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      legalName: row.legal_name,
+      gstNumber: row.gst_number,
+      panNumber: row.pan_number,
+      address: row.address,
+      city: row.city,
+      state: row.state,
+      pincode: row.pincode,
+      businessPhone: row.business_phone,
+      businessEmail: row.business_email,
+      website: row.website,
+      
+      taxRate: row.tax_rate,
+      currency: row.currency,
+      timezone: row.timezone,
+      
+      smsEnabled: row.sms_enabled,
+      emailEnabled: row.email_enabled,
+      whatsappEnabled: row.whatsapp_enabled,
+      
+      invoicePrefix: row.invoice_prefix,
+      jobPrefix: row.job_prefix,
+      estimatePrefix: row.estimate_prefix,
+      invoiceFooter: row.invoice_footer,
+      
+      logoUrl: row.logo_url,
+      updatedAt: new Date(row.updated_at)
+    };
+  }
+
+  async getSettings(tenantId: string): Promise<TenantSettings | null> {
+    const { data, error } = await this.supabase
+      .schema("tenant")
+      .from("settings")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.toSettingsDomain(data) : null;
+  }
+
+  async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
+    const dbSettings: any = {};
+    
+    // Map domain fields to DB columns
+    if (settings.legalName !== undefined) dbSettings.legal_name = settings.legalName;
+    if (settings.gstNumber !== undefined) dbSettings.gst_number = settings.gstNumber;
+    if (settings.panNumber !== undefined) dbSettings.pan_number = settings.panNumber;
+    if (settings.address !== undefined) dbSettings.address = settings.address;
+    if (settings.city !== undefined) dbSettings.city = settings.city;
+    if (settings.state !== undefined) dbSettings.state = settings.state;
+    if (settings.pincode !== undefined) dbSettings.pincode = settings.pincode;
+    if (settings.businessPhone !== undefined) dbSettings.business_phone = settings.businessPhone;
+    if (settings.businessEmail !== undefined) dbSettings.business_email = settings.businessEmail;
+    if (settings.website !== undefined) dbSettings.website = settings.website;
+    
+    if (settings.taxRate !== undefined) dbSettings.tax_rate = settings.taxRate;
+    if (settings.currency !== undefined) dbSettings.currency = settings.currency;
+    if (settings.timezone !== undefined) dbSettings.timezone = settings.timezone;
+    
+    if (settings.invoicePrefix !== undefined) dbSettings.invoice_prefix = settings.invoicePrefix;
+    if (settings.jobPrefix !== undefined) dbSettings.job_prefix = settings.jobPrefix;
+    if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
+    if (settings.invoiceFooter !== undefined) dbSettings.invoice_footer = settings.invoiceFooter;
+    if (settings.logoUrl !== undefined) dbSettings.logo_url = settings.logoUrl;
+
+    // Notification toggle fields
+    if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;
+    if (settings.emailEnabled !== undefined) dbSettings.email_enabled = settings.emailEnabled;
+    if (settings.whatsappEnabled !== undefined) dbSettings.whatsapp_enabled = settings.whatsappEnabled;
+    if (Object.keys(dbSettings).length > 0) {
+      // Include tenant_id for upsert
+      dbSettings.tenant_id = tenantId;
+
+      const { error } = await this.supabase
+        .schema("tenant")
+        .from("settings")
+        .upsert(dbSettings, { onConflict: 'tenant_id' });
+
+      if (error) throw error;
+    }
   }
 
   async getStats(tenantId: string): Promise<TenantStats> {

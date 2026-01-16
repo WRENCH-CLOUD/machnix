@@ -76,11 +76,11 @@ export function HeroSection() {
             src="/dashboard-page.jpeg"
             alt="Wrench Cloud Dashboard Preview"
             width={1160}
-            height={700}
+            height={800}
             className="w-full h-auto object-cover rounded-xl shadow-lg border border-white/10"
             priority
             sizes="(max-width: 768px) 92vw, 1160px"
-            quality={80}
+            quality={85}
           />
         </div>
       </div>

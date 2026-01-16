@@ -7,6 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 
 interface JobInvoiceProps {
+  tenantDetails: {
+    name: string;
+    address: string;
+    gstin: string;
+  };
   job: UIJob;
   invoice: any; // Using any for simplicity for now, ideally InvoiceWithRelations
   estimateItems: any[];
@@ -18,6 +23,7 @@ interface JobInvoiceProps {
 }
 
 export function JobInvoice({
+  tenantDetails,
   job,
   invoice,
   estimateItems,
@@ -27,6 +33,7 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
+  const { name, address, gstin } = tenantDetails;
   // Calculations
   const partsSubtotal = estimateItems.reduce(
     (acc, item) => acc + item.qty * item.unit_price,
@@ -101,12 +108,12 @@ export function JobInvoice({
                     </p>
                   </div>
                   <div className="text-right">
-                    <h3 className="font-bold text-gray-900">Garage A</h3>
+                    <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3>
                     <p className="text-sm text-gray-600">
-                      {/*TODO: {tenant.address} which is not there and need to create @sagun-py0909 */}
+                      {tenantDetails.address}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {/*TODO: need to create GSTIN for tenant */}
+                      {tenantDetails.gstin}
                     </p>
                   </div>
                 </div>

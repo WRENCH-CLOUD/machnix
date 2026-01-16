@@ -11,7 +11,7 @@ import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/
 import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
-import { queryKeys } from "@/hooks"
+import { queryKeys, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
@@ -21,6 +21,15 @@ export default function JobsPage() {
 
   // Use centralized query key for cache consistency with all-jobs page
   const jobsQueryKey = useMemo(() => queryKeys.jobs.list(tenantId || ""), [tenantId])
+
+  // Fetch tenant settings once at the page level
+  const { data: tenantSettings } = useTenantSettings()
+
+  // Transform tenant settings to match the format expected by JobDetailsContainer
+  const tenantDetails = useMemo(() => 
+    transformTenantSettingsForJobDetails(tenantSettings), 
+    [tenantSettings]
+  )
 
   useEffect(() => {
     const handleOpenCreateJob = () => setShowCreateJob(true);
@@ -298,6 +307,7 @@ export default function JobsPage() {
           onJobUpdate={async () => {
             await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
+          tenantDetails={tenantDetails}
         />
       )}
 
