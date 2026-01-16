@@ -7,6 +7,21 @@ import type { CustomerOverview } from "@/modules/customer/domain/customer.entity
 import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity";
 
 // ============================================
+// Utility Functions
+// ============================================
+
+/**
+ * Transforms tenant settings into the format expected by job details components
+ */
+export function transformTenantSettingsForJobDetails(tenantSettings: TenantSettings | undefined) {
+  return {
+    name: tenantSettings?.legalName || "Garage",
+    address: tenantSettings?.address || "",
+    gstin: tenantSettings?.gstNumber || "",
+  };
+}
+
+// ============================================
 // Query Keys - centralized for cache management
 // ============================================
 

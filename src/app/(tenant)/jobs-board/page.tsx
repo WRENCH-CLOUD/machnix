@@ -11,7 +11,7 @@ import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/
 import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
-import { queryKeys, useTenantSettings } from "@/hooks"
+import { queryKeys, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
@@ -26,11 +26,10 @@ export default function JobsPage() {
   const { data: tenantSettings } = useTenantSettings()
 
   // Transform tenant settings to match the format expected by JobDetailsContainer
-  const tenantDetails = useMemo(() => ({
-    name: tenantSettings?.legalName || "Garage",
-    address: tenantSettings?.address || "",
-    gstin: tenantSettings?.gstNumber || "",
-  }), [tenantSettings])
+  const tenantDetails = useMemo(() => 
+    transformTenantSettingsForJobDetails(tenantSettings), 
+    [tenantSettings]
+  )
 
   useEffect(() => {
     const handleOpenCreateJob = () => setShowCreateJob(true);

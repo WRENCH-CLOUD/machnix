@@ -54,7 +54,7 @@ export default function TenantSettingsPage() {
         pincode: tenantSettings.pincode || "",
         businessPhone: tenantSettings.businessPhone || "",
         businessEmail: tenantSettings.businessEmail || "",
-        // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doutfull
+        // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doubtful
       }))
     }
   }, [tenantSettings])
