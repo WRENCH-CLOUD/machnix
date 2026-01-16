@@ -22,7 +22,14 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight, MoreHorizontal, Trash2, Ban } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +46,7 @@ interface JobBoardProps {
   onJobClick: (job: UIJob) => void;
   onStatusChange: (jobId: string, status: JobStatus) => void | Promise<void>;
   onMechanicChange?: (jobId: string, mechanicId: string) => void | Promise<void>;
+  onDelete: (jobId: string) => Promise<void>;
 }
 
 const COLUMNS: { id: JobStatus; label: string }[] = [
@@ -80,7 +88,19 @@ function DroppableColumn({
   );
 }
 
-function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus; isMobile?: boolean }) {
+function JobCardBody({
+  job,
+  status,
+  isMobile,
+  onStatusChange,
+  onDelete
+}: {
+  job: UIJob;
+  status: JobStatus;
+  isMobile?: boolean;
+  onStatusChange?: (jobId: string, status: JobStatus) => void | Promise<void>;
+  onDelete?: (jobId: string) => Promise<void>;
+}) {
   const config = statusConfig[status] || statusConfig.received;
 
   return (
@@ -110,13 +130,48 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
             {new Date(job.updatedAt).toLocaleDateString()}
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("h-6 w-6 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-6 w-6 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem
+                disabled={status === 'cancelled' || status === 'completed'}
+                onClick={() => onStatusChange?.(job.id, 'cancelled')}
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Cancel Job
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => {
+                   if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                     onDelete?.(job.id);
+                   }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Job
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-6 w-6 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -125,9 +180,13 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
 function SortableJobCard({
   job,
   onClick,
+  onStatusChange,
+  onDelete
 }: {
   job: UIJob;
   onClick: () => void;
+  onStatusChange: (jobId: string, status: JobStatus) => void | Promise<void>;
+  onDelete: (jobId: string) => Promise<void>;
 }) {
   const {
     attributes,
@@ -158,7 +217,12 @@ function SortableJobCard({
         className="group relative bg-card hover:shadow-md transition-all cursor-pointer border-border/50"
         onClick={onClick}
       >
-        <JobCardBody job={job} status={status} />
+        <JobCardBody 
+          job={job} 
+          status={status} 
+          onStatusChange={onStatusChange}
+          onDelete={onDelete}
+        />
       </Card>
     </div>
   );
@@ -170,6 +234,7 @@ export function JobBoardView({
   isMechanicMode = false,
   onJobClick,
   onStatusChange,
+  onDelete
 }: JobBoardProps) {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [hiddenStatuses, setHiddenStatuses] = useState<JobStatus[]>([]);
@@ -383,6 +448,8 @@ export function JobBoardView({
                 <JobCardBody
                   job={job}
                   status={(job.status || "received") as JobStatus}
+                  onStatusChange={onStatusChange}
+                  onDelete={onDelete}
                 />
               </Card>
             ))}
@@ -496,6 +563,8 @@ export function JobBoardView({
                           key={job.id}
                           job={job}
                           onClick={() => onJobClick(job)}
+                          onStatusChange={onStatusChange}
+                          onDelete={onDelete}
                         />
                       ))}
                       {columnJobs.length === 0 && (
