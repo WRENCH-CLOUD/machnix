@@ -11,7 +11,17 @@ import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 
-
+interface TenantSettings {
+  name: string
+  gstNumber: string
+  address: string
+  city: string
+  state: string
+  pincode: string
+  businessPhone: string
+  businessEmail: string
+  businessHours: string
+}
 
 export default function TenantSettingsPage() {
   const { tenantId } = useAuth()
@@ -20,7 +30,7 @@ export default function TenantSettingsPage() {
   const [saving, setSaving] = useState(false)
   
   // Initialize with empty strings to avoid uncontrolled inputs
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<TenantSettings>({
     name: "",
     gstNumber: "",
     address: "",
