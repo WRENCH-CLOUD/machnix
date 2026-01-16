@@ -28,6 +28,11 @@ export function JobDetailsContainer({
   const [invoice, setInvoice] = useState<any>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [tenantDetails, setTenantDetails] = useState({
+    name: "",
+    address: "",
+    gstin: "",
+  });
 
   // Determine mechanic mode based on user role or prop
   // For now, let's assume if user is mechanic (TODO: robust check)
@@ -81,9 +86,27 @@ export function JobDetailsContainer({
     }
   };
 
+  // Fetch tenant details (settings)
+  const fetchTenantDetails = async () => {
+    try {
+      const res = await api.get("/api/tenant/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setTenantDetails({
+          name: data.legalName || data.name || "Garage",
+          address: data.address || "",
+          gstin: data.gstNumber || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching tenant details:", error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && job.id) {
       fetchEstimate();
+      fetchTenantDetails();
       if (job.status === "ready" || job.status === "completed") {
         fetchInvoice();
       }
@@ -599,6 +622,8 @@ export function JobDetailsContainer({
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}
+
+      tenantDetails={tenantDetails}
     />
   );
 }

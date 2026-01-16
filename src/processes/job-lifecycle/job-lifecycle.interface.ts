@@ -1,5 +1,5 @@
 import { JobCard } from "@/modules/job/domain/job.entity";
-import { assignMechanicCommand, createJobCommand, initiatePaymentCommand, jobStatusCommand, updateEstimateCommand } from "./job-lifecycle.types";
+import { assignMechanicCommand, createJobCommand, intiatePaymentCommand, jobStatusCommand, updateEstimateCommand } from "./job-lifecycle.types";
 import { CreateJobUseCase } from "@/modules/job/application/create-job.use-case";
 import { UpdateJobStatusUseCase } from "@/modules/job/application/update-job-status.use-case";
 import { SupabaseJobRepository } from "@/modules/job/infrastructure/job.repository.supabase";
@@ -15,7 +15,7 @@ export interface JobLifecycle{
     updateEstimate(data : updateEstimateCommand):Promise<JobCard>;  
 
     updateJobStatus(data : jobStatusCommand):Promise<JobCard>;
-    intiatePayment(data : initiatePaymentCommand):void;
+    intiatePayment(data : intiatePaymentCommand):void;
     checkPaymentStatus():void;
     closeJob():void;
 }
@@ -59,7 +59,7 @@ export class JobLifeCycle implements JobLifecycle {
              }
         });
     }
-    intiatePayment(data: initiatePaymentCommand): void {
+    intiatePayment(data: intiatePaymentCommand): void {
         throw new Error("Method not implemented.");
     }
     checkPaymentStatus(): void {

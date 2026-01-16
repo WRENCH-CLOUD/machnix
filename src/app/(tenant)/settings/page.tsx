@@ -23,14 +23,12 @@ export default function TenantSettingsPage() {
   const [profile, setProfile] = useState({
     name: "",
     gstNumber: "",
-    panNumber: "",
     address: "",
     city: "",
     state: "",
     pincode: "",
     businessPhone: "",
     businessEmail: "",
-    website: "",
     businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
   })
 
@@ -50,15 +48,13 @@ export default function TenantSettingsPage() {
           ...prev,
           name: data.name || "",
           gstNumber: data.gstNumber || "",
-          panNumber: data.panNumber || "",
           address: data.address || "",
           city: data.city || "",
           state: data.state || "",
           pincode: data.pincode || "",
           businessPhone: data.businessPhone || "",
           businessEmail: data.businessEmail || "",
-          website: data.website || "",
-          // businessHours not in API response yet unless we added it to metadata or similar
+          // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doutfull
         }))
       }
     } catch (err) {
