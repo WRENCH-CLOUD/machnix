@@ -13,6 +13,11 @@ interface JobDetailsContainerProps {
   onClose: () => void;
   onJobUpdate?: () => void;
   currentUser?: any; // Pass current user for mechanic mode check or auth
+  tenantDetails?: {
+    name: string;
+    address: string;
+    gstin: string;
+  };
 }
 
 export function JobDetailsContainer({
@@ -21,6 +26,7 @@ export function JobDetailsContainer({
   onClose,
   onJobUpdate,
   currentUser,
+  tenantDetails: tenantDetailsProp,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [estimate, setEstimate] = useState<any>(null);
@@ -28,11 +34,13 @@ export function JobDetailsContainer({
   const [invoice, setInvoice] = useState<any>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [tenantDetails, setTenantDetails] = useState({
+  
+  // Use tenant details from prop if provided, otherwise use default values
+  const tenantDetails = tenantDetailsProp || {
     name: "",
     address: "",
     gstin: "",
-  });
+  };
 
   // Determine mechanic mode based on user role or prop
   // For now, let's assume if user is mechanic (TODO: robust check)
@@ -86,27 +94,9 @@ export function JobDetailsContainer({
     }
   };
 
-  // Fetch tenant details (settings)
-  const fetchTenantDetails = async () => {
-    try {
-      const res = await api.get("/api/tenant/settings");
-      if (res.ok) {
-        const data = await res.json();
-        setTenantDetails({
-          name: data.legalName || data.name || "Garage",
-          address: data.address || "",
-          gstin: data.gstNumber || "",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching tenant details:", error);
-    }
-  };
-
   useEffect(() => {
     if (isOpen && job.id) {
       fetchEstimate();
-      fetchTenantDetails();
       if (job.status === "ready" || job.status === "completed") {
         fetchInvoice();
       }

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/supabase/client";
 import type { TenantWithStats } from "@/modules/tenant";
 import type { CustomerOverview } from "@/modules/customer/domain/customer.entity";
+import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity";
 
 // ============================================
 // Query Keys - centralized for cache management
@@ -13,6 +14,7 @@ export const queryKeys = {
   tenant: {
     all: ["tenant"] as const,
     dashboard: () => [...queryKeys.tenant.all, "dashboard"] as const,
+    settings: () => [...queryKeys.tenant.all, "settings"] as const,
   },
   jobs: {
     all: ["jobs"] as const,
@@ -48,6 +50,25 @@ export function useTenantDashboard() {
       return res.json();
     },
     staleTime: 60_000, // 60 seconds
+  });
+}
+
+// ============================================
+// Tenant Settings Query
+// Tenant settings rarely change during a session, so we cache them
+// ============================================
+
+export function useTenantSettings() {
+  return useQuery({
+    queryKey: queryKeys.tenant.settings(),
+    queryFn: async (): Promise<TenantSettings> => {
+      const res = await api.get("/api/tenant/settings");
+      if (!res.ok) {
+        throw new Error("Failed to fetch tenant settings");
+      }
+      return res.json();
+    },
+    staleTime: 5 * 60_000, // 5 minutes - settings rarely change
   });
 }
 
@@ -135,6 +156,8 @@ export function useInvalidateQueries() {
   return {
     invalidateDashboard: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.tenant.dashboard() }),
+    invalidateTenantSettings: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenant.settings() }),
     invalidateJobs: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all }),
     invalidateCustomers: () =>
