@@ -4,7 +4,7 @@ import { CreateJobUseCase } from "@/modules/job/application/create-job.use-case"
 import { UpdateJobStatusUseCase } from "@/modules/job/application/update-job-status.use-case";
 import { SupabaseJobRepository } from "@/modules/job/infrastructure/job.repository.supabase";
 import { ensureTenantContext } from "@/lib/supabase/client";
-export interface jobLifecycle{
+export interface JobLifecycle{
     //creation of job
     createJob(data: createJobCommand):Promise<JobCard>;
     //assignment of mechanic
@@ -21,7 +21,7 @@ export interface jobLifecycle{
 }
 
 
-export class jobLifeCycle implements jobLifecycle {
+export class JobLifeCycle implements JobLifecycle {
     createJob(data: createJobCommand): Promise<JobCard> {
         const jobRepository = new SupabaseJobRepository();
         const createJobUseCase = new CreateJobUseCase(jobRepository);
