@@ -10,6 +10,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
+import { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity"
+
+// Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
+type GarageProfile = {
+  name: string
+  businessHours: string
+} & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
 
 
 
@@ -20,7 +27,7 @@ export default function TenantSettingsPage() {
   const [saving, setSaving] = useState(false)
   
   // Initialize with empty strings to avoid uncontrolled inputs
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<GarageProfile>({
     name: "",
     gstNumber: "",
     address: "",
