@@ -11,6 +11,7 @@ import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 import { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity"
+import { useTenantSettings, useInvalidateQueries } from "@/hooks"
 
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
@@ -21,10 +22,12 @@ type GarageProfile = {
 
 
 export default function TenantSettingsPage() {
-  const { tenantId } = useAuth()
   const { toast } = useToast()
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const { invalidateTenantSettings } = useInvalidateQueries()
+  
+  // Use the shared tenant settings query hook
+  const { data: tenantSettings, isLoading: loading } = useTenantSettings()
   
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
@@ -40,41 +43,21 @@ export default function TenantSettingsPage() {
   })
 
   useEffect(() => {
-    if (tenantId) {
-      fetchTenantProfile()
+    if (tenantSettings) {
+      setProfile(prev => ({
+        ...prev,
+        name: tenantSettings.legalName || "",
+        gstNumber: tenantSettings.gstNumber || "",
+        address: tenantSettings.address || "",
+        city: tenantSettings.city || "",
+        state: tenantSettings.state || "",
+        pincode: tenantSettings.pincode || "",
+        businessPhone: tenantSettings.businessPhone || "",
+        businessEmail: tenantSettings.businessEmail || "",
+        // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doubtful
+      }))
     }
-  }, [tenantId])
-
-  const fetchTenantProfile = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/tenant/settings')
-      if (res.ok) {
-        const data = await res.json()
-        setProfile(prev => ({
-          ...prev,
-          name: data.name || "",
-          gstNumber: data.gstNumber || "",
-          address: data.address || "",
-          city: data.city || "",
-          state: data.state || "",
-          pincode: data.pincode || "",
-          businessPhone: data.businessPhone || "",
-          businessEmail: data.businessEmail || "",
-          // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doutfull
-        }))
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenant profile:', err)
-      toast({
-        title: "Error",
-        description: "Failed to load settings.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [tenantSettings])
 
   const handleSave = async () => {
     try {
@@ -86,6 +69,9 @@ export default function TenantSettingsPage() {
       })
 
       if (!res.ok) throw new Error('Failed to update')
+
+      // Invalidate the tenant settings cache to ensure all components get fresh data
+      await invalidateTenantSettings()
 
       toast({
         title: "Settings saved",

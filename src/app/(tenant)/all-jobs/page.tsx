@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { AllJobsView } from "@/components/tenant/views/all-jobs-view"
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { useAuth } from "@/providers/auth-provider"
-import { useJobs, useInvalidateQueries } from "@/hooks"
+import { useJobs, useInvalidateQueries, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
@@ -27,6 +27,15 @@ export default function AllJobsPage() {
 
   // Use shared jobs query
   const { data: dbJobs, isLoading } = useJobs(tenantId)
+
+  // Fetch tenant settings once at the page level
+  const { data: tenantSettings } = useTenantSettings()
+
+  // Transform tenant settings to match the format expected by JobDetailsContainer
+  const tenantDetails = useMemo(() => 
+    transformTenantSettingsForJobDetails(tenantSettings), 
+    [tenantSettings]
+  )
 
   // Transform jobs when data changes
   useEffect(() => {
@@ -139,6 +148,7 @@ export default function AllJobsPage() {
           onJobUpdate={async () => {
             await invalidateJobs()
           }}
+          tenantDetails={tenantDetails}
         />
       )}
 
