@@ -22,7 +22,6 @@ export default function TenantSettingsPage() {
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState({
     name: "",
-    legalName: "",
     gstNumber: "",
     panNumber: "",
     address: "",
@@ -50,7 +49,6 @@ export default function TenantSettingsPage() {
         setProfile(prev => ({
           ...prev,
           name: data.name || "",
-          legalName: data.legalName || "",
           gstNumber: data.gstNumber || "",
           panNumber: data.panNumber || "",
           address: data.address || "",
@@ -156,7 +154,7 @@ export default function TenantSettingsPage() {
           <div className="space-y-2">
             <Label htmlFor="address" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              Address
+              Address (Garage Address)
             </Label>
             <Input
               id="address"
