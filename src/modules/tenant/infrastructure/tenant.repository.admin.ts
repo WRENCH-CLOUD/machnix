@@ -16,6 +16,16 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
     // Not implemented for admin
   }
 
+  async markOnboarded(tenantId: string): Promise<void> {
+    const { error } = await this.supabase
+      .schema('tenant')
+      .from('tenants')
+      .update({ is_onboarded: true })
+      .eq('id', tenantId)
+
+    if (error) throw error
+  }
+
   /**
    * Transform database row to domain entity
    * Converts snake_case to camelCase
@@ -27,6 +37,7 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
       slug: row.slug || '',
       status: row.status,
       subscription: row.subscription,
+      isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
     }
   }

@@ -7,6 +7,7 @@ export interface Tenant {
   slug: string
   status: TenantStatus
   subscription: TenantPlan
+  isOnboarded: boolean
   createdAt: Date
 }
 

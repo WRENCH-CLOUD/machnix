@@ -1,14 +1,16 @@
 "use client"
 
 import "reflect-metadata"
-import { type ReactNode, useEffect, useCallback } from "react"
+import { type ReactNode, useEffect, useCallback, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { useTenantDashboard } from "@/hooks"
+import { useOnboardingStatus } from "@/hooks/use-onboarding"
 import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { OnboardingModal } from "@/components/tenant/starter/onboarding-modal"
 
 // Inner layout component that uses sidebar context
 function TenantLayoutContent({
@@ -51,14 +53,25 @@ export default function TenantLayoutWrapper({
   const router = useRouter()
   const pathname = usePathname()
   const { user, tenantId, loading } = useAuth()
+  const [showOnboarding, setShowOnboarding] = useState(false)
   
   // Use shared dashboard query for tenant name (cached, no duplicate fetch)
   const { data: dashboardData } = useTenantDashboard()
   const tenantName = dashboardData?.name || "Loading..."
   
+  // Fetch onboarding status
+  const { data: onboardingData, isLoading: onboardingLoading, refetch: refetchOnboarding } = useOnboardingStatus()
+  
   useEffect(() => {
     console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })
   }, [user, tenantId, loading, pathname])
+
+  // Check onboarding status and show modal if needed
+  useEffect(() => {
+    if (onboardingData && !onboardingData.isOnboarded) {
+      setShowOnboarding(true)
+    }
+  }, [onboardingData])
 
   // Extract active view from pathname (e.g., /dashboard -> dashboard)
   const segments = pathname.split('/').filter(Boolean)
@@ -76,6 +89,11 @@ export default function TenantLayoutWrapper({
       router.push("/jobs-board?create=true")
     }
   }, [pathname, router])
+
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false)
+    refetchOnboarding()
+  }, [refetchOnboarding])
 
   useEffect(() => {
     if (loading) return
@@ -101,7 +119,7 @@ export default function TenantLayoutWrapper({
     }
   }, [user, tenantId, loading, router, pathname])
 
-  if (loading) {
+  if (loading || onboardingLoading) {
     return (
       <div className="flex h-screen flex-col items-center justify-center">
         <Loader
@@ -139,6 +157,14 @@ export default function TenantLayoutWrapper({
 
   return (
     <SidebarProvider>
+      {/* Onboarding Modal - shown if user hasn't completed onboarding */}
+      {showOnboarding && (
+        <OnboardingModal 
+          initialData={onboardingData}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
+      
       <TenantLayoutContent
         tenantName={tenantName}
         activeView={activeView}
@@ -150,3 +176,4 @@ export default function TenantLayoutWrapper({
     </SidebarProvider>
   )
 }
+

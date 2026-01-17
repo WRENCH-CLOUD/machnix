@@ -173,14 +173,16 @@ export function JobDetailsContainer({
           <div class="header-left">
             <div class="title">INVOICE</div>
             <div>${invoice.invoice_number || job.jobNumber}</div>
-            <div style="font-size: 12px; color: #666;">Date: ${new Date(
-              invoice.invoice_date
-            ).toLocaleDateString()}</div>
+            <div style="font-size: 12px; color: #666;">Date: ${
+              invoice.invoice_date 
+                ? new Date(invoice.invoice_date).toLocaleDateString() 
+                : new Date().toLocaleDateString()
+            }</div>
           </div>
           <div class="header-right">
-            <div style="font-weight: bold; font-size: 18px;">${tenantDetails.name}</div>
-            <div style="font-size: 12px;">${tenantDetails.address}</div>
-            <div style="font-size: 12px;">GSTIN: ${tenantDetails.gstin}</div>
+            <div style="font-weight: bold; font-size: 18px;">${tenantDetails.name || 'Garage'}</div>
+            <div style="font-size: 12px;">${tenantDetails.address || ''}</div>
+            ${tenantDetails.gstin ? `<div style="font-size: 12px;">GSTIN: ${tenantDetails.gstin}</div>` : ''}
           </div>
         </div>
         

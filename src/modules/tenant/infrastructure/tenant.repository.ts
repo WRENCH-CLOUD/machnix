@@ -11,6 +11,9 @@ export interface TenantRepository {
   getSettings(tenantId: string): Promise<TenantSettings | null>
   updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void>
   
+  // Onboarding methods
+  markOnboarded(tenantId: string): Promise<void>
+  
   // Stats methods
   getStats(tenantId: string): Promise<TenantStats>
   getRecentJobs(tenantId: string, limit?: number): Promise<any[]>

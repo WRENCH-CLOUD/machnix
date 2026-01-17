@@ -14,10 +14,16 @@ import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.ent
  * Transforms tenant settings into the format expected by job details components
  */
 export function transformTenantSettingsForJobDetails(tenantSettings: TenantSettings | undefined) {
+  // Use the response from /api/tenant/settings which includes:
+  // - name: from tenant.tenants table (the garage name)
+  // - all settings fields from tenant.settings
+  const settings = tenantSettings as TenantSettings & { name?: string } | undefined;
   return {
-    name: tenantSettings?.legalName || "Garage",
-    address: tenantSettings?.address || "",
-    gstin: tenantSettings?.gstNumber || "",
+    name: settings?.name || settings?.legalName || "Garage",
+    address: [settings?.address, settings?.city, settings?.state, settings?.pincode]
+      .filter(Boolean)
+      .join(", ") || "",
+    gstin: settings?.gstNumber || "",
   };
 }
 
