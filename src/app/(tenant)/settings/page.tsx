@@ -6,28 +6,33 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
-import { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity"
-import { useTenantSettings, useInvalidateQueries } from "@/hooks"
+import { useTenantSettings, useInvalidateQueries } from "@/hooks/queries"
+import { api } from "@/lib/supabase/client"
 
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
   name: string
   businessHours: string
-} & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
-
-
+  gstNumber: string
+  address: string
+  city: string
+  state: string
+  pincode: string
+  businessPhone: string
+  businessEmail: string
+}
 
 export default function TenantSettingsPage() {
-  const { toast } = useToast()
-  const [saving, setSaving] = useState(false)
+  const { tenantId } = useAuth()
   const { invalidateTenantSettings } = useInvalidateQueries()
+  const [saving, setSaving] = useState(false)
   
-  // Use the shared tenant settings query hook
-  const { data: tenantSettings, isLoading: loading } = useTenantSettings()
+  // Use React Query for fetching tenant settings
+  const { data: tenantSettings, isLoading } = useTenantSettings()
   
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
@@ -42,6 +47,7 @@ export default function TenantSettingsPage() {
     businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
   })
 
+  // Sync profile state when tenantSettings loads
   useEffect(() => {
     if (tenantSettings) {
       setProfile(prev => ({
@@ -54,7 +60,6 @@ export default function TenantSettingsPage() {
         pincode: tenantSettings.pincode || "",
         businessPhone: tenantSettings.businessPhone || "",
         businessEmail: tenantSettings.businessEmail || "",
-        // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doubtful
       }))
     }
   }, [tenantSettings])
@@ -62,33 +67,20 @@ export default function TenantSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const res = await fetch('/api/tenant/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile)
-      })
+      const res = await api.put('/api/tenant/settings', profile)
 
       if (!res.ok) throw new Error('Failed to update')
 
-      // Invalidate the tenant settings cache to ensure all components get fresh data
       await invalidateTenantSettings()
-
-      toast({
-        title: "Settings saved",
-        description: "Your garage settings have been updated.",
-      })
+      toast.success("Your garage settings have been updated.")
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive"
-      })
+      toast.error("Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
