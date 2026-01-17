@@ -279,13 +279,13 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                     <select
                       id="state"
                       {...register('state')}
-                      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                      className={`flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                         errors.state ? 'border-destructive' : ''
                       }`}
                     >
-                      <option value="">Select state</option>
+                      <option value="" className="bg-background text-foreground">Select state</option>
                       {INDIAN_STATES.map((state) => (
-                        <option key={state} value={state}>{state}</option>
+                        <option key={state} value={state} className="bg-background text-foreground">{state}</option>
                       ))}
                     </select>
                     {errors.state && (
@@ -393,8 +393,8 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                       {...register('currency')}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
+                      <option value="INR" className="bg-background text-foreground">INR (₹)</option>
+                      <option value="USD" className="bg-background text-foreground">USD ($)</option>
                     </select>
                   </div>
                 </div>
