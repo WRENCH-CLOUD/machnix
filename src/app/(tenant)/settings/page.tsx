@@ -14,22 +14,32 @@ import { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity"
 
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
+// Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
+type GarageProfile = {
   name: string
   businessHours: string
 } & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
 
 
+} & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
+
+
 
 export default function TenantSettingsPage() {
-  const { tenantId } = useAuth()
   const { toast } = useToast()
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
     name: "",
     gstNumber: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    businessPhone: "",
+    businessEmail: "",
+    businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
     address: "",
     city: "",
     state: "",
@@ -74,7 +84,7 @@ export default function TenantSettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tenantSettings])
 
   const handleSave = async () => {
     try {
@@ -135,15 +145,6 @@ export default function TenantSettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Garage Name</Label>
-              <Input
-                id="name"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                placeholder="Enter garage name"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="gstNumber">GST Number</Label>
               <Input
                 id="gstNumber"
@@ -158,6 +159,7 @@ export default function TenantSettingsPage() {
             <Label htmlFor="address" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Address (Garage Address)
+              Address (Garage Address)
             </Label>
             <Input
               id="address"
@@ -165,6 +167,36 @@ export default function TenantSettingsPage() {
               onChange={(e) => setProfile({ ...profile, address: e.target.value })}
               placeholder="Enter garage address"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={profile.city}
+                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                placeholder="City"
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={profile.state}
+                onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                placeholder="State"
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode</Label>
+              <Input
+                id="pincode"
+                value={profile.pincode}
+                onChange={(e) => setProfile({ ...profile, pincode: e.target.value })}
+                placeholder="Pincode"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -207,6 +239,8 @@ export default function TenantSettingsPage() {
                 id="phone"
                 value={profile.businessPhone}
                 onChange={(e) => setProfile({ ...profile, businessPhone: e.target.value })}
+                value={profile.businessPhone}
+                onChange={(e) => setProfile({ ...profile, businessPhone: e.target.value })}
                 placeholder="+91 98765 43210"
               />
             </div>
@@ -218,6 +252,8 @@ export default function TenantSettingsPage() {
               <Input
                 id="email"
                 type="email"
+                value={profile.businessEmail}
+                onChange={(e) => setProfile({ ...profile, businessEmail: e.target.value })}
                 value={profile.businessEmail}
                 onChange={(e) => setProfile({ ...profile, businessEmail: e.target.value })}
                 placeholder="garage@example.com"
@@ -247,8 +283,10 @@ export default function TenantSettingsPage() {
               onChange={(e) => setProfile({ ...profile, businessHours: e.target.value })}
               placeholder="e.g., 9:00 AM - 6:00 PM"
               disabled
+              disabled
             />
             <p className="text-xs text-muted-foreground">
+              Business hours configuration coming soon.
               Business hours configuration coming soon.
             </p>
           </div>
@@ -256,6 +294,8 @@ export default function TenantSettingsPage() {
       </Card>
 
       {/* Save Button */}
+      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
+        <Button onClick={handleSave} disabled={saving} size="lg">
       <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
         <Button onClick={handleSave} disabled={saving} size="lg">
           {saving ? (
@@ -270,6 +310,19 @@ export default function TenantSettingsPage() {
             </>
           )}
         </Button>
+      </div>
+
+       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        <div className="space-y-6">
+             {/* Change Password Section */}
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Account Security</h2>
+              <p className="text-muted-foreground mb-4">
+                Update your password to keep your account secure
+              </p>
+              <ChangePasswordForm />
+            </div>
+        </div>
       </div>
 
        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">

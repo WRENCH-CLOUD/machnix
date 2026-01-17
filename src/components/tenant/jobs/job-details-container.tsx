@@ -13,6 +13,11 @@ interface JobDetailsContainerProps {
   onClose: () => void;
   onJobUpdate?: () => void;
   currentUser?: any; // Pass current user for mechanic mode check or auth
+  tenantDetails?: {
+    name: string;
+    address: string;
+    gstin: string;
+  };
 }
 
 export function JobDetailsContainer({
@@ -21,6 +26,7 @@ export function JobDetailsContainer({
   onClose,
   onJobUpdate,
   currentUser,
+  tenantDetails: tenantDetailsProp,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [estimate, setEstimate] = useState<any>(null);
@@ -622,6 +628,8 @@ export function JobDetailsContainer({
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}
+
+      tenantDetails={tenantDetails}
 
       tenantDetails={tenantDetails}
     />
