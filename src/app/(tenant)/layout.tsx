@@ -1,7 +1,7 @@
 "use client"
 
 import "reflect-metadata"
-import { type ReactNode, useEffect, useCallback, useState } from "react"
+import { type ReactNode, useEffect, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { useTenantDashboard } from "@/hooks"
@@ -10,7 +10,6 @@ import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { OnboardingModal } from "@/components/tenant/starter/onboarding-modal"
 
 // Inner layout component that uses sidebar context
 function TenantLayoutContent({
@@ -53,25 +52,30 @@ export default function TenantLayoutWrapper({
   const router = useRouter()
   const pathname = usePathname()
   const { user, tenantId, loading } = useAuth()
-  const [showOnboarding, setShowOnboarding] = useState(false)
   
   // Use shared dashboard query for tenant name (cached, no duplicate fetch)
   const { data: dashboardData } = useTenantDashboard()
   const tenantName = dashboardData?.name || "Loading..."
   
   // Fetch onboarding status
-  const { data: onboardingData, isLoading: onboardingLoading, refetch: refetchOnboarding } = useOnboardingStatus()
+  const { data: onboardingData, isLoading: onboardingLoading } = useOnboardingStatus()
   
   useEffect(() => {
     console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })
   }, [user, tenantId, loading, pathname])
 
-  // Check onboarding status and show modal if needed
+  // Redirect to onboarding if not onboarded
   useEffect(() => {
     if (onboardingData && !onboardingData.isOnboarded) {
-      setShowOnboarding(true)
+      if (pathname !== '/onboarding') {
+        router.replace('/onboarding')
+      }
+    } else if (onboardingData && onboardingData.isOnboarded) {
+      if (pathname === '/onboarding') {
+        router.replace('/dashboard')
+      }
     }
-  }, [onboardingData])
+  }, [onboardingData, pathname, router])
 
   // Extract active view from pathname (e.g., /dashboard -> dashboard)
   const segments = pathname.split('/').filter(Boolean)
@@ -89,11 +93,6 @@ export default function TenantLayoutWrapper({
       router.push("/jobs-board?create=true")
     }
   }, [pathname, router])
-
-  const handleOnboardingComplete = useCallback(() => {
-    setShowOnboarding(false)
-    refetchOnboarding()
-  }, [refetchOnboarding])
 
   useEffect(() => {
     if (loading) return
@@ -155,16 +154,47 @@ export default function TenantLayoutWrapper({
     )
   }
 
+  // Check if we need to redirect
+  const needsOnboarding = onboardingData && !onboardingData.isOnboarded
+  const isOnboardingPage = pathname === '/onboarding'
+
+  // If user needs onboarding but is not on the page, don't show anything (or show loader) while redirecting
+  if (needsOnboarding && !isOnboardingPage) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center">
+        <Loader
+          title="Setting up your experience..."
+          subtitle="Redirecting to onboarding"
+          size="lg"
+        />
+      </div>
+    )
+  }
+
+  // If user is onboarded but tries to go to onboarding page
+  if (onboardingData && onboardingData.isOnboarded && isOnboardingPage) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center">
+        <Loader
+          title="Redirecting..."
+          subtitle="Taking you to dashboard"
+          size="lg"
+        />
+      </div>
+    )
+  }
+
+  // If on onboarding page, render without sidebar layout
+  if (isOnboardingPage) {
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    )
+  }
+
   return (
     <SidebarProvider>
-      {/* Onboarding Modal - shown if user hasn't completed onboarding */}
-      {showOnboarding && (
-        <OnboardingModal 
-          initialData={onboardingData}
-          onComplete={handleOnboardingComplete}
-        />
-      )}
-      
       <TenantLayoutContent
         tenantName={tenantName}
         activeView={activeView}
