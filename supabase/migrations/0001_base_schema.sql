@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS tenant.tenants (
   status tenant.tenant_status DEFAULT 'active' NOT NULL,
   subscription tenant.subscription_tier DEFAULT 'pro' NOT NULL,
   subscription_status text DEFAULT 'trial',
+  is_onboarded boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb
 );

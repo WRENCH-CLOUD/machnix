@@ -23,8 +23,19 @@ export class SupabaseTenantRepository implements TenantRepository {
       slug: row.slug || '',
       status: row.status,
       subscription: row.subscription,
+      isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
     };
+  }
+
+  async markOnboarded(tenantId: string): Promise<void> {
+    const { error } = await this.supabase
+      .schema("tenant")
+      .from("tenants")
+      .update({ is_onboarded: true })
+      .eq("id", tenantId);
+
+    if (error) throw error;
   }
 
   async findById(id: string): Promise<Tenant | null> {
