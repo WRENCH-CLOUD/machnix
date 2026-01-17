@@ -1,18 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
-import { toast } from "sonner"; // Assuming sonner is used for toasts, or use other toast lib
+import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
-import { api } from "@/lib/supabase/client";
+import {
+  useTenantSettings,
+  useEstimateByJob,
+  useInvoiceByJob,
+  useAddEstimateItem,
+  useRemoveEstimateItem,
+  useUpdateEstimateItem,
+  useGenerateInvoice,
+  useRecordPayment,
+  useUpdateJobStatus,
+  transformTenantSettingsForJobDetails,
+} from "@/hooks/queries";
 
 interface JobDetailsContainerProps {
   job: UIJob;
   isOpen: boolean;
   onClose: () => void;
   onJobUpdate?: () => void;
-  currentUser?: any; // Pass current user for mechanic mode check or auth
+  currentUser?: { role?: string };
   tenantDetails?: {
     name: string;
     address: string;
@@ -29,116 +40,50 @@ export function JobDetailsContainer({
   tenantDetails: tenantDetailsProp,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
-  const [estimate, setEstimate] = useState<any>(null);
-  const [estimateItems, setEstimateItems] = useState<any[]>([]);
-  const [invoice, setInvoice] = useState<any>(null);
-  const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [tenantDetails, setTenantDetails] = useState({
-    name: "",
-    address: "",
-    gstin: "",
-  });
 
-  // Determine mechanic mode based on user role or prop
-  // For now, let's assume if user is mechanic (TODO: robust check)
+  // Determine mechanic mode based on user role
   const isMechanicMode = currentUser?.role === "mechanic";
 
-  // Fetch estimate
-  const fetchEstimate = async () => {
-    try {
-      const res = await api.get(`/api/estimates/by-job/${job.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEstimate(data);
-        setEstimateItems(data.estimate_items || []);
-      } else {
-        if (res.status === 404) {
-          // Create estimate if not found (legacy behavior)
-          const createRes = await api.post("/api/estimates/create", {
-            jobcard_id: job.id,
-            customer_id: job.customer.id,
-            vehicle_id: job.vehicle.id,
-            status: "draft",
-            estimate_number: `EST-${job.jobNumber}`,
-          });
-          if (createRes.ok) {
-            const data = await createRes.json();
-            setEstimate(data);
-            setEstimateItems([]);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching estimate:", error);
-    }
-  };
+  // React Query hooks for data fetching
+  const { data: tenantSettings } = useTenantSettings();
+  const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
-  // Fetch invoice
-  const fetchInvoice = async () => {
-    setLoadingInvoice(true);
-    try {
-      const res = await api.get(`/api/invoices/by-job/${job.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setInvoice(data);
-      } else {
-        setInvoice(null);
-      }
-    } catch (error) {
-      console.error("Error fetching invoice:", error);
-    } finally {
-      setLoadingInvoice(false);
+  const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(
+    job.id,
+    {
+      jobNumber: job.jobNumber,
+      customerId: job.customer.id,
+      vehicleId: job.vehicle.id,
     }
-  };
+  );
+  const estimateItems = estimate?.estimate_items || [];
 
-  // Fetch tenant details (settings)
-  const fetchTenantDetails = async () => {
-    try {
-      const res = await api.get("/api/tenant/settings");
-      if (res.ok) {
-        const data = await res.json();
-        setTenantDetails({
-          name: data.legalName || data.name || "Garage",
-          address: data.address || "",
-          gstin: data.gstNumber || "",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching tenant details:", error);
-    }
-  };
+  const { data: invoice, isLoading: loadingInvoice, refetch: refetchInvoice } = useInvoiceByJob(job.id);
 
-  useEffect(() => {
-    if (isOpen && job.id) {
-      fetchEstimate();
-      fetchTenantDetails();
-      if (job.status === "ready" || job.status === "completed") {
-        fetchInvoice();
-      }
-    }
-  }, [isOpen, job.id, job.status]);
+  // Mutations
+  const addItemMutation = useAddEstimateItem(job.id);
+  const removeItemMutation = useRemoveEstimateItem(job.id);
+  const updateItemMutation = useUpdateEstimateItem(job.id);
+  const generateInvoiceMutation = useGenerateInvoice(job.id);
+  const recordPaymentMutation = useRecordPayment(job.id);
+  const updateStatusMutation = useUpdateJobStatus(job.id);
 
   // Handlers
-  const handleAddEstimateItem = async (part: any) => {
+  const handleAddEstimateItem = async (part: {
+    name: string;
+    partNumber?: string;
+    quantity: number;
+    unitPrice: number;
+    laborCost?: number;
+  }) => {
     if (!estimate) return;
 
     try {
-      const res = await api.post(`/api/estimates/${estimate.id}/items`, {
-        custom_name: part.name,
-        custom_part_number: part.partNumber,
-        qty: part.quantity,
-        unit_price: part.unitPrice,
-        labor_cost: part.laborCost,
+      await addItemMutation.mutateAsync({
+        estimateId: estimate.id,
+        item: part,
       });
-
-      if (!res.ok) throw new Error("Failed to add item");
-
-      const newItem = await res.json();
-      setEstimateItems((prev) => [...prev, newItem]);
-
-      // Refresh estimate to get updated totals
-      await fetchEstimate();
       toast.success("Item added to estimate");
     } catch (error) {
       console.error("Error adding item:", error);
@@ -148,14 +93,7 @@ export function JobDetailsContainer({
 
   const handleRemoveEstimateItem = async (itemId: string) => {
     try {
-      const res = await api.delete(`/api/estimates/items/${itemId}`);
-
-      if (!res.ok) throw new Error("Failed to remove item");
-
-      setEstimateItems((prev) => prev.filter((i) => i.id !== itemId));
-
-      // Refresh estimate to get updated totals
-      await fetchEstimate();
+      await removeItemMutation.mutateAsync(itemId);
       toast.success("Item removed");
     } catch (error) {
       console.error("Error removing item:", error);
@@ -168,16 +106,7 @@ export function JobDetailsContainer({
     updates: { qty?: number; unitPrice?: number; laborCost?: number }
   ) => {
     try {
-      const res = await api.patch(`/api/estimates/items/${itemId}`, {
-        qty: updates.qty,
-        unitPrice: updates.unitPrice,
-        laborCost: updates.laborCost,
-      });
-
-      if (!res.ok) throw new Error("Failed to update item");
-
-      // Refresh estimate to get updated data and totals
-      await fetchEstimate();
+      await updateItemMutation.mutateAsync({ itemId, updates });
       toast.success("Item updated");
     } catch (error) {
       console.error("Error updating item:", error);
@@ -192,11 +121,11 @@ export function JobDetailsContainer({
     if (!printWindow) return;
 
     const partsSubtotal = estimateItems.reduce(
-      (acc, item) => acc + item.qty * item.unit_price,
+      (acc: number, item: { qty: number; unit_price: number }) => acc + item.qty * item.unit_price,
       0
     );
     const laborSubtotal = estimateItems.reduce(
-      (acc, item) => acc + (item.labor_cost || 0),
+      (acc: number, item: { labor_cost?: number }) => acc + (item.labor_cost || 0),
       0
     );
     const subtotal = partsSubtotal + laborSubtotal;
@@ -249,9 +178,9 @@ export function JobDetailsContainer({
             ).toLocaleDateString()}</div>
           </div>
           <div class="header-right">
-            <div style="font-weight: bold; font-size: 18px;">Garage A</div>
-            <div style="font-size: 12px;">123 Auto Street, Bangalore</div>
-            <div style="font-size: 12px;">GSTIN: 29XXXXX1234X1Z5</div>
+            <div style="font-weight: bold; font-size: 18px;">${tenantDetails.name}</div>
+            <div style="font-size: 12px;">${tenantDetails.address}</div>
+            <div style="font-size: 12px;">GSTIN: ${tenantDetails.gstin}</div>
           </div>
         </div>
         
@@ -281,7 +210,7 @@ export function JobDetailsContainer({
           </thead>
           <tbody>
             ${estimateItems
-              .map((item) => {
+              .map((item: { custom_name: string; custom_part_number?: string; qty: number; unit_price: number; labor_cost?: number }) => {
                 const partsAmount = item.qty * item.unit_price;
                 const laborAmount = item.labor_cost || 0;
                 const lineTotal = partsAmount + laborAmount;
@@ -373,13 +302,13 @@ export function JobDetailsContainer({
     const partsSubtotal =
       estimate.parts_total ??
       estimateItems.reduce(
-        (acc: number, item: any) => acc + item.qty * item.unit_price,
+        (acc: number, item: { qty: number; unit_price: number }) => acc + item.qty * item.unit_price,
         0
       );
     const laborSubtotal =
       estimate.labor_total ??
       estimateItems.reduce(
-        (acc: number, item: any) => acc + (item.labor_cost || 0),
+        (acc: number, item: { labor_cost?: number }) => acc + (item.labor_cost || 0),
         0
       );
     const subtotal = estimate.subtotal ?? partsSubtotal + laborSubtotal;
@@ -423,9 +352,7 @@ export function JobDetailsContainer({
       <body>
         <div class="header">
           <div class="title">ESTIMATE</div>
-          <div>Estimate #: ${
-            estimate.estimate_number || job.jobNumber
-          }</div>
+          <div>Estimate #: ${estimate.estimate_number || job.jobNumber}</div>
           <div>Date: ${new Date().toLocaleDateString()}</div>
         </div>
         
@@ -457,7 +384,7 @@ export function JobDetailsContainer({
           </thead>
           <tbody>
             ${estimateItems
-              .map((item: any) => {
+              .map((item: { custom_name: string; custom_part_number?: string; qty: number; unit_price: number; labor_cost?: number }) => {
                 const partsAmount = item.qty * item.unit_price;
                 const laborAmount = item.labor_cost || 0;
                 const lineTotal = partsAmount + laborAmount;
@@ -524,7 +451,7 @@ export function JobDetailsContainer({
   };
 
   const handleRetryInvoice = () => {
-    fetchInvoice();
+    refetchInvoice();
   };
 
   const handleMarkPaid = () => {
@@ -533,20 +460,13 @@ export function JobDetailsContainer({
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     try {
-      const res = await api.post(`/api/jobs/${job.id}/update-status`, { status: newStatus });
-
-      if (!res.ok) throw new Error("Failed to update status");
-
+      await updateStatusMutation.mutateAsync(newStatus);
       toast.success(`Job status updated to ${newStatus}`);
-      if (onJobUpdate) onJobUpdate();
+      onJobUpdate?.();
 
-      // If status changed to ready/completed, fetch invoice
-      if (newStatus === "ready" || newStatus === "completed") {
-        // Attempt to auto-generate invoice if ready
-        if (newStatus === "ready") {
-          await handleGenerateInvoice();
-        }
-        fetchInvoice();
+      // If status changed to ready, attempt to auto-generate invoice
+      if (newStatus === "ready" && estimate) {
+        await handleGenerateInvoice();
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -561,41 +481,29 @@ export function JobDetailsContainer({
     }
 
     try {
-      const res = await api.post("/api/invoices/generate", {
-        jobcardId: job.id,
-        estimateId: estimate.id,
-      });
-
-      if (res.ok) {
-        fetchInvoice();
-        toast.success("Invoice generated");
-      }
+      await generateInvoiceMutation.mutateAsync({ estimateId: estimate.id });
+      toast.success("Invoice generated");
     } catch (error) {
       console.error("Error generating invoice:", error);
     }
   };
 
-  const handlePaymentComplete = async (
-    method: string,
-  ) => {
+  const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
 
     try {
       // 1. Record Payment
-      const paymentRes = await api.post(`/api/invoices/${invoice.id}/pay`, {
+      await recordPaymentMutation.mutateAsync({
+        invoiceId: invoice.id,
         amount: invoice.totalAmount || invoice.total_amount || 0,
-        method: method,  // API expects 'method', not 'mode'
+        method,
       });
 
-      if (!paymentRes.ok) throw new Error("Payment failed");
-
       // 2. Mark Job Completed
-      const jobRes = await api.post(`/api/jobs/${job.id}/update-status`, { status: "completed" });
-
-      if (!jobRes.ok) throw new Error("Failed to complete job");
+      await updateStatusMutation.mutateAsync("completed");
 
       toast.success("Payment recorded and job completed");
-      if (onJobUpdate) onJobUpdate();
+      onJobUpdate?.();
       onClose();
     } catch (error) {
       console.error("Error processing payment:", error);
@@ -628,9 +536,6 @@ export function JobDetailsContainer({
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}
-
-      tenantDetails={tenantDetails}
-
       tenantDetails={tenantDetails}
     />
   );

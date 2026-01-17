@@ -6,28 +6,33 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
-import { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity"
+import { useTenantSettings, useInvalidateQueries } from "@/hooks/queries"
+import { api } from "@/lib/supabase/client"
 
-// Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
-type GarageProfile = {
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
   name: string
   businessHours: string
-} & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
-
-
-} & { [K in keyof TenantSettings]?: NonNullable<TenantSettings[K]> }
-
-
+  gstNumber: string
+  address: string
+  city: string
+  state: string
+  pincode: string
+  businessPhone: string
+  businessEmail: string
+}
 
 export default function TenantSettingsPage() {
-  const { toast } = useToast()
+  const { tenantId } = useAuth()
+  const { invalidateTenantSettings } = useInvalidateQueries()
   const [saving, setSaving] = useState(false)
+  
+  // Use React Query for fetching tenant settings
+  const { data: tenantSettings, isLoading } = useTenantSettings()
   
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
@@ -40,79 +45,42 @@ export default function TenantSettingsPage() {
     businessPhone: "",
     businessEmail: "",
     businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    businessPhone: "",
-    businessEmail: "",
-    businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
   })
 
+  // Sync profile state when tenantSettings loads
   useEffect(() => {
-    if (tenantId) {
-      fetchTenantProfile()
-    }
-  }, [tenantId])
-
-  const fetchTenantProfile = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/tenant/settings')
-      if (res.ok) {
-        const data = await res.json()
-        setProfile(prev => ({
-          ...prev,
-          name: data.name || "",
-          gstNumber: data.gstNumber || "",
-          address: data.address || "",
-          city: data.city || "",
-          state: data.state || "",
-          pincode: data.pincode || "",
-          businessPhone: data.businessPhone || "",
-          businessEmail: data.businessEmail || "",
-          // TODO: businessHours not in API response yet unless we added it to metadata or similar so this is doutfull
-        }))
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenant profile:', err)
-      toast({
-        title: "Error",
-        description: "Failed to load settings.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
+    if (tenantSettings) {
+      setProfile(prev => ({
+        ...prev,
+        name: tenantSettings.legalName || "",
+        gstNumber: tenantSettings.gstNumber || "",
+        address: tenantSettings.address || "",
+        city: tenantSettings.city || "",
+        state: tenantSettings.state || "",
+        pincode: tenantSettings.pincode || "",
+        businessPhone: tenantSettings.businessPhone || "",
+        businessEmail: tenantSettings.businessEmail || "",
+      }))
     }
   }, [tenantSettings])
 
   const handleSave = async () => {
     try {
       setSaving(true)
-      const res = await fetch('/api/tenant/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile)
-      })
+      const res = await api.put('/api/tenant/settings', profile)
 
       if (!res.ok) throw new Error('Failed to update')
 
-      toast({
-        title: "Settings saved",
-        description: "Your garage settings have been updated.",
-      })
+      await invalidateTenantSettings()
+      toast.success("Your garage settings have been updated.")
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive"
-      })
+      toast.error("Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -159,7 +127,6 @@ export default function TenantSettingsPage() {
             <Label htmlFor="address" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Address (Garage Address)
-              Address (Garage Address)
             </Label>
             <Input
               id="address"
@@ -167,36 +134,6 @@ export default function TenantSettingsPage() {
               onChange={(e) => setProfile({ ...profile, address: e.target.value })}
               placeholder="Enter garage address"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={profile.city}
-                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                placeholder="City"
-              />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={profile.state}
-                onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                placeholder="State"
-              />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode</Label>
-              <Input
-                id="pincode"
-                value={profile.pincode}
-                onChange={(e) => setProfile({ ...profile, pincode: e.target.value })}
-                placeholder="Pincode"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -239,8 +176,6 @@ export default function TenantSettingsPage() {
                 id="phone"
                 value={profile.businessPhone}
                 onChange={(e) => setProfile({ ...profile, businessPhone: e.target.value })}
-                value={profile.businessPhone}
-                onChange={(e) => setProfile({ ...profile, businessPhone: e.target.value })}
                 placeholder="+91 98765 43210"
               />
             </div>
@@ -252,8 +187,6 @@ export default function TenantSettingsPage() {
               <Input
                 id="email"
                 type="email"
-                value={profile.businessEmail}
-                onChange={(e) => setProfile({ ...profile, businessEmail: e.target.value })}
                 value={profile.businessEmail}
                 onChange={(e) => setProfile({ ...profile, businessEmail: e.target.value })}
                 placeholder="garage@example.com"
@@ -283,10 +216,8 @@ export default function TenantSettingsPage() {
               onChange={(e) => setProfile({ ...profile, businessHours: e.target.value })}
               placeholder="e.g., 9:00 AM - 6:00 PM"
               disabled
-              disabled
             />
             <p className="text-xs text-muted-foreground">
-              Business hours configuration coming soon.
               Business hours configuration coming soon.
             </p>
           </div>
@@ -294,8 +225,6 @@ export default function TenantSettingsPage() {
       </Card>
 
       {/* Save Button */}
-      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
-        <Button onClick={handleSave} disabled={saving} size="lg">
       <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
         <Button onClick={handleSave} disabled={saving} size="lg">
           {saving ? (
@@ -310,19 +239,6 @@ export default function TenantSettingsPage() {
             </>
           )}
         </Button>
-      </div>
-
-       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-        <div className="space-y-6">
-             {/* Change Password Section */}
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Account Security</h2>
-              <p className="text-muted-foreground mb-4">
-                Update your password to keep your account secure
-              </p>
-              <ChangePasswordForm />
-            </div>
-        </div>
       </div>
 
        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">

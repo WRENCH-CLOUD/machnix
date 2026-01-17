@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/supabase/client";
 import type { TenantWithStats } from "@/modules/tenant";
 import type { CustomerOverview } from "@/modules/customer/domain/customer.entity";
@@ -46,6 +46,14 @@ export const queryKeys = {
   vehicleMakes: {
     all: ["vehicle-makes"] as const,
     list: () => [...queryKeys.vehicleMakes.all, "list"] as const,
+  },
+  estimates: {
+    all: ["estimates"] as const,
+    byJob: (jobId: string) => [...queryKeys.estimates.all, "by-job", jobId] as const,
+  },
+  invoices: {
+    all: ["invoices"] as const,
+    byJob: (jobId: string) => [...queryKeys.invoices.all, "by-job", jobId] as const,
   },
 } as const;
 
@@ -162,6 +170,247 @@ export function useVehicleMakes() {
 }
 
 // ============================================
+// Estimate Query
+// Fetches estimate by job ID, creates one if not found
+// ============================================
+
+interface EstimateItem {
+  id: string;
+  custom_name: string;
+  custom_part_number?: string;
+  qty: number;
+  unit_price: number;
+  labor_cost?: number;
+}
+
+interface Estimate {
+  id: string;
+  estimate_number: string;
+  status: string;
+  parts_total?: number;
+  labor_total?: number;
+  subtotal?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  estimate_items?: EstimateItem[];
+}
+
+export function useEstimateByJob(
+  jobId: string | undefined,
+  jobData?: { jobNumber: string; customerId: string; vehicleId: string }
+) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: queryKeys.estimates.byJob(jobId || ""),
+    queryFn: async (): Promise<Estimate | null> => {
+      if (!jobId) return null;
+
+      const res = await api.get(`/api/estimates/by-job/${jobId}`);
+      if (res.ok) {
+        return res.json();
+      }
+
+      // Create estimate if not found (legacy behavior)
+      if (res.status === 404 && jobData) {
+        const createRes = await api.post("/api/estimates/create", {
+          jobcard_id: jobId,
+          customer_id: jobData.customerId,
+          vehicle_id: jobData.vehicleId,
+          status: "draft",
+          estimate_number: `EST-${jobData.jobNumber}`,
+        });
+        if (createRes.ok) {
+          return createRes.json();
+        }
+      }
+
+      return null;
+    },
+    enabled: Boolean(jobId),
+    staleTime: 60_000,
+  });
+}
+
+// ============================================
+// Invoice Query
+// ============================================
+
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  status: string;
+  paid_amount: number;
+  totalAmount?: number;
+  total_amount?: number;
+}
+
+export function useInvoiceByJob(jobId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.invoices.byJob(jobId || ""),
+    queryFn: async (): Promise<Invoice | null> => {
+      if (!jobId) return null;
+
+      const res = await api.get(`/api/invoices/by-job/${jobId}`);
+      if (res.ok) {
+        return res.json();
+      }
+      return null;
+    },
+    enabled: Boolean(jobId),
+    staleTime: 60_000,
+  });
+}
+
+// ============================================
+// Estimate Item Mutations
+// ============================================
+
+export function useAddEstimateItem(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      estimateId,
+      item,
+    }: {
+      estimateId: string;
+      item: {
+        name: string;
+        partNumber?: string;
+        quantity: number;
+        unitPrice: number;
+        laborCost?: number;
+      };
+    }) => {
+      const res = await api.post(`/api/estimates/${estimateId}/items`, {
+        custom_name: item.name,
+        custom_part_number: item.partNumber,
+        qty: item.quantity,
+        unit_price: item.unitPrice,
+        labor_cost: item.laborCost,
+      });
+
+      if (!res.ok) throw new Error("Failed to add item");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    },
+  });
+}
+
+export function useRemoveEstimateItem(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (itemId: string) => {
+      const res = await api.delete(`/api/estimates/items/${itemId}`);
+      if (!res.ok) throw new Error("Failed to remove item");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    },
+  });
+}
+
+export function useUpdateEstimateItem(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      itemId,
+      updates,
+    }: {
+      itemId: string;
+      updates: { qty?: number; unitPrice?: number; laborCost?: number };
+    }) => {
+      const res = await api.patch(`/api/estimates/items/${itemId}`, {
+        qty: updates.qty,
+        unitPrice: updates.unitPrice,
+        laborCost: updates.laborCost,
+      });
+      if (!res.ok) throw new Error("Failed to update item");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    },
+  });
+}
+
+// ============================================
+// Invoice Mutations
+// ============================================
+
+export function useGenerateInvoice(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ estimateId }: { estimateId: string }) => {
+      const res = await api.post("/api/invoices/generate", {
+        jobcardId: jobId,
+        estimateId,
+      });
+      if (!res.ok) throw new Error("Failed to generate invoice");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
+export function useRecordPayment(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      invoiceId,
+      amount,
+      method,
+    }: {
+      invoiceId: string;
+      amount: number;
+      method: string;
+    }) => {
+      const res = await api.post(`/api/invoices/${invoiceId}/pay`, {
+        amount,
+        method,
+      });
+      if (!res.ok) throw new Error("Payment failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    },
+  });
+}
+
+// ============================================
+// Job Status Mutation
+// ============================================
+
+export function useUpdateJobStatus(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (status: string) => {
+      const res = await api.post(`/api/jobs/${jobId}/update-status`, { status });
+      if (!res.ok) throw new Error("Failed to update status");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
+// ============================================
 // Invalidation Helpers
 // ============================================
 
@@ -179,11 +428,17 @@ export function useInvalidateQueries() {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
     invalidateVehicles: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all }),
+    invalidateEstimates: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all }),
+    invalidateInvoices: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
     invalidateAll: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tenant.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
     },
   };
 }
