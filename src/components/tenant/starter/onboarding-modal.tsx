@@ -30,7 +30,7 @@ const INDIAN_STATES = [
 const onboardingSchema = z.object({
   garageName: z.string().min(1, 'Garage name is required'),
   legalName: z.string().optional(),
-  gstNumber: z.string().optional(),
+  gstNumber: z.string().min(1, 'GST Number is required'),
   panNumber: z.string().optional(),
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
@@ -42,15 +42,11 @@ const onboardingSchema = z.object({
   currency: z.string().optional(),
   invoicePrefix: z.string().optional(),
   jobPrefix: z.string().optional(),
-  // Password fields - optional since user can skip
-  newPassword: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
-  confirmPassword: z.string().optional().or(z.literal(''))
+  // Password fields - mandatory (API requires it)
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(8, 'Confirm Password must be at least 8 characters')
 }).refine((data) => {
-  // If newPassword is provided, confirmPassword must match
-  if (data.newPassword && data.newPassword.length > 0) {
-    return data.newPassword === data.confirmPassword
-  }
-  return true
+  return data.newPassword === data.confirmPassword
 }, {
   message: "Passwords don't match",
   path: ['confirmPassword']
@@ -107,7 +103,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
       setPasswordError(null)
       await completeOnboarding.mutateAsync({
         ...data,
-        newPassword: data.newPassword || undefined
+        newPassword: data.newPassword
       })
       onComplete()
     } catch (error: any) {
@@ -122,17 +118,15 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     let fieldsToValidate: (keyof OnboardingFormData)[] = []
     
     if (step === 1) {
-      fieldsToValidate = ['garageName', 'legalName']
+      fieldsToValidate = ['garageName', 'gstNumber']
     } else if (step === 2) {
       fieldsToValidate = ['address', 'city', 'state', 'pincode', 'businessPhone', 'businessEmail']
     } else if (step === 3) {
       // Preferences step - nothing to validate
       fieldsToValidate = []
     } else if (step === 4) {
-      // Password step - validate if password is entered
-      if (newPassword && newPassword.length > 0) {
-        fieldsToValidate = ['newPassword', 'confirmPassword']
-      }
+      // Password step - always validate
+      fieldsToValidate = ['newPassword', 'confirmPassword']
     }
 
     const isStepValid = fieldsToValidate.length === 0 || await trigger(fieldsToValidate)
@@ -213,12 +207,18 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="gstNumber">GST Number (optional)</Label>
+                    <Label htmlFor="gstNumber">
+                      GST Number <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="gstNumber"
                       placeholder="e.g., 22AAAAA0000A1Z5"
                       {...register('gstNumber')}
+                      className={errors.gstNumber ? 'border-destructive' : ''}
                     />
+                    {errors.gstNumber && (
+                      <p className="text-sm text-destructive">{errors.gstNumber.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="panNumber">PAN Number (optional)</Label>
@@ -492,7 +492,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
               <Button 
                 type="submit" 
                 disabled={completeOnboarding.isPending}
-                className="min-w-[140px]"
+                className="min-w-35"
               >
                 {completeOnboarding.isPending ? (
                   <>
