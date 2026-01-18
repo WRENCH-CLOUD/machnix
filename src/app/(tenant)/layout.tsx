@@ -29,9 +29,9 @@ function TenantLayoutContent({
 }) {
   return (
     <>
-      <AppSidebar 
-        activeView={activeView} 
-        onViewChange={onViewChange} 
+      <AppSidebar
+        activeView={activeView}
+        onViewChange={onViewChange}
       />
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         <TopHeader
@@ -55,14 +55,14 @@ export default function TenantLayoutWrapper({
   const pathname = usePathname()
   const { user, tenantId, loading } = useAuth()
   const [showOnboarding, setShowOnboarding] = useState(false)
-  
+
   // Use shared dashboard query for tenant name (cached, no duplicate fetch)
   const { data: dashboardData } = useTenantDashboard()
   const tenantName = dashboardData?.name || "Loading..."
-  
+
   // Fetch onboarding status
   const { data: onboardingData, isLoading: onboardingLoading } = useOnboardingStatus()
-  
+
   useEffect(() => {
     console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })
   }, [user, tenantId, loading, pathname])
@@ -127,101 +127,100 @@ export default function TenantLayoutWrapper({
   }, [user, tenantId, loading, router, pathname])
 
   if (loading || onboardingLoading) {
-  if (loading || onboardingLoading) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <Loader
-          title="Verifying access..."
-          subtitle="Please wait"
-          size="lg"
-        />
-        <div className="mt-4 text-sm font-medium animate-pulse">
-          Verifying session...
-        </div>
-      </div>
-    )
-  }
-
-  // If not loading and no user/tenantId, we should be redirecting.
-  // We'll show a brief redirecting state instead of the diagnostic UI
-  if (!user || !tenantId) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <div className="text-center space-y-4">
-          <h2 className="text-xl font-semibold">Redirecting...</h2>
-          <p className="text-muted-foreground">Verifying your permissions</p>
-          <div className="mt-8">
-            <button 
-              onClick={() => router.replace("/login")}
-              className="px-4 py-2 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-md"
-            >
-              Go to Login
-            </button>
+    if (loading || onboardingLoading) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center">
+          <Loader
+            title="Verifying access..."
+            subtitle="Please wait"
+            size="lg"
+          />
+          <div className="mt-4 text-sm font-medium animate-pulse">
+            Verifying session...
           </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  // Check if we need to redirect
-  const needsOnboarding = onboardingData && !onboardingData.isOnboarded
-  const isOnboardingPage = pathname === '/onboarding'
+    // If not loading and no user/tenantId, we should be redirecting.
+    // We'll show a brief redirecting state instead of the diagnostic UI
+    if (!user || !tenantId) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center">
+          <div className="text-center space-y-4">
+            <h2 className="text-xl font-semibold">Redirecting...</h2>
+            <p className="text-muted-foreground">Verifying your permissions</p>
+            <div className="mt-8">
+              <button
+                onClick={() => router.replace("/login")}
+                className="px-4 py-2 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-md"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
-  // If user needs onboarding but is not on the page, don't show anything (or show loader) while redirecting
-  if (needsOnboarding && !isOnboardingPage) {
+    // Check if we need to redirect
+    const needsOnboarding = onboardingData && !onboardingData.isOnboarded
+    const isOnboardingPage = pathname === '/onboarding'
+
+    // If user needs onboarding but is not on the page, don't show anything (or show loader) while redirecting
+    if (needsOnboarding && !isOnboardingPage) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center">
+          <Loader
+            title="Setting up your experience..."
+            subtitle="Redirecting to onboarding"
+            size="lg"
+          />
+        </div>
+      )
+    }
+
+    // If user is onboarded but tries to go to onboarding page
+    if (onboardingData && onboardingData.isOnboarded && isOnboardingPage) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center">
+          <Loader
+            title="Redirecting..."
+            subtitle="Taking you to dashboard"
+            size="lg"
+          />
+        </div>
+      )
+    }
+
+    // If on onboarding page, render without sidebar layout
+    if (isOnboardingPage) {
+      return (
+        <div className="min-h-screen bg-background">
+          {children}
+        </div>
+      )
+    }
+
     return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <Loader
-          title="Setting up your experience..."
-          subtitle="Redirecting to onboarding"
-          size="lg"
-        />
-      </div>
+      <SidebarProvider>
+        {/* Onboarding Modal - shown if user hasn't completed onboarding */}
+        {showOnboarding && (
+          <OnboardingModal
+            initialData={onboardingData}
+            onComplete={handleOnboardingComplete}
+          />
+        )}
+
+        <TenantLayoutContent
+          tenantName={tenantName}
+          activeView={activeView}
+          onViewChange={handleViewChange}
+          onCreateJob={handleCreateJob}
+        >
+          {children}
+        </TenantLayoutContent>
+      </SidebarProvider>
     )
   }
-
-  // If user is onboarded but tries to go to onboarding page
-  if (onboardingData && onboardingData.isOnboarded && isOnboardingPage) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <Loader
-          title="Redirecting..."
-          subtitle="Taking you to dashboard"
-          size="lg"
-        />
-      </div>
-    )
-  }
-
-  // If on onboarding page, render without sidebar layout
-  if (isOnboardingPage) {
-    return (
-      <div className="min-h-screen bg-background">
-        {children}
-      </div>
-    )
-  }
-
-  return (
-    <SidebarProvider>
-      {/* Onboarding Modal - shown if user hasn't completed onboarding */}
-      {showOnboarding && (
-        <OnboardingModal 
-          initialData={onboardingData}
-          onComplete={handleOnboardingComplete}
-        />
-      )}
-      
-      <TenantLayoutContent
-        tenantName={tenantName}
-        activeView={activeView}
-        onViewChange={handleViewChange}
-        onCreateJob={handleCreateJob}
-      >
-        {children}
-      </TenantLayoutContent>
-    </SidebarProvider>
-  )
 }
-
-
