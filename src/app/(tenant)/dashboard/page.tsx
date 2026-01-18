@@ -1,34 +1,19 @@
 "use client"
 
 import { TenantDashboard, type DashboardStats } from "@/components/tenant/views/tenant-dashboard-view"
-import { useAuth } from "@/providers/auth-provider"
-import { useEffect, useState } from "react"
+import { useTenantDashboard } from "@/hooks"
+import Loader from "@/components/ui/loading"
 
 export default function DashboardPage() {
-  const { tenantId } = useAuth()
-  const [stats, setStats] = useState<DashboardStats | undefined>()
-  const [loading, setLoading] = useState(false)
+  const { data, isLoading } = useTenantDashboard()
 
-  useEffect(() => {
-    if (tenantId) {
-      fetchStats()
-    }
-  }, [tenantId])
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/tenant/stats')
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-      }
-    } catch (err) {
-      console.error('Error fetching dashboard stats:', err)
-    } finally {
-      setLoading(false)
-    }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader title="Loading dashboard..." size="lg" />
+      </div>
+    )
   }
 
-  return <TenantDashboard stats={stats} />
+  return <TenantDashboard stats={data} />
 }

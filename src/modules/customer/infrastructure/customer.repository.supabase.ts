@@ -73,6 +73,15 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       .eq('tenant_id', tenantId)
       .in('customer_id', customerIds)
 
+    // Fetch jobcards for job count stats
+    const { data: jobcards } = await this.supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select('id, customer_id, created_at')
+      .eq('tenant_id', tenantId)
+      .in('customer_id', customerIds)
+      .order('created_at', { ascending: false })
+
     // Group vehicles by customer_id
     const vehiclesByCustomer = (vehicles || []).reduce((acc: Record<string, any[]>, v) => {
       if (!acc[v.customer_id]) acc[v.customer_id] = []
@@ -80,11 +89,20 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       return acc
     }, {})
 
+    // Group jobcards by customer_id
+    const jobcardsByCustomer = (jobcards || []).reduce((acc: Record<string, any[]>, j) => {
+      if (!acc[j.customer_id]) acc[j.customer_id] = []
+      acc[j.customer_id].push(j)
+      return acc
+    }, {})
+
     return customers.map(row => ({
       ...this.toDomain(row),
       vehicles: vehiclesByCustomer[row.id] || [],
+      jobcards: jobcardsByCustomer[row.id] || [],
     }))
   }
+
 
   async findById(id: string): Promise<CustomerWithVehicles | null> {
     const tenantId = this.getContextTenantId()

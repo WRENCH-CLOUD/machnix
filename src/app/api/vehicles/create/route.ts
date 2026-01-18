@@ -20,6 +20,21 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Validate registration number format (Indian standard)
+    const regNo = (body.reg_no || body.regNo || body.licensePlate || "").toUpperCase()
+    const regNoRegex = /^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/
+    
+    if (!regNo) {
+      return NextResponse.json({ error: 'Registration number is required' }, { status: 400 })
+    }
+    
+    if (!regNoRegex.test(regNo)) {
+      return NextResponse.json(
+        { error: 'Invalid vehicle registration format. Expected format like MH12AB1234' },
+        { status: 400 }
+      )
+    }
+
     // If ownerPhone is provided, look up the customer
     let customerId = body.customerId
     if (!customerId && body.ownerPhone) {
@@ -83,7 +98,7 @@ export async function POST(request: NextRequest) {
       make: makeName,
       model: modelName,
       year: body.year ? parseInt(body.year) : undefined,
-      licensePlate: body.reg_no || body.regNo || body.licensePlate,
+      licensePlate: regNo,
       color: body.color,
       mileage: body.odometer ? parseInt(body.odometer) : undefined,
     }

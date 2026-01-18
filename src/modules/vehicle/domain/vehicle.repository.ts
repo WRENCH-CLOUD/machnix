@@ -8,7 +8,7 @@ export interface VehicleRepository {
   /**
    * Find all vehicles for the current tenant
    */
-  findAll(): Promise<VehicleWithCustomer[]>
+  findAll(customerId?: string): Promise<VehicleWithCustomer[]>
 
   /**
    * Find a vehicle by ID
