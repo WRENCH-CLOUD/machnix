@@ -11,7 +11,8 @@ export function QueryProvider({ children }: { children: ReactNode }) {
           queries: {
             refetchOnWindowFocus: false,
             retry: 1,
-            staleTime: 15_000,
+            staleTime: 60_000, // 60 seconds - data stays fresh
+            gcTime: 5 * 60_000, // 5 minutes garbage collection
           },
           mutations: {
             retry: 0,

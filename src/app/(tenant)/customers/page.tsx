@@ -1,63 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { CustomersView, CustomerWithStats, CustomerFormData } from "@/components/tenant/customers/customers-view";
-import { useAuth } from "@/providers/auth-provider";
+import { useCustomers, useInvalidateQueries } from "@/hooks";
 
 export default function CustomersPage() {
   const router = useRouter();
-  const { tenantId } = useAuth();
-  const [customers, setCustomers] = useState<CustomerWithStats[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: customersData, isLoading, error } = useCustomers();
+  const { invalidateCustomers } = useInvalidateQueries();
 
-  const loadCustomers = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/customers");
-      if (!response.ok) {
-        throw new Error("Failed to fetch customers");
-      }
-
-      const customersData = await response.json();
-
-      // Transform for UI display with stats
-      const customersWithStats: CustomerWithStats[] = customersData.map(
-        (customer: Record<string, unknown>) => ({
-          id: customer.id,
-          name: customer.name,
-          phone: customer.phone,
-          email: customer.email,
-          address: customer.address,
-          totalJobs: Array.isArray(customer.jobcards) ? customer.jobcards.length : 0,
-          lastVisit: Array.isArray(customer.jobcards) && customer.jobcards.length > 0
-            ? new Date((customer.jobcards[0] as Record<string, unknown>).created_at as string)
-            : null,
-          vehicleCount: Array.isArray(customer.vehicles) ? customer.vehicles.length : 0,
-          vehicles: (Array.isArray(customer.vehicles) ? customer.vehicles : []).map((v: Record<string, unknown>) => ({
-            make: v.make || null,
-            model: v.model || null,
-          })),
-        })
-      );
-
-      setCustomers(customersWithStats);
-    } catch (err) {
-      console.error("Error loading customers:", err);
-      setError("Failed to load customers");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (tenantId) {
-      loadCustomers();
-    }
-  }, [tenantId, loadCustomers]);
+  // Transform API data to UI format
+  const customers: CustomerWithStats[] = useMemo(() => {
+    if (!customersData) return [];
+    
+    return customersData.map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone ?? null,
+      email: customer.email ?? null,
+      address: customer.address ?? null,
+      totalJobs: Array.isArray(customer.jobcards) ? customer.jobcards.length : 0,
+      lastVisit: Array.isArray(customer.jobcards) && customer.jobcards.length > 0
+        ? new Date(customer.jobcards[0].created_at)
+        : null,
+      vehicleCount: Array.isArray(customer.vehicles) ? customer.vehicles.length : 0,
+      vehicles: (Array.isArray(customer.vehicles) ? customer.vehicles : []).map((v) => ({
+        make: v.make ?? null,
+        model: v.model ?? null,
+      })),
+    }));
+  }, [customersData]);
 
   const handleAddCustomer = async (data: CustomerFormData) => {
     // Build request body - only include non-empty values
@@ -76,13 +49,12 @@ export default function CustomersPage() {
       body: JSON.stringify(requestBody),
     });
 
-
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || "Failed to add customer");
     }
 
-    await loadCustomers();
+    await invalidateCustomers();
   };
 
   const handleEditCustomer = async (id: string, data: CustomerFormData & { notes: string }) => {
@@ -105,7 +77,7 @@ export default function CustomersPage() {
       throw new Error(errorData.error || "Failed to update customer");
     }
 
-    await loadCustomers();
+    await invalidateCustomers();
   };
 
   const handleDeleteCustomer = async (id: string) => {
@@ -118,7 +90,7 @@ export default function CustomersPage() {
       throw new Error(errorData.error || "Failed to delete customer");
     }
 
-    await loadCustomers();
+    await invalidateCustomers();
   };
 
   const handleCreateJob = (customer: CustomerWithStats) => {
@@ -129,12 +101,12 @@ export default function CustomersPage() {
   return (
     <CustomersView
       customers={customers}
-      loading={loading}
-      error={error}
+      loading={isLoading}
+      error={error?.message || null}
       onAddCustomer={handleAddCustomer}
       onEditCustomer={handleEditCustomer}
       onDeleteCustomer={handleDeleteCustomer}
-      onRefresh={loadCustomers}
+      onRefresh={invalidateCustomers}
       onCreateJob={handleCreateJob}
     />
   );

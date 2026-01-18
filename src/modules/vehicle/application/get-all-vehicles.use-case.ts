@@ -8,8 +8,8 @@ import { VehicleWithCustomer } from '../domain/vehicle.entity'
 export class GetAllVehiclesUseCase {
   constructor(private readonly repository: VehicleRepository) {}
 
-  async execute(): Promise<VehicleWithCustomer[]> {
-    return this.repository.findAll()
+  async execute(customerId?: string): Promise<VehicleWithCustomer[]> {
+    return this.repository.findAll(customerId)
   }
 }
 

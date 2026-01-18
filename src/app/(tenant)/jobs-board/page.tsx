@@ -11,6 +11,7 @@ import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/
 import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
+import { queryKeys, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
@@ -18,13 +19,23 @@ export default function JobsPage() {
   const [showCreateJob, setShowCreateJob] = useState(false)
   const queryClient = useQueryClient()
 
-  const jobsQueryKey = useMemo(() => ["jobs", tenantId] as const, [tenantId])
+  // Use centralized query key for cache consistency with all-jobs page
+  const jobsQueryKey = useMemo(() => queryKeys.jobs.list(tenantId || ""), [tenantId])
+
+  // Fetch tenant settings once at the page level
+  const { data: tenantSettings } = useTenantSettings()
+
+  // Transform tenant settings to match the format expected by JobDetailsContainer
+  const tenantDetails = useMemo(() => 
+    transformTenantSettingsForJobDetails(tenantSettings), 
+    [tenantSettings]
+  )
 
   useEffect(() => {
     const handleOpenCreateJob = () => setShowCreateJob(true);
     window.addEventListener('open-create-job', handleOpenCreateJob);
     
-    // Check search params
+    // Check search params for 'create' flag
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
       setShowCreateJob(true);
@@ -74,6 +85,20 @@ export default function JobsPage() {
     const fresh = jobs.find((j) => j.id === selectedJob.id)
     if (fresh) setSelectedJob(fresh)
   }, [jobs, selectedJob?.id])
+
+  // Handle deep-linking to a specific job via jobId query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get('jobId');
+    if (jobId && jobs.length > 0) {
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        setSelectedJob(job);
+        // Optional: clear the param so it doesn't pop up again if they refresh
+        // window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [jobs]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: JobStatus }) => {
@@ -282,6 +307,7 @@ export default function JobsPage() {
           onJobUpdate={async () => {
             await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
+          tenantDetails={tenantDetails}
         />
       )}
 

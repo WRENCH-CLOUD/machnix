@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/providers/auth-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 // Force dynamic rendering for all pages - prevents prerender errors with React context
@@ -75,6 +76,7 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
           </QueryProvider>
         </ThemeProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>

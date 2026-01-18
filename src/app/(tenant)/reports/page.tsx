@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from "@/providers/auth-provider"
+import { useTenantDashboard } from "@/hooks"
+import { useState } from "react"
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   ClipboardList,
   Users,
@@ -17,58 +16,25 @@ import {
   Loader2
 } from "lucide-react"
 
-interface ReportStats {
-  totalRevenue: number
-  revenueChange: number
-  totalJobs: number
-  jobsChange: number
-  completedJobs: number
-  pendingJobs: number
-  averageJobValue: number
-  customerCount: number
-}
-
 export default function ReportsPage() {
-  const { tenantId } = useAuth()
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading } = useTenantDashboard() // Shared cache with dashboard
   const [period, setPeriod] = useState<string>("month")
-  const [stats, setStats] = useState<ReportStats | null>(null)
 
-  useEffect(() => {
-    if (tenantId) {
-      fetchReportData()
-    }
-  }, [tenantId, period])
+  // Derive report stats from dashboard data
+  const stats = data ? {
+    totalRevenue: data.total_revenue || 0,
+    revenueChange: 12.5, // Placeholder - would need historical data
+    totalJobs: (data.active_jobs || 0) + (data.completed_jobs || 0),
+    jobsChange: 8.2, // Placeholder
+    completedJobs: data.completed_jobs || 0,
+    pendingJobs: data.pending_jobs || 0,
+    averageJobValue: data.completed_jobs > 0 
+      ? Math.round((data.total_revenue || 0) / data.completed_jobs) 
+      : 0,
+    customerCount: data.customer_count || 0,
+  } : null
 
-  const fetchReportData = async () => {
-    try {
-      setLoading(true)
-      // Fetch dashboard stats as base data
-      const res = await fetch('/api/tenant/stats')
-      if (res.ok) {
-        const data = await res.json()
-        // Calculate derived metrics
-        setStats({
-          totalRevenue: data.total_revenue || 0,
-          revenueChange: 12.5, // Placeholder - would need historical data
-          totalJobs: (data.active_jobs || 0) + (data.completed_jobs || 0),
-          jobsChange: 8.2, // Placeholder
-          completedJobs: data.completed_jobs || 0,
-          pendingJobs: data.pending_jobs || 0,
-          averageJobValue: data.completed_jobs > 0 
-            ? Math.round((data.total_revenue || 0) / data.completed_jobs) 
-            : 0,
-          customerCount: data.customer_count || 0,
-        })
-      }
-    } catch (err) {
-      console.error('Failed to fetch report data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

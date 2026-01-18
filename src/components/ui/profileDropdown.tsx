@@ -62,7 +62,7 @@ export default function ProfileDropdown({
         },
         {
             label: "Settings",
-            href: "/garage-settings",
+            href: "/settings",
             icon: <Settings className="w-4 h-4" />,
         },
     ];

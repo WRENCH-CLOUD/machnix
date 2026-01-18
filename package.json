@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "setup": "npx tsx scripts/create-platform-admin.ts",
     "seed:vehicles": "npx tsx scripts/seed-vehicle-data.ts",
     "seed:all": "npm run setup && npm run seed:vehicles"

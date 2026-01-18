@@ -37151,7 +37151,7 @@
             ],
             "displayName": "SidebarMenuItem",
             "hocDisplayNames": null,
-            "key": "garage-settings",
+            "key": "settings",
             "type": 5,
             "compiledWithForget": false
           }

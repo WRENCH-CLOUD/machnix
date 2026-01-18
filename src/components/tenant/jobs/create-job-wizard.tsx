@@ -429,19 +429,36 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   <Input 
                     placeholder="e.g. MH12AB1234" 
                     value={newVehicle.reg_no}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, reg_no: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setNewVehicle({ ...newVehicle, reg_no: val });
+                    }}
+                    className={newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
                   />
+                  {newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
+                    <p className="text-[10px] text-destructive">Invalid Indian vehicle registration format (e.g. MH12AB1234)</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>VIN / Chassis No (Optional)</Label>
                   <Input 
                     placeholder="17 digit number" 
                     value={newVehicle.vin}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, vin: e.target.value })}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, vin: e.target.value.toUpperCase() })}
                   />
                 </div>
               </div>
-              <Button className="w-full mt-4" onClick={handleAddVehicle} disabled={!newVehicle.makeId || !newVehicle.modelId || !newVehicle.reg_no || loading}>
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleAddVehicle} 
+                disabled={
+                  !newVehicle.makeId || 
+                  !newVehicle.modelId || 
+                  !newVehicle.reg_no || 
+                  !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ||
+                  loading
+                }
+              >
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create Vehicle & Continue
               </Button>
