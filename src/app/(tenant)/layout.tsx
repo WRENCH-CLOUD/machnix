@@ -229,4 +229,3 @@ export default function TenantLayoutWrapper({
     </SidebarProvider>
   )
 }
-
