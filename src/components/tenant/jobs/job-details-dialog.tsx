@@ -58,6 +58,13 @@ interface JobDetailsDialogProps {
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
   onPaymentComplete: (method: string, ref?: string) => Promise<void>;
+  
+  // Tenant props
+  tenantDetails: {
+    name: string;
+    address: string;
+    gstin: string;
+  };
 }
 
 export function JobDetailsDialog({
@@ -85,6 +92,7 @@ export function JobDetailsDialog({
   showPaymentModal,
   setShowPaymentModal,
   onPaymentComplete,
+  tenantDetails,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -318,6 +326,7 @@ export function JobDetailsDialog({
 
               <TabsContent value="invoice" className="m-0 h-full">
                 <JobInvoice
+                  tenantDetails={tenantDetails}
                   job={job}
                   invoice={invoice}
                   estimateItems={estimateItems}

@@ -1,10 +1,30 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Tenant } from '../domain/tenant.entity'
+import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantRepository } from './tenant.repository'
 
+import { TenantSettings } from '../domain/tenant-settings.entity'
+
 export class AdminSupabaseTenantRepository implements TenantRepository {
   constructor(private readonly supabase: SupabaseClient) {}
+  
+  async getSettings(tenantId: string): Promise<TenantSettings | null> {
+    return null
+  }
+
+  async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
+    // Not implemented for admin
+  }
+
+  async markOnboarded(tenantId: string): Promise<void> {
+    const { error } = await this.supabase
+      .schema('tenant')
+      .from('tenants')
+      .update({ is_onboarded: true })
+      .eq('id', tenantId)
+
+    if (error) throw error
+  }
 
   /**
    * Transform database row to domain entity
@@ -17,6 +37,7 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
       slug: row.slug || '',
       status: row.status,
       subscription: row.subscription,
+      isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
     }
   }
@@ -87,7 +108,7 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
     return (data || []).length === 0
   }
 
-  async create(input: { name: string; slug: string; subscription: string; status: 'active' | 'suspended' }): Promise<Tenant> {
+  async create(input: { name: string; slug: string; subscription: string; status: TenantStatus }): Promise<Tenant> {
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('tenants')

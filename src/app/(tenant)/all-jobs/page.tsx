@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { AllJobsView } from "@/components/tenant/views/all-jobs-view"
 import { JobDetailsContainer } from "@/components/tenant/jobs/job-details-container"
 import { useAuth } from "@/providers/auth-provider"
-import { useRouter } from "next/navigation"
+import { useJobs, useInvalidateQueries, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
 import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/job-transforms-service"
 import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
@@ -13,8 +13,8 @@ import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-
 export default function AllJobsPage() {
   const { user, tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
-  const [jobs, setJobs] = useState<UIJob[]>([])
-  const [loading, setLoading] = useState(true)
+  const [transformedJobs, setTransformedJobs] = useState<UIJob[]>([])
+  const { invalidateJobs } = useInvalidateQueries()
 
   // Unpaid warning dialog state
   const [showUnpaidWarning, setShowUnpaidWarning] = useState(false)
@@ -25,31 +25,32 @@ export default function AllJobsPage() {
     jobNumber: string;
   } | null>(null)
 
-  useEffect(() => {
-    if (user && tenantId) {
-      loadJobs()
-    }
-  }, [user, tenantId])
+  // Use shared jobs query
+  const { data: dbJobs, isLoading } = useJobs(tenantId)
 
-  const loadJobs = async () => {
-    try {
-      setLoading(true)
-      // Call API route - business logic is in the use case
-      const response = await api.get('/api/jobs')
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs')
+  // Fetch tenant settings once at the page level
+  const { data: tenantSettings } = useTenantSettings()
+
+  // Transform tenant settings to match the format expected by JobDetailsContainer
+  const tenantDetails = useMemo(() => 
+    transformTenantSettingsForJobDetails(tenantSettings), 
+    [tenantSettings]
+  )
+
+  // Transform jobs when data changes
+  useEffect(() => {
+    const transformJobs = async () => {
+      if (!dbJobs) {
+        setTransformedJobs([])
+        return
       }
-      const dbJobs = await response.json()
-      const transformedJobs = await Promise.all(
+      const jobs = await Promise.all(
         dbJobs.map((job: any) => transformDatabaseJobToUI(job))
       )
-      setJobs(transformedJobs)
-    } catch (err) {
-      console.error('Error loading jobs:', err)
-    } finally {
-      setLoading(false)
+      setTransformedJobs(jobs)
     }
-  }
+    transformJobs()
+  }, [dbJobs])
 
   const handleJobClick = async (job: UIJob) => {
     setSelectedJob(job)
@@ -64,7 +65,7 @@ export default function AllJobsPage() {
       if (response.status === 402) {
         const data = await response.json()
         if (data.paymentRequired) {
-          const job = jobs.find(j => j.id === jobId)
+          const job = transformedJobs.find(j => j.id === jobId)
           setPendingCompletion({
             jobId,
             invoiceId: data.invoiceId,
@@ -80,13 +81,13 @@ export default function AllJobsPage() {
         throw new Error('Failed to update job status')
       }
       
-      await loadJobs()
+      await invalidateJobs()
       
       // Update selected job if it's the one being changed
       if (selectedJob?.id === jobId) {
-        const updatedJobs = jobs.find(j => j.id === jobId)
-        if (updatedJobs) {
-          setSelectedJob({ ...updatedJobs, status: newStatus })
+        const updatedJob = transformedJobs.find(j => j.id === jobId)
+        if (updatedJob) {
+          setSelectedJob({ ...updatedJob, status: newStatus })
         }
       }
     } catch (err) {
@@ -119,7 +120,7 @@ export default function AllJobsPage() {
         throw new Error('Failed to complete job')
       }
 
-      await loadJobs()
+      await invalidateJobs()
       setShowUnpaidWarning(false)
       setPendingCompletion(null)
     } catch (err) {
@@ -128,14 +129,14 @@ export default function AllJobsPage() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return null; // Layout handles auth loading, page handles data loading
   }
 
   return (
     <>
       <AllJobsView
-        jobs={jobs}
+        jobs={transformedJobs}
         onJobClick={handleJobClick}
       />
 
@@ -145,8 +146,9 @@ export default function AllJobsPage() {
           isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}
           onJobUpdate={async () => {
-            await loadJobs()
+            await invalidateJobs()
           }}
+          tenantDetails={tenantDetails}
         />
       )}
 
