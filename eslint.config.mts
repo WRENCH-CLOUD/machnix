@@ -29,6 +29,10 @@ export default[
       "**/yarn.lock",
       "**/package-lock.json",
 
+      // test config
+      "**/jest.config.js",
+      "**/jest.setup.js",
+
       // misc
       "**/.DS_Store",
       "**/*.pem",
