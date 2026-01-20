@@ -81,15 +81,9 @@ const FAQItem = ({ question, answer, isOpen, onToggle }: FAQItemProps) => {
 }
 
 export function FAQSection() {
-  const [openItems, setOpenItems] = useState<Set<number>>(new Set())
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
   const toggleItem = (index: number) => {
-    const newOpenItems = new Set(openItems)
-    if (newOpenItems.has(index)) {
-      newOpenItems.delete(index)
-    } else {
-      newOpenItems.add(index)
-    }
-    setOpenItems(newOpenItems)
+    setOpenIndex(openIndex === index ? null : index)
   }
   return (
     <section className="w-full pt-[66px] pb-20 md:pb-40 px-5 relative flex flex-col justify-center items-center overflow-hidden">
@@ -109,7 +103,7 @@ export function FAQSection() {
       </div>
       <div className="w-full max-w-[600px] pt-0.5 pb-10 flex flex-col justify-start items-start gap-4 relative z-10">
         {faqData.map((faq, index) => (
-          <FAQItem key={index} {...faq} isOpen={openItems.has(index)} onToggle={() => toggleItem(index)} />
+          <FAQItem key={index} {...faq} isOpen={openIndex === index} onToggle={() => toggleItem(index)} />
         ))}
       </div>
     </section>
