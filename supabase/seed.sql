@@ -1,6 +1,5 @@
--- Seed data for vehicle categories, makes, and models
--- This adds demo data for common car manufacturers and their popular models
--- Run with: npx supabase db seed OR psql -f supabase/seed.sql
+-- Auto-generated seed file from CSV data
+-- Generated at: 2026-01-20T06:51:00.739Z
 
 -- ============================================================================
 -- VEHICLE CATEGORIES
@@ -17,514 +16,692 @@ INSERT INTO public.vehicle_category (name, description) VALUES
     ('Van', 'Cargo or passenger vans'),
     ('Coupe', 'Two-door car with a fixed roof'),
     ('Convertible', 'Car with a retractable roof'),
-    ('Wagon', 'Station wagon with extended cargo area')
+    ('Wagon', 'Station wagon with extended cargo area'),
+    ('Bike', 'Two-wheeled motor vehicle'),
+    ('Scooter', 'Two-wheeled vehicle with a step-through frame')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
 -- VEHICLE MAKES
 -- ============================================================================
 INSERT INTO public.vehicle_make (name, code) VALUES
-    ('Toyota', 'TOY'),
-    ('Honda', 'HON'),
-    ('Ford', 'FOR'),
-    ('Chevrolet', 'CHV'),
-    ('BMW', 'BMW'),
-    ('Mercedes-Benz', 'MER'),
-    ('Audi', 'AUD'),
-    ('Volkswagen', 'VW'),
-    ('Nissan', 'NIS'),
-    ('Hyundai', 'HYU'),
-    ('Kia', 'KIA'),
-    ('Mazda', 'MAZ'),
-    ('Subaru', 'SUB'),
-    ('Tesla', 'TES'),
-    ('Jeep', 'JEP'),
-    ('Ram', 'RAM'),
-    ('Dodge', 'DOD'),
-    ('Lexus', 'LEX'),
-    ('Acura', 'ACU'),
-    ('Infiniti', 'INF'),
-    ('Volvo', 'VOL'),
-    ('Porsche', 'POR'),
-    ('Land Rover', 'LR'),
-    ('Jaguar', 'JAG'),
-    ('Mini', 'MINI'),
-    ('Fiat', 'FIA'),
-    ('Alfa Romeo', 'ALF'),
-    ('Maserati', 'MAS'),
-    ('Ferrari', 'FER'),
-    ('Lamborghini', 'LAM'),
-    -- Indian Brands
-    ('Maruti Suzuki', 'MAR'),
     ('Tata', 'TAT'),
-    ('Mahindra', 'MAH'),
-    ('MG Motor', 'MG'),
-    ('Skoda', 'SKO'),
+    ('Datsun', 'DAT'),
     ('Renault', 'REN'),
-    ('Citroen', 'CIT')
+    ('Maruti Suzuki', 'MAR'),
+    ('Hyundai', 'HYU'),
+    ('Premier', 'PRE'),
+    ('Toyota', 'TOY'),
+    ('Nissan', 'NIS'),
+    ('Volkswagen', 'VOL'),
+    ('Ford', 'FOR'),
+    ('Mahindra', 'MAH'),
+    ('Fiat', 'FIA'),
+    ('Honda', 'HON'),
+    ('Jeep', 'JEE'),
+    ('Isuzu', 'ISU'),
+    ('Skoda', 'SKO'),
+    ('Audi', 'AUD'),
+    ('Dc', 'DC'),
+    ('Mini', 'MIN'),
+    ('Volvo', 'VOL'),
+    ('Jaguar', 'JAG'),
+    ('Bmw', 'BMW'),
+    ('Land Rover', 'LAN'),
+    ('Porsche', 'POR'),
+    ('Lexus', 'LEX'),
+    ('Maserati', 'MAS'),
+    ('Lamborghini', 'LAM'),
+    ('Bentley', 'BEN'),
+    ('Ferrari', 'FER'),
+    ('Aston Martin', 'AST'),
+    ('Bugatti', 'BUG'),
+    ('Bajaj', 'BAJ'),
+    ('Icml', 'ICM'),
+    ('Force', 'FOR'),
+    ('Mg', 'MG'),
+    ('Kia', 'KIA'),
+    ('Land Rover Rover', 'LAN'),
+    ('Mitsubishi', 'MIT'),
+    ('Maruti Suzuki R', 'MAR'),
+    ('Royal Enfield', 'ROY'),
+    ('KTM', 'KTM'),
+    ('Kawasaki', 'KAW'),
+    ('Yamaha', 'YAM'),
+    ('Hero', 'HER'),
+    ('TVS', 'TVS')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
 -- VEHICLE MODELS
--- We use a DO block to look up IDs dynamically
 -- ============================================================================
 DO $$
 DECLARE
-    -- Make IDs
-    toyota_id uuid;
-    honda_id uuid;
-    ford_id uuid;
-    chevrolet_id uuid;
-    bmw_id uuid;
-    mercedes_id uuid;
-    audi_id uuid;
-    vw_id uuid;
-    nissan_id uuid;
-    hyundai_id uuid;
-    kia_id uuid;
-    mazda_id uuid;
-    subaru_id uuid;
-    tesla_id uuid;
-    jeep_id uuid;
-    ram_id uuid;
-    dodge_id uuid;
-    lexus_id uuid;
-    acura_id uuid;
-    infiniti_id uuid;
-    volvo_id uuid;
-    porsche_id uuid;
-    landrover_id uuid;
-    jaguar_id uuid;
-    mini_id uuid;
-    maruti_id uuid;
-    tata_id uuid;
-    mahindra_id uuid;
-    mg_id uuid;
-    skoda_id uuid;
-    renault_id uuid;
-    fiat_id uuid;
-    alfa_romeo_id uuid;
-    maserati_id uuid;
-    ferrari_id uuid;
-    lamborghini_id uuid;
-    citroen_id uuid;
-    
     -- Category IDs
-    sedan_id uuid;
-    suv_id uuid;
-    truck_id uuid;
-    hatchback_id uuid;
-    minivan_id uuid;
-    sports_id uuid;
-    hybrid_id uuid;
-    electric_id uuid;
-    van_id uuid;
+    cat_sedan uuid;
+    cat_suv uuid;
+    cat_truck uuid;
+    cat_hatchback uuid;
+    cat_minivan uuid;
+    cat_sports uuid;
+    cat_hybrid uuid;
+    cat_electric uuid;
+    cat_van uuid;
+    cat_coupe uuid;
+    cat_convertible uuid;
+    cat_wagon uuid;
+    cat_bike uuid;
+    cat_scooter uuid;
+    
+    -- Make ID variable
+    curr_make_id uuid;
 BEGIN
     -- Get category IDs
-    SELECT id INTO sedan_id FROM public.vehicle_category WHERE name = 'Sedan';
-    SELECT id INTO suv_id FROM public.vehicle_category WHERE name = 'SUV';
-    SELECT id INTO truck_id FROM public.vehicle_category WHERE name = 'Truck';
-    SELECT id INTO hatchback_id FROM public.vehicle_category WHERE name = 'Hatchback';
-    SELECT id INTO minivan_id FROM public.vehicle_category WHERE name = 'Minivan';
-    SELECT id INTO sports_id FROM public.vehicle_category WHERE name = 'Sports Car';
-    SELECT id INTO hybrid_id FROM public.vehicle_category WHERE name = 'Hybrid';
-    SELECT id INTO electric_id FROM public.vehicle_category WHERE name = 'Electric';
-    SELECT id INTO van_id FROM public.vehicle_category WHERE name = 'Van';
+    SELECT id INTO cat_sedan FROM public.vehicle_category WHERE name = 'Sedan';
+    SELECT id INTO cat_suv FROM public.vehicle_category WHERE name = 'SUV';
+    SELECT id INTO cat_truck FROM public.vehicle_category WHERE name = 'Truck';
+    SELECT id INTO cat_hatchback FROM public.vehicle_category WHERE name = 'Hatchback';
+    SELECT id INTO cat_minivan FROM public.vehicle_category WHERE name = 'Minivan';
+    SELECT id INTO cat_sports FROM public.vehicle_category WHERE name = 'Sports Car';
+    SELECT id INTO cat_hybrid FROM public.vehicle_category WHERE name = 'Hybrid';
+    SELECT id INTO cat_electric FROM public.vehicle_category WHERE name = 'Electric';
+    SELECT id INTO cat_van FROM public.vehicle_category WHERE name = 'Van';
+    SELECT id INTO cat_coupe FROM public.vehicle_category WHERE name = 'Coupe';
+    SELECT id INTO cat_convertible FROM public.vehicle_category WHERE name = 'Convertible';
+    SELECT id INTO cat_wagon FROM public.vehicle_category WHERE name = 'Wagon';
+    SELECT id INTO cat_bike FROM public.vehicle_category WHERE name = 'Bike';
+    SELECT id INTO cat_scooter FROM public.vehicle_category WHERE name = 'Scooter';
 
-    -- Get make IDs
-    SELECT id INTO toyota_id FROM public.vehicle_make WHERE name = 'Toyota';
-    SELECT id INTO honda_id FROM public.vehicle_make WHERE name = 'Honda';
-    SELECT id INTO ford_id FROM public.vehicle_make WHERE name = 'Ford';
-    SELECT id INTO chevrolet_id FROM public.vehicle_make WHERE name = 'Chevrolet';
-    SELECT id INTO bmw_id FROM public.vehicle_make WHERE name = 'BMW';
-    SELECT id INTO mercedes_id FROM public.vehicle_make WHERE name = 'Mercedes-Benz';
-    SELECT id INTO audi_id FROM public.vehicle_make WHERE name = 'Audi';
-    SELECT id INTO vw_id FROM public.vehicle_make WHERE name = 'Volkswagen';
-    SELECT id INTO nissan_id FROM public.vehicle_make WHERE name = 'Nissan';
-    SELECT id INTO hyundai_id FROM public.vehicle_make WHERE name = 'Hyundai';
-    SELECT id INTO kia_id FROM public.vehicle_make WHERE name = 'Kia';
-    SELECT id INTO mazda_id FROM public.vehicle_make WHERE name = 'Mazda';
-    SELECT id INTO subaru_id FROM public.vehicle_make WHERE name = 'Subaru';
-    SELECT id INTO tesla_id FROM public.vehicle_make WHERE name = 'Tesla';
-    SELECT id INTO jeep_id FROM public.vehicle_make WHERE name = 'Jeep';
-    SELECT id INTO ram_id FROM public.vehicle_make WHERE name = 'Ram';
-    SELECT id INTO dodge_id FROM public.vehicle_make WHERE name = 'Dodge';
-    SELECT id INTO lexus_id FROM public.vehicle_make WHERE name = 'Lexus';
-    SELECT id INTO acura_id FROM public.vehicle_make WHERE name = 'Acura';
-    SELECT id INTO infiniti_id FROM public.vehicle_make WHERE name = 'Infiniti';
-    SELECT id INTO volvo_id FROM public.vehicle_make WHERE name = 'Volvo';
-    SELECT id INTO porsche_id FROM public.vehicle_make WHERE name = 'Porsche';
-    SELECT id INTO landrover_id FROM public.vehicle_make WHERE name = 'Land Rover';
-    SELECT id INTO jaguar_id FROM public.vehicle_make WHERE name = 'Jaguar';
-    SELECT id INTO mini_id FROM public.vehicle_make WHERE name = 'Mini';
-    SELECT id INTO maruti_id FROM public.vehicle_make WHERE name = 'Maruti Suzuki';
-    SELECT id INTO tata_id FROM public.vehicle_make WHERE name = 'Tata';
-    SELECT id INTO mahindra_id FROM public.vehicle_make WHERE name = 'Mahindra';
-    SELECT id INTO mg_id FROM public.vehicle_make WHERE name = 'MG Motor';
-    SELECT id INTO skoda_id FROM public.vehicle_make WHERE name = 'Skoda';
-    SELECT id INTO renault_id FROM public.vehicle_make WHERE name = 'Renault';
+    -- Tata
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Tata';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Nano Genx', 'NANO', cat_hatchback),
+            (curr_make_id, 'Tiago', 'TIAG', cat_hatchback),
+            (curr_make_id, 'Bolt', 'BOLT', cat_hatchback),
+            (curr_make_id, 'Altroz', 'ALTR', cat_hatchback),
+            (curr_make_id, 'Tigor', 'TIGO', cat_sedan),
+            (curr_make_id, 'Zest', 'ZEST', cat_sedan),
+            (curr_make_id, 'Nexon', 'NEXO', cat_suv),
+            (curr_make_id, 'Tigor Ev', 'TIGO', cat_sedan),
+            (curr_make_id, 'Hexa', 'HEXA', cat_suv),
+            (curr_make_id, 'Safari Storme', 'SAFA', cat_suv),
+            (curr_make_id, 'Nexon Ev', 'NEXO', cat_suv),
+            (curr_make_id, 'Harrier', 'HARR', cat_suv),
+            (curr_make_id, 'Tiago Nrg', 'TIAG', cat_sedan),
+            (curr_make_id, 'Winger', 'WING', cat_minivan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Toyota Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (toyota_id, 'Camry', 'CAM', sedan_id),
-        (toyota_id, 'Corolla', 'COR', sedan_id),
-        (toyota_id, 'RAV4', 'RAV4', suv_id),
-        (toyota_id, 'Highlander', 'HIGH', suv_id),
-        (toyota_id, '4Runner', '4RUN', suv_id),
-        (toyota_id, 'Tacoma', 'TAC', truck_id),
-        (toyota_id, 'Tundra', 'TUN', truck_id),
-        (toyota_id, 'Prius', 'PRI', hybrid_id),
-        (toyota_id, 'Sienna', 'SIE', minivan_id),
-        (toyota_id, 'Avalon', 'AVA', sedan_id),
-        (toyota_id, 'Supra', 'SUP', sports_id),
-        (toyota_id, 'GR86', 'GR86', sports_id),
-        (toyota_id, 'Fortuner', 'FORT', suv_id),
-        (toyota_id, 'Innova Crysta', 'INN', minivan_id),
-        (toyota_id, 'Glanza', 'GLA', hatchback_id),
-        (toyota_id, 'Urban Cruiser', 'UC', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Datsun
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Datsun';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Redi-Go', 'REDI', cat_hatchback),
+            (curr_make_id, 'Go', 'GO', cat_hatchback)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Honda Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (honda_id, 'Accord', 'ACC', sedan_id),
-        (honda_id, 'Civic', 'CIV', sedan_id),
-        (honda_id, 'CR-V', 'CRV', suv_id),
-        (honda_id, 'Pilot', 'PIL', suv_id),
-        (honda_id, 'Odyssey', 'ODY', minivan_id),
-        (honda_id, 'Ridgeline', 'RID', truck_id),
-        (honda_id, 'HR-V', 'HRV', suv_id),
-        (honda_id, 'Passport', 'PAS', suv_id),
-        (honda_id, 'City', 'CITY', sedan_id),
-        (honda_id, 'Amaze', 'AMZ', sedan_id),
-        (honda_id, 'Elevate', 'ELV', suv_id),
-        (honda_id, 'WR-V', 'WRV', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Renault
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Renault';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Kwid', 'KWID', cat_hatchback),
+            (curr_make_id, 'Triber', 'TRIB', cat_minivan),
+            (curr_make_id, 'Duster', 'DUST', cat_suv),
+            (curr_make_id, 'Lodgy', 'LODG', cat_minivan),
+            (curr_make_id, 'Captur', 'CAPT', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Ford Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (ford_id, 'F-150', 'F150', truck_id),
-        (ford_id, 'Mustang', 'MUS', sports_id),
-        (ford_id, 'Explorer', 'EXP', suv_id),
-        (ford_id, 'Escape', 'ESC', suv_id),
-        (ford_id, 'Edge', 'EDG', suv_id),
-        (ford_id, 'Expedition', 'EXPE', suv_id),
-        (ford_id, 'Bronco', 'BRO', suv_id),
-        (ford_id, 'Ranger', 'RAN', truck_id),
-        (ford_id, 'Maverick', 'MAV', truck_id),
-        (ford_id, 'Transit', 'TRA', van_id),
-        (ford_id, 'Endeavour', 'END', suv_id),
-        (ford_id, 'EcoSport', 'ECO', suv_id),
-        (ford_id, 'Figo', 'FIG', hatchback_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Maruti Suzuki
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Maruti Suzuki';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Eeco', 'EECO', cat_minivan),
+            (curr_make_id, 'Alto K10', 'ALTO', cat_hatchback),
+            (curr_make_id, 'Celerio Tour', 'CELE', cat_hatchback),
+            (curr_make_id, 'Celerio X', 'CELE', cat_hatchback),
+            (curr_make_id, 'Ignis', 'IGNI', cat_hatchback),
+            (curr_make_id, 'Dzire Tour', 'DZIR', cat_sedan),
+            (curr_make_id, 'Dzire', 'DZIR', cat_sedan),
+            (curr_make_id, 'Alto', 'ALTO', cat_hatchback),
+            (curr_make_id, 'S-Presso', 'SPR', cat_hatchback),
+            (curr_make_id, 'Celerio', 'CELE', cat_hatchback),
+            (curr_make_id, 'Swift', 'SWIF', cat_hatchback),
+            (curr_make_id, 'Gypsy', 'GYPS', cat_suv),
+            (curr_make_id, 'Vitara Brezza', 'VITA', cat_suv),
+            (curr_make_id, 'Xl6', 'XL6', cat_minivan),
+            (curr_make_id, 'Omni', 'OMNI', cat_minivan),
+            (curr_make_id, 'Baleno', 'BALE', cat_hatchback),
+            (curr_make_id, 'Ertiga', 'ERTI', cat_minivan),
+            (curr_make_id, 'Baleno Rs', 'BALE', cat_hatchback),
+            (curr_make_id, 'S-Cross', 'SCR', cat_sedan),
+            (curr_make_id, 'Alto 800 Tour', 'ALTO', cat_hatchback),
+            (curr_make_id, 'Ciaz', 'CIAZ', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Chevrolet Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (chevrolet_id, 'Silverado', 'SIL', truck_id),
-        (chevrolet_id, 'Tahoe', 'TAH', suv_id),
-        (chevrolet_id, 'Suburban', 'SUBR', suv_id),
-        (chevrolet_id, 'Equinox', 'EQU', suv_id),
-        (chevrolet_id, 'Traverse', 'TRAV', suv_id),
-        (chevrolet_id, 'Malibu', 'MAL', sedan_id),
-        (chevrolet_id, 'Camaro', 'CAMA', sports_id),
-        (chevrolet_id, 'Corvette', 'CORV', sports_id),
-        (chevrolet_id, 'Blazer', 'BLA', suv_id),
-        (chevrolet_id, 'Colorado', 'COL', truck_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Hyundai
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Hyundai';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Santro', 'SANT', cat_hatchback),
+            (curr_make_id, 'Xcent Prime', 'XCEN', cat_sedan),
+            (curr_make_id, 'Elite I20', 'ELIT', cat_hatchback),
+            (curr_make_id, 'Aura', 'AURA', cat_sedan),
+            (curr_make_id, 'Grand I10 Prime', 'GRAN', cat_hatchback),
+            (curr_make_id, 'Venue', 'VENU', cat_suv),
+            (curr_make_id, 'I20 Active', 'I20', cat_hatchback),
+            (curr_make_id, 'Verna', 'VERN', cat_sedan),
+            (curr_make_id, 'Grand I10', 'GRAN', cat_hatchback),
+            (curr_make_id, 'Elantra', 'ELAN', cat_sedan),
+            (curr_make_id, 'Tucson', 'TUCS', cat_suv),
+            (curr_make_id, 'Grand I10 Nios', 'GRAN', cat_hatchback),
+            (curr_make_id, 'Xcent', 'XCEN', cat_sedan),
+            (curr_make_id, 'Creta', 'CRET', cat_suv),
+            (curr_make_id, 'Kona Electric', 'KONA', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- BMW Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (bmw_id, '3 Series', '3SER', sedan_id),
-        (bmw_id, '5 Series', '5SER', sedan_id),
-        (bmw_id, '7 Series', '7SER', sedan_id),
-        (bmw_id, 'X1', 'X1', suv_id),
-        (bmw_id, 'X3', 'X3', suv_id),
-        (bmw_id, 'X5', 'X5', suv_id),
-        (bmw_id, 'X7', 'X7', suv_id),
-        (bmw_id, 'M3', 'M3', sports_id),
-        (bmw_id, 'M5', 'M5', sports_id),
-        (bmw_id, 'i4', 'I4', electric_id),
-        (bmw_id, 'iX', 'IX', electric_id),
-        (bmw_id, '2 Series Gran Coupe', '2GC', sedan_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Premier
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Premier';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Rio', 'RIO', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Mercedes-Benz Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (mercedes_id, 'C-Class', 'C-CL', sedan_id),
-        (mercedes_id, 'E-Class', 'E-CL', sedan_id),
-        (mercedes_id, 'S-Class', 'S-CL', sedan_id),
-        (mercedes_id, 'A-Class', 'A-CL', sedan_id),
-        (mercedes_id, 'GLA', 'GLA', suv_id),
-        (mercedes_id, 'GLC', 'GLC', suv_id),
-        (mercedes_id, 'GLE', 'GLE', suv_id),
-        (mercedes_id, 'GLS', 'GLS', suv_id),
-        (mercedes_id, 'G-Class', 'G-CL', suv_id),
-        (mercedes_id, 'EQS', 'EQS', electric_id),
-        (mercedes_id, 'EQE', 'EQE', electric_id),
-        (mercedes_id, 'AMG GT', 'AMGT', sports_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Toyota
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Toyota';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Etios Liva', 'ETIO', cat_hatchback),
+            (curr_make_id, 'Platinum Etios', 'PLAT', cat_sedan),
+            (curr_make_id, 'Etios Cross', 'ETIO', cat_hatchback),
+            (curr_make_id, 'Glanza', 'GLAN', cat_hatchback),
+            (curr_make_id, 'Land Cruiser Prado', 'LAND', cat_suv),
+            (curr_make_id, 'Innova Crysta', 'INNO', cat_minivan),
+            (curr_make_id, 'Corolla Altis', 'CORO', cat_sedan),
+            (curr_make_id, 'Fortuner', 'FORT', cat_suv),
+            (curr_make_id, 'Land Cruiser', 'LAND', cat_suv),
+            (curr_make_id, 'Prius', 'PRIU', cat_sedan),
+            (curr_make_id, 'Camry', 'CAMR', cat_sedan),
+            (curr_make_id, 'Yaris', 'YARI', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Audi Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (audi_id, 'A3', 'A3', sedan_id),
-        (audi_id, 'A4', 'A4', sedan_id),
-        (audi_id, 'A6', 'A6', sedan_id),
-        (audi_id, 'A8', 'A8', sedan_id),
-        (audi_id, 'Q3', 'Q3', suv_id),
-        (audi_id, 'Q5', 'Q5', suv_id),
-        (audi_id, 'Q7', 'Q7', suv_id),
-        (audi_id, 'Q8', 'Q8', suv_id),
-        (audi_id, 'e-tron', 'ETR', electric_id),
-        (audi_id, 'R8', 'R8', sports_id),
-        (audi_id, 'TT', 'TT', sports_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Nissan
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Nissan';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Micra Active', 'MICR', cat_hatchback),
+            (curr_make_id, 'Sunny', 'SUNN', cat_sedan),
+            (curr_make_id, 'Terrano', 'TERR', cat_suv),
+            (curr_make_id, 'Gtr', 'GTR', cat_coupe),
+            (curr_make_id, 'Micra', 'MICR', cat_hatchback),
+            (curr_make_id, 'Kicks', 'KICK', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Volkswagen Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (vw_id, 'Polo', 'POL', hatchback_id),
-        (vw_id, 'Virtus', 'VIR', sedan_id),
-        (vw_id, 'Taigun', 'TAI', suv_id),
-        (vw_id, 'Tiguan', 'TIG', suv_id),
-        (vw_id, 'Jetta', 'JET', sedan_id),
-        (vw_id, 'Passat', 'PAS', sedan_id),
-        (vw_id, 'Atlas', 'ATL', suv_id),
-        (vw_id, 'Golf', 'GOL', hatchback_id),
-        (vw_id, 'ID.4', 'ID4', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Volkswagen
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Volkswagen';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Polo', 'POLO', cat_hatchback),
+            (curr_make_id, 'Ameo', 'AMEO', cat_sedan),
+            (curr_make_id, 'Tiguan', 'TIGU', cat_suv),
+            (curr_make_id, 'Vento', 'VENT', cat_sedan),
+            (curr_make_id, 'Passat', 'PASS', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Hyundai Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (hyundai_id, 'i10', 'I10', hatchback_id),
-        (hyundai_id, 'i20', 'I20', hatchback_id),
-        (hyundai_id, 'Grand i10 Nios', 'GI10', hatchback_id),
-        (hyundai_id, 'Aura', 'AUR', sedan_id),
-        (hyundai_id, 'Verna', 'VER', sedan_id),
-        (hyundai_id, 'Elantra', 'ELA', sedan_id),
-        (hyundai_id, 'Venue', 'VEN', suv_id),
-        (hyundai_id, 'Creta', 'CRE', suv_id),
-        (hyundai_id, 'Alcazar', 'ALC', suv_id),
-        (hyundai_id, 'Tucson', 'TUC', suv_id),
-        (hyundai_id, 'Kona Electric', 'KONE', electric_id),
-        (hyundai_id, 'Ioniq 5', 'ION5', electric_id),
-        (hyundai_id, 'Ioniq 6', 'ION6', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Ford
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Ford';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Freestyle', 'FREE', cat_sedan),
+            (curr_make_id, 'Aspire', 'ASPI', cat_sedan),
+            (curr_make_id, 'Mustang', 'MUST', cat_sedan),
+            (curr_make_id, 'Ecosport', 'ECOS', cat_suv),
+            (curr_make_id, 'Endeavour', 'ENDE', cat_suv),
+            (curr_make_id, 'Figo', 'FIGO', cat_hatchback)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Kia Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (kia_id, 'Seltos', 'SEL', suv_id),
-        (kia_id, 'Sonet', 'SON', suv_id),
-        (kia_id, 'Carens', 'CAR', minivan_id),
-        (kia_id, 'Carnival', 'CARN', minivan_id),
-        (kia_id, 'EV6', 'EV6', electric_id),
-        (kia_id, 'Sportage', 'SPO', suv_id),
-        (kia_id, 'Sorento', 'SOR', suv_id),
-        (kia_id, 'Telluride', 'TEL', suv_id),
-        (kia_id, 'K5', 'K5', sedan_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Mahindra
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Mahindra';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Verito Vibe', 'VERI', cat_hatchback),
+            (curr_make_id, 'Alturas G4', 'ALTU', cat_sedan),
+            (curr_make_id, 'Kuv100 Nxt', 'KUV1', cat_hatchback),
+            (curr_make_id, 'Bolero Power Plus', 'BOLE', cat_suv),
+            (curr_make_id, 'Xuv300', 'XUV3', cat_suv),
+            (curr_make_id, 'E2O Plus', 'E2O', cat_hatchback),
+            (curr_make_id, 'Thar', 'THAR', cat_suv),
+            (curr_make_id, 'Tuv300 Plus', 'TUV3', cat_suv),
+            (curr_make_id, 'Marazzo', 'MARA', cat_minivan),
+            (curr_make_id, 'Scorpio', 'SCOR', cat_suv),
+            (curr_make_id, 'Xuv500', 'XUV5', cat_suv),
+            (curr_make_id, 'E Verito', 'EVE', cat_sedan),
+            (curr_make_id, 'Tuv300', 'TUV3', cat_suv),
+            (curr_make_id, 'Xylo', 'XYLO', cat_suv),
+            (curr_make_id, 'Bolero', 'BOLE', cat_suv),
+            (curr_make_id, 'Nuvosport', 'NUVO', cat_suv),
+            (curr_make_id, 'Verito', 'VERI', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Maruti Suzuki Models (India-specific)
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (maruti_id, 'Alto', 'ALT', hatchback_id),
-        (maruti_id, 'Alto K10', 'ALTK', hatchback_id),
-        (maruti_id, 'S-Presso', 'SPR', hatchback_id),
-        (maruti_id, 'Celerio', 'CEL', hatchback_id),
-        (maruti_id, 'WagonR', 'WAG', hatchback_id),
-        (maruti_id, 'Swift', 'SWI', hatchback_id),
-        (maruti_id, 'Baleno', 'BAL', hatchback_id),
-        (maruti_id, 'Dzire', 'DZI', sedan_id),
-        (maruti_id, 'Ciaz', 'CIZ', sedan_id),
-        (maruti_id, 'Brezza', 'BRZ', suv_id),
-        (maruti_id, 'Grand Vitara', 'GV', suv_id),
-        (maruti_id, 'Fronx', 'FRO', suv_id),
-        (maruti_id, 'Jimny', 'JIM', suv_id),
-        (maruti_id, 'Ertiga', 'ERT', minivan_id),
-        (maruti_id, 'XL6', 'XL6', minivan_id),
-        (maruti_id, 'Invicto', 'INV', minivan_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Fiat
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Fiat';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Urban Cross', 'URBA', cat_sedan),
+            (curr_make_id, 'Avventura', 'AVVE', cat_sedan),
+            (curr_make_id, 'Linea', 'LINE', cat_sedan),
+            (curr_make_id, 'Abarth Avventura', 'ABAR', cat_sedan),
+            (curr_make_id, 'Punto Evo Pure', 'PUNT', cat_hatchback),
+            (curr_make_id, 'Linea Classic', 'LINE', cat_sedan),
+            (curr_make_id, 'Abarth Punto', 'ABAR', cat_hatchback),
+            (curr_make_id, 'Punto Evo', 'PUNT', cat_hatchback)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Tata Motors Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (tata_id, 'Tiago', 'TIA', hatchback_id),
-        (tata_id, 'Altroz', 'ALT', hatchback_id),
-        (tata_id, 'Punch', 'PUN', suv_id),
-        (tata_id, 'Nexon', 'NEX', suv_id),
-        (tata_id, 'Nexon EV', 'NEXE', electric_id),
-        (tata_id, 'Harrier', 'HAR', suv_id),
-        (tata_id, 'Safari', 'SAF', suv_id),
-        (tata_id, 'Tigor', 'TIG', sedan_id),
-        (tata_id, 'Tigor EV', 'TIGE', electric_id),
-        (tata_id, 'Tiago EV', 'TIAE', electric_id),
-        (tata_id, 'Curvv', 'CUR', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Honda
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Honda';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Jazz', 'JAZZ', cat_hatchback),
+            (curr_make_id, 'Cr-V', 'CRV', cat_suv),
+            (curr_make_id, 'Amaze', 'AMAZ', cat_sedan),
+            (curr_make_id, 'Brv', 'BRV', cat_suv),
+            (curr_make_id, 'Civic', 'CIVI', cat_sedan),
+            (curr_make_id, 'Wr-V', 'WRV', cat_suv),
+            (curr_make_id, 'Accord Hybrid', 'ACCO', cat_sedan),
+            (curr_make_id, 'City', 'CITY', cat_sedan),
+            (curr_make_id, 'Activa', 'ACTI', cat_scooter),
+            (curr_make_id, 'Unicorn', 'UNIC', cat_bike),
+            (curr_make_id, 'Shine', 'SHIN', cat_bike),
+            (curr_make_id, 'Dio', 'DIO', cat_scooter),
+            (curr_make_id, 'CBR 650R', 'CBR', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Mahindra Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (mahindra_id, 'Thar', 'THA', suv_id),
-        (mahindra_id, 'Scorpio-N', 'SCN', suv_id),
-        (mahindra_id, 'Scorpio Classic', 'SCC', suv_id),
-        (mahindra_id, 'XUV700', 'X700', suv_id),
-        (mahindra_id, 'XUV400', 'X400', electric_id),
-        (mahindra_id, 'XUV300', 'X300', suv_id),
-        (mahindra_id, 'Bolero', 'BOL', suv_id),
-        (mahindra_id, 'Bolero Neo', 'BOLN', suv_id),
-        (mahindra_id, 'Marazzo', 'MAR', minivan_id),
-        (mahindra_id, 'BE 6', 'BE6', electric_id),
-        (mahindra_id, 'XEV 9e', 'XEV9', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Jeep
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Jeep';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Compass Trailhawk', 'COMP', cat_suv),
+            (curr_make_id, 'Grand Cherokee', 'GRAN', cat_suv),
+            (curr_make_id, 'Compass', 'COMP', cat_suv),
+            (curr_make_id, 'Wrangler', 'WRAN', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- MG Motor Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (mg_id, 'Hector', 'HEC', suv_id),
-        (mg_id, 'Hector Plus', 'HECP', suv_id),
-        (mg_id, 'Astor', 'AST', suv_id),
-        (mg_id, 'ZS EV', 'ZSEV', electric_id),
-        (mg_id, 'Comet EV', 'COM', electric_id),
-        (mg_id, 'Gloster', 'GLO', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Isuzu
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Isuzu';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Mu-X', 'MUX', cat_suv),
+            (curr_make_id, 'Dmax V-Cross', 'DMAX', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Skoda Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (skoda_id, 'Slavia', 'SLA', sedan_id),
-        (skoda_id, 'Kushaq', 'KUS', suv_id),
-        (skoda_id, 'Kodiaq', 'KOD', suv_id),
-        (skoda_id, 'Superb', 'SUP', sedan_id),
-        (skoda_id, 'Octavia', 'OCT', sedan_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Skoda
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Skoda';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Superb Sportline', 'SUPE', cat_sedan),
+            (curr_make_id, 'Kodiaq', 'KODI', cat_suv),
+            (curr_make_id, 'Monte Carlo', 'MONT', cat_sedan),
+            (curr_make_id, 'Superb', 'SUPE', cat_sedan),
+            (curr_make_id, 'Kodiaq Scout', 'KODI', cat_suv),
+            (curr_make_id, 'Rapid', 'RAPI', cat_sedan),
+            (curr_make_id, 'Octavia', 'OCTA', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Renault Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (renault_id, 'Kwid', 'KWI', hatchback_id),
-        (renault_id, 'Triber', 'TRI', minivan_id),
-        (renault_id, 'Kiger', 'KIG', suv_id),
-        (renault_id, 'Duster', 'DUS', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Audi
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Audi';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'A3', 'A3', cat_sedan),
+            (curr_make_id, 'Q3', 'Q3', cat_suv),
+            (curr_make_id, 'A4', 'A4', cat_sedan),
+            (curr_make_id, 'A3 Cabriolet', 'A3C', cat_convertible),
+            (curr_make_id, 'A6', 'A6', cat_sedan),
+            (curr_make_id, 'S5', 'S5', cat_sedan),
+            (curr_make_id, 'Rs5', 'RS5', cat_coupe),
+            (curr_make_id, 'Q8', 'Q8', cat_suv),
+            (curr_make_id, 'A8 L', 'A8L', cat_sedan),
+            (curr_make_id, 'R8', 'R8', cat_coupe),
+            (curr_make_id, 'Q5', 'Q5', cat_suv),
+            (curr_make_id, 'Q7', 'Q7', cat_suv),
+            (curr_make_id, 'Rs7', 'RS7', cat_sedan),
+            (curr_make_id, 'A5 Cabriolet', 'A5C', cat_convertible),
+            (curr_make_id, 'A5', 'A5', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Tesla Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (tesla_id, 'Model 3', 'M3', electric_id),
-        (tesla_id, 'Model Y', 'MY', electric_id),
-        (tesla_id, 'Model S', 'MS', electric_id),
-        (tesla_id, 'Model X', 'MX', electric_id),
-        (tesla_id, 'Cybertruck', 'CYB', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Dc
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Dc';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Avanti', 'AVAN', cat_coupe)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Jeep Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (jeep_id, 'Compass', 'COM', suv_id),
-        (jeep_id, 'Meridian', 'MER', suv_id),
-        (jeep_id, 'Wrangler', 'WRA', suv_id),
-        (jeep_id, 'Grand Cherokee', 'GC', suv_id),
-        (jeep_id, 'Gladiator', 'GLA', truck_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Mini
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Mini';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Cooper 5 Door', 'COOP', cat_hatchback),
+            (curr_make_id, 'Convertible', 'CONV', cat_convertible),
+            (curr_make_id, 'Clubman', 'CLUB', cat_hatchback),
+            (curr_make_id, 'John Cooper Works', 'JOHN', cat_hatchback),
+            (curr_make_id, 'Cooper 3 Door', 'COOP', cat_hatchback),
+            (curr_make_id, 'Countryman', 'COUN', cat_hatchback)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Lexus Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (lexus_id, 'ES', 'ES', sedan_id),
-        (lexus_id, 'LS', 'LS', sedan_id),
-        (lexus_id, 'NX', 'NX', suv_id),
-        (lexus_id, 'RX', 'RX', suv_id),
-        (lexus_id, 'LX', 'LX', suv_id),
-        (lexus_id, 'LC', 'LC', sports_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Volvo
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Volvo';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Xc40', 'XC40', cat_suv),
+            (curr_make_id, 'S90', 'S90', cat_sedan),
+            (curr_make_id, 'V40', 'V40', cat_hatchback),
+            (curr_make_id, 'S60', 'S60', cat_sedan),
+            (curr_make_id, 'S60 Cross Country', 'S60', cat_sedan),
+            (curr_make_id, 'Xc60', 'XC60', cat_suv),
+            (curr_make_id, 'Xc90', 'XC90', cat_suv),
+            (curr_make_id, 'V40 Cross Country', 'V40', cat_hatchback),
+            (curr_make_id, 'V90 Cross Country', 'V90', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Volvo Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (volvo_id, 'S60', 'S60', sedan_id),
-        (volvo_id, 'S90', 'S90', sedan_id),
-        (volvo_id, 'XC40', 'XC40', suv_id),
-        (volvo_id, 'XC60', 'XC60', suv_id),
-        (volvo_id, 'XC90', 'XC90', suv_id),
-        (volvo_id, 'XC40 Recharge', 'XC40E', electric_id),
-        (volvo_id, 'C40 Recharge', 'C40', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Jaguar
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Jaguar';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Xe', 'XE', cat_sedan),
+            (curr_make_id, 'Xf', 'XF', cat_sedan),
+            (curr_make_id, 'Xj', 'XJ', cat_sedan),
+            (curr_make_id, 'F-Pace', 'FPA', cat_suv),
+            (curr_make_id, 'F-Type', 'FTY', cat_convertible)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Porsche Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (porsche_id, '911', '911', sports_id),
-        (porsche_id, 'Cayenne', 'CAY', suv_id),
-        (porsche_id, 'Macan', 'MAC', suv_id),
-        (porsche_id, 'Panamera', 'PAN', sedan_id),
-        (porsche_id, 'Taycan', 'TAY', electric_id),
-        (porsche_id, '718 Cayman', '718C', sports_id),
-        (porsche_id, '718 Boxster', '718B', sports_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Bmw
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Bmw';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'X3', 'X3', cat_suv),
+            (curr_make_id, 'X5', 'X5', cat_suv),
+            (curr_make_id, 'M2 Competition', 'M2C', cat_coupe),
+            (curr_make_id, '7-Series', '7SE', cat_sedan),
+            (curr_make_id, 'X1', 'X1', cat_suv),
+            (curr_make_id, '3-Series', '3SE', cat_sedan),
+            (curr_make_id, 'X4', 'X4', cat_suv),
+            (curr_make_id, 'Z4 Roadster', 'Z4R', cat_convertible),
+            (curr_make_id, 'X7', 'X7', cat_suv),
+            (curr_make_id, 'M4', 'M4', cat_coupe),
+            (curr_make_id, '5-Series', '5SE', cat_sedan),
+            (curr_make_id, '6-Series', '6SE', cat_sedan),
+            (curr_make_id, 'M5', 'M5', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Land Rover Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (landrover_id, 'Range Rover', 'RR', suv_id),
-        (landrover_id, 'Range Rover Sport', 'RRS', suv_id),
-        (landrover_id, 'Range Rover Evoque', 'RRE', suv_id),
-        (landrover_id, 'Range Rover Velar', 'RRV', suv_id),
-        (landrover_id, 'Defender', 'DEF', suv_id),
-        (landrover_id, 'Discovery', 'DIS', suv_id),
-        (landrover_id, 'Discovery Sport', 'DSP', suv_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Land Rover
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Land Rover';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Discovery Sport', 'DISC', cat_suv),
+            (curr_make_id, 'Discovery', 'DISC', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Jaguar Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (jaguar_id, 'XE', 'XE', sedan_id),
-        (jaguar_id, 'XF', 'XF', sedan_id),
-        (jaguar_id, 'F-PACE', 'FP', suv_id),
-        (jaguar_id, 'E-PACE', 'EP', suv_id),
-        (jaguar_id, 'I-PACE', 'IP', electric_id),
-        (jaguar_id, 'F-TYPE', 'FT', sports_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Porsche
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Porsche';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, '718', '718', cat_convertible),
+            (curr_make_id, 'Panamera', 'PANA', cat_sedan),
+            (curr_make_id, 'Cayenne', 'CAYE', cat_suv),
+            (curr_make_id, '911', '911', cat_coupe),
+            (curr_make_id, 'Macan', 'MACA', cat_suv),
+            (curr_make_id, 'Cayenne Coupe', 'CAYE', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    -- ========================================================================
-    -- Mini Models
-    -- ========================================================================
-    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
-        (mini_id, 'Cooper', 'COOP', hatchback_id),
-        (mini_id, 'Cooper S', 'COOPS', hatchback_id),
-        (mini_id, 'Countryman', 'COUN', suv_id),
-        (mini_id, 'Clubman', 'CLUB', hatchback_id),
-        (mini_id, 'Electric', 'ELEC', electric_id)
-    ON CONFLICT (make_id, name) DO NOTHING;
+    -- Lexus
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Lexus';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Rx 450H', 'RX4', cat_suv),
+            (curr_make_id, 'Lc 500H', 'LC5', cat_coupe),
+            (curr_make_id, 'Lx 450D', 'LX4', cat_suv),
+            (curr_make_id, 'Es', 'ES', cat_sedan),
+            (curr_make_id, 'Nx 300H', 'NX3', cat_suv),
+            (curr_make_id, 'Lx 570', 'LX5', cat_suv),
+            (curr_make_id, 'Ls 500H', 'LS5', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
 
-    RAISE NOTICE 'Vehicle seed data inserted successfully!';
+    -- Maserati
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Maserati';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Levante', 'LEVA', cat_suv),
+            (curr_make_id, 'Granturismo', 'GRAN', cat_coupe),
+            (curr_make_id, 'Quattroporte', 'QUAT', cat_sedan),
+            (curr_make_id, 'Ghibli', 'GHIB', cat_sedan),
+            (curr_make_id, 'Grancabrio', 'GRAN', cat_convertible)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Lamborghini
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Lamborghini';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Urus', 'URUS', cat_suv),
+            (curr_make_id, 'Huracan', 'HURA', cat_coupe),
+            (curr_make_id, 'Aventador', 'AVEN', cat_convertible)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Bentley
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Bentley';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Continental Gt', 'CONT', cat_coupe),
+            (curr_make_id, 'Bentayga', 'BENT', cat_suv),
+            (curr_make_id, 'Mulsanne', 'MULS', cat_sedan),
+            (curr_make_id, 'Flying Spur', 'FLYI', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Ferrari
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Ferrari';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Portofino', 'PORT', cat_convertible),
+            (curr_make_id, '458 Speciale', '458', cat_coupe),
+            (curr_make_id, '488 Gtb', '488', cat_coupe),
+            (curr_make_id, 'Gtc4 Lusso', 'GTC4', cat_coupe),
+            (curr_make_id, '812 Superfast', '812', cat_coupe),
+            (curr_make_id, '458 Spider', '458', cat_coupe)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Aston Martin
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Aston Martin';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Db 11', 'DB1', cat_coupe),
+            (curr_make_id, 'Vantage', 'VANT', cat_coupe),
+            (curr_make_id, 'Rapide', 'RAPI', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Bugatti
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Bugatti';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Chiron', 'CHIR', cat_sedan)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Bajaj
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Bajaj';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Qute (Re60)', 'QUTE', cat_hatchback),
+            (curr_make_id, 'Dominar 400', 'DOMI', cat_bike),
+            (curr_make_id, 'Avenger 220', 'AVEN', cat_bike),
+            (curr_make_id, 'Platina 110', 'PLAT', cat_bike),
+            (curr_make_id, 'Pulsar 150', 'PULS', cat_bike),
+            (curr_make_id, 'CT 100', 'CT1', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Icml
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Icml';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Extreme', 'EXTR', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Force
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Force';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Gurkha', 'GURK', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Mg
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Mg';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Zs Ev', 'ZSE', cat_suv),
+            (curr_make_id, 'Hector', 'HECT', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Kia
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Kia';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Carnival', 'CARN', cat_minivan),
+            (curr_make_id, 'Seltos', 'SELT', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Land Rover Rover
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Land Rover Rover';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Range Evoque', 'RANG', cat_suv),
+            (curr_make_id, 'Range Evoque Convertible', 'RANG', cat_convertible),
+            (curr_make_id, 'Range Velar', 'RANG', cat_suv),
+            (curr_make_id, 'Range Sport', 'RANG', cat_suv),
+            (curr_make_id, 'Range', 'RANG', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Mitsubishi
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Mitsubishi';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Outlander', 'OUTL', cat_suv),
+            (curr_make_id, 'Pajero Sport', 'PAJE', cat_suv),
+            (curr_make_id, 'Montero', 'MONT', cat_suv)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Maruti Suzuki R
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Maruti Suzuki R';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Wagon', 'WAGO', cat_hatchback)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Royal Enfield
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Royal Enfield';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Hunter 350', 'HUNT', cat_bike),
+            (curr_make_id, 'Meteor 350', 'METE', cat_bike),
+            (curr_make_id, 'Classic 350', 'CLAS', cat_bike),
+            (curr_make_id, 'Interceptor 650', 'INTE', cat_bike),
+            (curr_make_id, 'Himalayan', 'HIMA', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- KTM
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'KTM';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, '125 Duke', '125', cat_bike),
+            (curr_make_id, '390 Adventure', '390', cat_bike),
+            (curr_make_id, 'Duke 200', 'DUKE', cat_bike),
+            (curr_make_id, 'RC 390', 'RC3', cat_bike),
+            (curr_make_id, '250 Duke', '250', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Kawasaki
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Kawasaki';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Ninja 300', 'NINJ', cat_bike),
+            (curr_make_id, 'Vulcan S', 'VULC', cat_bike),
+            (curr_make_id, 'Z650', 'Z650', cat_bike),
+            (curr_make_id, 'Versys 650', 'VERS', cat_bike),
+            (curr_make_id, 'Ninja 400', 'NINJ', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Yamaha
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Yamaha';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'FZ V3', 'FZV', cat_bike),
+            (curr_make_id, 'Fascino 125', 'FASC', cat_scooter),
+            (curr_make_id, 'MT-15', 'MT1', cat_bike),
+            (curr_make_id, 'Ray ZR', 'RAY', cat_bike),
+            (curr_make_id, 'R15 V4', 'R15', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- Hero
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'Hero';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Splendor Plus', 'SPLE', cat_bike),
+            (curr_make_id, 'HF Deluxe', 'HFD', cat_bike),
+            (curr_make_id, 'Xtreme 160R', 'XTRE', cat_bike),
+            (curr_make_id, 'Glamour', 'GLAM', cat_bike),
+            (curr_make_id, 'Passion Pro', 'PASS', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+    -- TVS
+    SELECT id INTO curr_make_id FROM public.vehicle_make WHERE name = 'TVS';
+    IF curr_make_id IS NOT NULL THEN
+        INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+            (curr_make_id, 'Jupiter', 'JUPI', cat_scooter),
+            (curr_make_id, 'NTorq 125', 'NTOR', cat_scooter),
+            (curr_make_id, 'Ronin', 'RONI', cat_bike),
+            (curr_make_id, 'Sport', 'SPOR', cat_bike),
+            (curr_make_id, 'Apache RTR 160', 'APAC', cat_bike)
+        ON CONFLICT (make_id, name) DO NOTHING;
+    END IF;
+
+
+    RAISE NOTICE 'Vehicle seed data from CSV inserted successfully!';
 END $$;
