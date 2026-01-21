@@ -335,8 +335,8 @@ export function useUpdateEstimateItem(jobId: string) {
     }) => {
       const res = await api.patch(`/api/estimates/items/${itemId}`, {
         qty: updates.qty,
-        unitPrice: updates.unitPrice,
-        laborCost: updates.laborCost,
+        unit_price: updates.unitPrice,
+        labor_cost: updates.laborCost,
       });
       if (!res.ok) throw new Error("Failed to update item");
       return res.json();

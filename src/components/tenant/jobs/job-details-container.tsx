@@ -149,6 +149,7 @@ export function JobDetailsContainer({
     invoice,
     tenantDetails,
     estimate,
+    notes: job.complaints,
   });
 
   const handleGenerateInvoice = async () => {

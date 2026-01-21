@@ -6,6 +6,7 @@ interface UsePrintableFunctionsProps {
   invoice: any;
   tenantDetails: any;
   estimate: any;
+  notes: string;
 }
 
 export const usePrintableFunctions = ({
@@ -14,6 +15,7 @@ export const usePrintableFunctions = ({
   invoice,
   tenantDetails,
   estimate,
+  notes,
 }: UsePrintableFunctionsProps) => {
   const handleGenerateInvoicePdf = () => {
     if (!invoice) return;
@@ -472,13 +474,9 @@ export const usePrintableFunctions = ({
 
         <div class="section">
            <div class="section-title">Mechanic Notes</div>
-           <div class="description-box" style="height: 150px;"></div>
+           <div class="description-box" style="height: 150px;">${notes}</div>
         </div>
-        
-        <div class="footer">
-          <p>${tenantDetails.name || "Garage"} | ${tenantDetails.address || ""}</p>
-        </div>
-        
+
         <script>
           window.onload = function() {
             window.print();
