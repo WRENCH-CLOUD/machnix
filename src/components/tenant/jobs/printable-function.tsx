@@ -36,10 +36,16 @@ export const usePrintableFunctions = ({
   notes,
 }: UsePrintableFunctionsProps) => {
   const handleGenerateInvoicePdf = () => {
-    if (!invoice) return;
+    if (!invoice) {
+      window.alert("Unable to generate invoice PDF because no invoice data is available.");
+      return;
+    }
 
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      window.alert("Unable to open a new window for the invoice PDF. Please allow pop-ups and try again.");
+      return;
+    }
 
     const partsSubtotal = estimateItems.reduce(
       (acc: number, item: { qty: number; unit_price: number }) =>
@@ -459,8 +465,8 @@ export const usePrintableFunctions = ({
             <div class="job-number">#${escapeHtml(job.jobNumber)}</div>
           </div>
           <div class="header-right">
-            <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date().toLocaleDateString()}</div>
-            <div class="status-badge">${escapeHtml(job.status)}</div>
+            <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date(job.createdAt).toLocaleDateString()}</div>
+            <div class="status-badge">${job.status}</div>
           </div>
         </div>
         
