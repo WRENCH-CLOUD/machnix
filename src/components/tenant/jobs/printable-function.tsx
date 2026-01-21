@@ -441,7 +441,7 @@ export const usePrintableFunctions = ({
             <div class="job-number">#${job.jobNumber}</div>
           </div>
           <div class="header-right">
-            <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date().toLocaleDateString()}</div>
+            <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date(job.createdAt).toLocaleDateString()}</div>
             <div class="status-badge">${job.status}</div>
           </div>
         </div>
