@@ -10,6 +10,17 @@ interface UsePrintableFunctionsProps {
 }
 
 /**
+ * HTML escape map for preventing XSS attacks
+ */
+const HTML_ESCAPE_MAP: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+/**
  * Escapes HTML special characters to prevent XSS attacks
  * @param text - The text to escape
  * @returns The escaped text safe for HTML insertion
@@ -17,14 +28,7 @@ interface UsePrintableFunctionsProps {
 function escapeHtml(text: string | number | undefined | null): string {
   if (text === null || text === undefined) return "";
   const str = String(text);
-  const htmlEscapeMap: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
-  return str.replace(/[&<>"']/g, (char) => htmlEscapeMap[char] || char);
+  return str.replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char]);
 }
 
 export const usePrintableFunctions = ({
