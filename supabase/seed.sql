@@ -775,7 +775,7 @@ BEGIN
         (royal_enfield_id, 'Bear 650', 'BEA650', motorcycle_id),
         (royal_enfield_id, 'Goan Classic 350', 'GOA350', motorcycle_id),
         (royal_enfield_id, 'Scram 440', 'SCR440', motorcycle_id),
-        (royal_enfield_id. 'Scram 411', 'SCR411', motorcycle_id),
+        (royal_enfield_id, 'Scram 411', 'SCR411', motorcycle_id),
         (royal_enfield_id, 'Hunter 350', 'HUN350', motorcycle_id)
     ON CONFLICT (make_id, name) DO NOTHING;
 
