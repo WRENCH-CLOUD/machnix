@@ -9,6 +9,24 @@ interface UsePrintableFunctionsProps {
   notes: string;
 }
 
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param text - The text to escape
+ * @returns The escaped text safe for HTML insertion
+ */
+function escapeHtml(text: string | number | undefined | null): string {
+  if (text === null || text === undefined) return "";
+  const str = String(text);
+  const htmlEscapeMap: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return str.replace(/[&<>"']/g, (char) => htmlEscapeMap[char] || char);
+}
+
 export const usePrintableFunctions = ({
   job,
   estimateItems,
@@ -50,7 +68,7 @@ export const usePrintableFunctions = ({
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Invoice - ${job.jobNumber}</title>
+        <title>Invoice - ${escapeHtml(job.jobNumber)}</title>
         <style>
           @media print {
             @page { margin: 1cm; }
@@ -77,7 +95,7 @@ export const usePrintableFunctions = ({
         <div class="header">
           <div class="header-left">
             <div class="title">INVOICE</div>
-            <div>${invoice.invoice_number || job.jobNumber}</div>
+            <div>${escapeHtml(invoice.invoice_number || job.jobNumber)}</div>
             <div style="font-size: 12px; color: #666;">Date: ${
               invoice.invoice_date
                 ? new Date(invoice.invoice_date).toLocaleDateString()
@@ -85,13 +103,13 @@ export const usePrintableFunctions = ({
             }</div>
           </div>
           <div class="header-right">
-            <div style="font-weight: bold; font-size: 18px;">${
+            <div style="font-weight: bold; font-size: 18px;">${escapeHtml(
               tenantDetails.name || "Garage"
-            }</div>
-            <div style="font-size: 12px;">${tenantDetails.address || ""}</div>
+            )}</div>
+            <div style="font-size: 12px;">${escapeHtml(tenantDetails.address || "")}</div>
             ${
               tenantDetails.gstin
-                ? `<div style="font-size: 12px;">GSTIN: ${tenantDetails.gstin}</div>`
+                ? `<div style="font-size: 12px;">GSTIN: ${escapeHtml(tenantDetails.gstin)}</div>`
                 : ""
             }
           </div>
@@ -100,14 +118,14 @@ export const usePrintableFunctions = ({
         <div class="info">
           <div>
             <div class="section-title">Bill To</div>
-            <div style="font-weight: bold; font-size: 16px;">${customerName}</div>
-            <div style="font-size: 14px;">${customerPhone}</div>
-            <div style="font-size: 14px;">${customerEmail}</div>
+            <div style="font-weight: bold; font-size: 16px;">${escapeHtml(customerName)}</div>
+            <div style="font-size: 14px;">${escapeHtml(customerPhone)}</div>
+            <div style="font-size: 14px;">${escapeHtml(customerEmail)}</div>
           </div>
           <div>
             <div class="section-title">Vehicle</div>
-            <div style="font-weight: bold; font-size: 16px;">${vehicleTitle}</div>
-            <div style="font-size: 14px; font-family: monospace;">${vehicleReg}</div>
+            <div style="font-weight: bold; font-size: 16px;">${escapeHtml(vehicleTitle)}</div>
+            <div style="font-size: 14px; font-family: monospace;">${escapeHtml(vehicleReg)}</div>
           </div>
         </div>
         
@@ -136,16 +154,16 @@ export const usePrintableFunctions = ({
                   const lineTotal = partsAmount + laborAmount;
                   const partNumber =
                     item.custom_part_number && item.custom_part_number !== ""
-                      ? `<div style="font-size: 11px; color: #666;">${item.custom_part_number}</div>`
+                      ? `<div style="font-size: 11px; color: #666;">${escapeHtml(item.custom_part_number)}</div>`
                       : "";
 
                   return `
                   <tr>
                     <td>
-                      <div style="font-weight: 500;">${item.custom_name}</div>
+                      <div style="font-weight: 500;">${escapeHtml(item.custom_name)}</div>
                       ${partNumber}
                     </td>
-                    <td class="text-right">${item.qty}</td>
+                    <td class="text-right">${escapeHtml(item.qty)}</td>
                     <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
                     <td class="text-right">${
                       laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
@@ -254,7 +272,7 @@ export const usePrintableFunctions = ({
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Estimate - ${job.jobNumber}</title>
+        <title>Estimate - ${escapeHtml(job.jobNumber)}</title>
         <style>
           @media print {
             @page { margin: 1cm; }
@@ -278,22 +296,22 @@ export const usePrintableFunctions = ({
       <body>
         <div class="header">
           <div class="title">ESTIMATE</div>
-          <div>Estimate #: ${estimate.estimate_number || job.jobNumber}</div>
+          <div>Estimate #: ${escapeHtml(estimate.estimate_number || job.jobNumber)}</div>
           <div>Date: ${new Date().toLocaleDateString()}</div>
         </div>
         
         <div class="info">
           <div class="section">
             <div class="section-title">Customer Information</div>
-            <div>Name: ${customerName}</div>
-            <div>Phone: ${customerPhone}</div>
-            <div>Email: ${customerEmail}</div>
+            <div>Name: ${escapeHtml(customerName)}</div>
+            <div>Phone: ${escapeHtml(customerPhone)}</div>
+            <div>Email: ${escapeHtml(customerEmail)}</div>
           </div>
           
           <div class="section">
             <div class="section-title">Vehicle Information</div>
-            <div>${vehicleTitle}</div>
-            <div>Registration: ${vehicleReg}</div>
+            <div>${escapeHtml(vehicleTitle)}</div>
+            <div>Registration: ${escapeHtml(vehicleReg)}</div>
           </div>
         </div>
         
@@ -323,13 +341,13 @@ export const usePrintableFunctions = ({
                   const lineTotal = partsAmount + laborAmount;
                   const partNumber =
                     item.custom_part_number && item.custom_part_number !== ""
-                      ? item.custom_part_number
+                      ? escapeHtml(item.custom_part_number)
                       : "-";
                   return `
                   <tr>
-                    <td>${item.custom_name}</td>
+                    <td>${escapeHtml(item.custom_name)}</td>
                     <td>${partNumber}</td>
-                    <td class="text-right">${item.qty}</td>
+                    <td class="text-right">${escapeHtml(item.qty)}</td>
                     <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
                     <td class="text-right">${
                       laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
@@ -400,7 +418,7 @@ export const usePrintableFunctions = ({
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Job Card - ${job.jobNumber}</title>
+        <title>Job Card - ${escapeHtml(job.jobNumber)}</title>
         <style>
           @media print {
             @page { margin: 1cm; }
@@ -438,11 +456,11 @@ export const usePrintableFunctions = ({
         <div class="header">
           <div class="header-left">
             <h1>JOB CARD</h1>
-            <div class="job-number">#${job.jobNumber}</div>
+            <div class="job-number">#${escapeHtml(job.jobNumber)}</div>
           </div>
           <div class="header-right">
             <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date().toLocaleDateString()}</div>
-            <div class="status-badge">${job.status}</div>
+            <div class="status-badge">${escapeHtml(job.status)}</div>
           </div>
         </div>
         
@@ -451,15 +469,15 @@ export const usePrintableFunctions = ({
             <div class="section-title">Customer Details</div>
             <div class="info-row">
               <span class="info-label">Name:</span>
-              <span class="info-value">${customerName}</span>
+              <span class="info-value">${escapeHtml(customerName)}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Phone:</span>
-              <span class="info-value">${customerPhone}</span>
+              <span class="info-value">${escapeHtml(customerPhone)}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Email:</span>
-              <span class="info-value">${customerEmail}</span>
+              <span class="info-value">${escapeHtml(customerEmail)}</span>
             </div>
           </div>
           
@@ -467,11 +485,11 @@ export const usePrintableFunctions = ({
             <div class="section-title">Vehicle Details</div>
             <div class="info-row">
               <span class="info-label">Vehicle:</span>
-              <span class="info-value"><strong>${vehicleTitle}</strong></span>
+              <span class="info-value"><strong>${escapeHtml(vehicleTitle)}</strong></span>
             </div>
             <div class="info-row">
               <span class="info-label">Reg No:</span>
-              <span class="info-value" style="font-family: monospace; font-size: 16px;">${vehicleReg}</span>
+              <span class="info-value" style="font-family: monospace; font-size: 16px;">${escapeHtml(vehicleReg)}</span>
             </div>
           </div>
         </div>
@@ -479,7 +497,7 @@ export const usePrintableFunctions = ({
 
         <div class="section">
            <div class="section-title">Mechanic Notes</div>
-           <div class="description-box" style="height: 150px;">${notes}</div>
+           <div class="description-box" style="height: 150px;">${escapeHtml(notes)}</div>
         </div>
 
         <script>
