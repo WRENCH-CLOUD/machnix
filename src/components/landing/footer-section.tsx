@@ -1,6 +1,6 @@
 "use client"
 
-import { Twitter, Github, Linkedin } from "lucide-react"
+import { Linkedin } from "lucide-react"
 
 export function FooterSection() {
   return (
@@ -11,12 +11,6 @@ export function FooterSection() {
           <div className="text-center text-foreground text-xl font-semibold leading-4">Wrench Cloud</div>
         </div>
         <div className="flex justify-start items-start gap-3">
-          <a href="#" aria-label="Twitter" className="w-4 h-4 flex items-center justify-center">
-            <Twitter className="w-full h-full text-muted-foreground" />
-          </a>
-          <a href="#" aria-label="GitHub" className="w-4 h-4 flex items-center justify-center">
-            <Github className="w-full h-full text-muted-foreground" />
-          </a>
           <a href="#" aria-label="LinkedIn" className="w-4 h-4 flex items-center justify-center">
             <Linkedin className="w-full h-full text-muted-foreground" />
           </a>
