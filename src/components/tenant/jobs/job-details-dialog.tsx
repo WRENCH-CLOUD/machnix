@@ -8,6 +8,7 @@ import {
   ChevronDown,
   AlertTriangle,
   RefreshCw,
+  Printer,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ interface JobDetailsDialogProps {
     address: string;
     gstin: string;
   };
+  onGenerateJobPdf?: () => void;
 }
 
 export function JobDetailsDialog({
@@ -93,6 +95,7 @@ export function JobDetailsDialog({
   setShowPaymentModal,
   onPaymentComplete,
   tenantDetails,
+  onGenerateJobPdf,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -246,6 +249,17 @@ export function JobDetailsDialog({
                 <span className="font-mono">{job.vehicle.regNo}</span>
               </div>
             </div>
+            {onGenerateJobPdf && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onGenerateJobPdf}
+                title="Print Job Card"
+                className="mr-2"
+              >
+                <Printer className="w-5 h-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-5 h-5" />
             </Button>
