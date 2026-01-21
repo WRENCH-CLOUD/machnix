@@ -216,7 +216,12 @@ export const usePrintableFunctions = ({
     if (!estimate || estimateItems.length === 0) return;
 
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      window.alert(
+        "Unable to open the estimate PDF window. This is often caused by a popup blocker. Please allow pop-ups for this site and try again."
+      );
+      return;
+    }
 
     const partsSubtotal =
       estimate.parts_total ??
