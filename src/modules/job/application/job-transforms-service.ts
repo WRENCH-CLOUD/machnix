@@ -52,6 +52,13 @@ export interface UIJob {
   updated_at?: Date | string
   estimatedCompletion?: Date | string
   complaints: string
+  todos?: {
+    id: string
+    text: string
+    completed: boolean
+    createdAt: string
+    completedAt?: string
+  }[]
 }
 
 /**
@@ -96,6 +103,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     } : null,
     status: dbJob.status,
     complaints: extractComplaints(dbJob.details),
+    todos: extractTodos(dbJob.details),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
     created_at: dbJob.createdAt,
@@ -139,6 +147,19 @@ function extractComplaints(details: any): string {
   }
   
   return 'No complaints recorded'
+}
+
+/**
+ * Extract todos from job details JSONB field
+ */
+function extractTodos(details: any): { id: string; text: string; completed: boolean; createdAt: string; completedAt?: string }[] {
+  if (!details || typeof details !== 'object') return []
+  
+  if (Array.isArray(details.todos)) {
+    return details.todos
+  }
+  
+  return []
 }
 
 /**

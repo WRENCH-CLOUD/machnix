@@ -1,20 +1,67 @@
 "use client";
 
-import { Phone, Mail, MapPin, Car, User, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
+import { JobTodos, type TodoItem } from "./job-todos";
+import { cn } from "@/lib/utils";
 
 interface JobOverviewProps {
   job: UIJob;
+  todos?: TodoItem[];
+  onAddTodo?: (text: string) => void;
+  onToggleTodo?: (todoId: string) => void;
+  onRemoveTodo?: (todoId: string) => void;
+  onUpdateTodo?: (todoId: string, text: string) => void;
+  notes?: string;
+  onUpdateNotes?: (notes: string) => void;
+  isEditable?: boolean;
 }
 
-export function JobOverview({ job }: JobOverviewProps) {
+export function JobOverview({
+  job,
+  todos = [],
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onUpdateTodo,
+  notes,
+  onUpdateNotes,
+  isEditable = true,
+}: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
+
+  // Local state for notes editing
+  const [localNotes, setLocalNotes] = useState(notes ?? job.complaints ?? "");
+  const [isNotesEditing, setIsNotesEditing] = useState(false);
+  const [notesDirty, setNotesDirty] = useState(false);
+
+  // Sync local notes when prop changes
+  useEffect(() => {
+    setLocalNotes(notes ?? job.complaints ?? "");
+    setNotesDirty(false);
+  }, [notes, job.complaints]);
+
+  const handleNotesChange = (value: string) => {
+    setLocalNotes(value);
+    setNotesDirty(value !== (notes ?? job.complaints ?? ""));
+  };
+
+  const handleSaveNotes = () => {
+    if (onUpdateNotes && notesDirty) {
+      onUpdateNotes(localNotes);
+      setNotesDirty(false);
+      setIsNotesEditing(false);
+    }
+  };
 
   // Calculate totals
   const partsSubtotal = job.partsTotal || 0;
@@ -134,17 +181,58 @@ export function JobOverview({ job }: JobOverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Complaints */}
+        {/* Complaints / Notes */}
         <Card className="md:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">
-              Customer Complaint
+            <CardTitle className="text-sm font-semibold flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Customer Complaint / Notes
+              </div>
+              {isEditable && notesDirty && (
+                <Button
+                  size="sm"
+                  onClick={handleSaveNotes}
+                  className="h-7 px-2 gap-1"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-foreground wrap-break-word">{job.complaints}</p>
+            {isEditable && onUpdateNotes ? (
+              <Textarea
+                value={localNotes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                onFocus={() => setIsNotesEditing(true)}
+                onBlur={() => {
+                  if (!notesDirty) setIsNotesEditing(false);
+                }}
+                placeholder="Add notes or customer complaints..."
+                className={cn(
+                  "min-h-[80px] resize-none transition-colors",
+                  isNotesEditing && "border-primary"
+                )}
+              />
+            ) : (
+              <p className="text-foreground wrap-break-word">{localNotes || "No complaints recorded"}</p>
+            )}
           </CardContent>
         </Card>
+
+        {/* Task List */}
+        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
+          <JobTodos
+            todos={todos}
+            onAddTodo={onAddTodo}
+            onToggleTodo={onToggleTodo}
+            onRemoveTodo={onRemoveTodo}
+            onUpdateTodo={onUpdateTodo}
+            disabled={!isEditable}
+          />
+        )}
 
         {/* Quick Stats */}
         <Card>

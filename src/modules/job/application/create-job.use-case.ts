@@ -13,6 +13,13 @@ export interface CreateJobDTO {
   serviceType?: string
   priority?: string
   estimatedCompletion?: string
+  todos?: {
+    id: string
+    text: string
+    completed: boolean
+    createdAt: string
+    completedAt?: string
+  }[]
 }
 
 /**
@@ -47,6 +54,7 @@ export class CreateJobUseCase {
       serviceType: dto.serviceType,
       priority: dto.priority,
       estimatedCompletion: dto.estimatedCompletion,
+      todos: dto.todos || [],
     }
 
     const job = await this.repository.create({

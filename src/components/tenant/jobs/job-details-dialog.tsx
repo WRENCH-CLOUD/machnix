@@ -27,6 +27,7 @@ import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
+import { type TodoItem } from "./job-todos";
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -67,6 +68,17 @@ interface JobDetailsDialogProps {
     gstin: string;
   };
   onGenerateJobPdf?: () => void;
+  
+  // Todo props
+  todos?: TodoItem[];
+  onAddTodo?: (text: string) => void;
+  onToggleTodo?: (todoId: string) => void;
+  onRemoveTodo?: (todoId: string) => void;
+  onUpdateTodo?: (todoId: string, text: string) => void;
+  
+  // Notes props
+  notes?: string;
+  onUpdateNotes?: (notes: string) => void;
 }
 
 export function JobDetailsDialog({
@@ -96,6 +108,13 @@ export function JobDetailsDialog({
   onPaymentComplete,
   tenantDetails,
   onGenerateJobPdf,
+  todos = [],
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onUpdateTodo,
+  notes,
+  onUpdateNotes,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -323,7 +342,17 @@ export function JobDetailsDialog({
 
             <div className="flex-1 overflow-hidden relative">
               <TabsContent value="overview" className="m-0 h-full">
-                <JobOverview job={job} />
+                <JobOverview
+                  job={job}
+                  todos={todos}
+                  onAddTodo={onAddTodo}
+                  onToggleTodo={onToggleTodo}
+                  onRemoveTodo={onRemoveTodo}
+                  onUpdateTodo={onUpdateTodo}
+                  notes={notes}
+                  onUpdateNotes={onUpdateNotes}
+                  isEditable={job.status !== "completed" && job.status !== "cancelled"}
+                />
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">

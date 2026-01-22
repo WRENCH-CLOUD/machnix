@@ -40,6 +40,7 @@ export const queryKeys = {
   jobs: {
     all: ["jobs"] as const,
     list: (tenantId: string) => [...queryKeys.jobs.all, "list", tenantId] as const,
+    todos: (jobId: string) => [...queryKeys.jobs.all, "todos", jobId] as const,
   },
   customers: {
     all: ["customers"] as const,
@@ -412,6 +413,61 @@ export function useUpdateJobStatus(jobId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
+// ============================================
+// Job Todos Mutation
+// ============================================
+
+interface TodoItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export function useUpdateJobTodos(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (todos: TodoItem[]) => {
+      const res = await api.patch(`/api/jobs/${jobId}/todos`, { todos });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Todo update failed:", res.status, errorData);
+        throw new Error(errorData.error || "Failed to update todos");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.todos(jobId) });
+    },
+  });
+}
+
+// ============================================
+// Job Notes Mutation
+// ============================================
+
+export function useUpdateJobNotes(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notes: string) => {
+      const res = await api.patch(`/api/jobs/${jobId}/notes`, { notes });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Notes update failed:", res.status, errorData);
+        throw new Error(errorData.error || "Failed to update notes");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
     },
   });
 }

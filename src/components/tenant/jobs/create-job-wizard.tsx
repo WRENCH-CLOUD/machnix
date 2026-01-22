@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { InlineTodos, type TodoItem } from "./job-todos";
 
 interface CreateJobWizardProps {
   isOpen: boolean;
@@ -76,6 +77,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Duplicate customer dialog state
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
+
+  // Todos state for job creation
+  const [todos, setTodos] = useState<TodoItem[]>([]);
 
   const handleAddCustomer = async () => {
     try {
@@ -254,6 +258,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           customerId: selectedCustomer.id,
           vehicleId: selectedVehicle.id,
           ...jobDetails,
+          todos: todos.length > 0 ? todos : undefined,
         }),
       });
 
@@ -556,6 +561,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
               />
             </div>
+            
+            {/* Optional Task List */}
+            <InlineTodos
+              todos={todos}
+              onChange={setTodos}
+              className="border-dashed"
+            />
           </div>
         );
 
@@ -593,6 +605,19 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 <p className="text-sm italic">"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
+            {todos.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Tasks ({todos.length})</Label>
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  {todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>{todo.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
     }

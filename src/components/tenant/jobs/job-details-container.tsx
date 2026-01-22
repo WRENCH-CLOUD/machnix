@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -15,9 +15,12 @@ import {
   useGenerateInvoice,
   useRecordPayment,
   useUpdateJobStatus,
+  useUpdateJobTodos,
+  useUpdateJobNotes,
   transformTenantSettingsForJobDetails,
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
+import { type TodoItem } from "./job-todos";
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -69,6 +72,18 @@ export function JobDetailsContainer({
   const generateInvoiceMutation = useGenerateInvoice(job.id);
   const recordPaymentMutation = useRecordPayment(job.id);
   const updateStatusMutation = useUpdateJobStatus(job.id);
+  const updateTodosMutation = useUpdateJobTodos(job.id);
+  const updateNotesMutation = useUpdateJobNotes(job.id);
+
+  // Local state for todos and notes (optimistic updates)
+  const [localTodos, setLocalTodos] = useState<TodoItem[]>(job.todos || []);
+  const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
+
+  // Sync local state when job changes
+  useEffect(() => {
+    setLocalTodos(job.todos || []);
+    setLocalNotes(job.complaints || "");
+  }, [job.id, job.todos, job.complaints]);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
@@ -166,6 +181,89 @@ export function JobDetailsContainer({
     }
   };
 
+  // Todo handlers
+  const handleAddTodo = async (text: string) => {
+    const newTodo: TodoItem = {
+      id: `todo-${Date.now()}`,
+      text,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    const updatedTodos = [...localTodos, newTodo];
+    setLocalTodos(updatedTodos);
+    
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error adding todo:", error);
+      setLocalTodos(localTodos); // Revert on error
+      toast.error("Failed to add task");
+    }
+  };
+
+  const handleToggleTodo = async (todoId: string) => {
+    const updatedTodos = localTodos.map((t) =>
+      t.id === todoId
+        ? {
+            ...t,
+            completed: !t.completed,
+            completedAt: !t.completed ? new Date().toISOString() : undefined,
+          }
+        : t
+    );
+    setLocalTodos(updatedTodos);
+    
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error toggling todo:", error);
+      setLocalTodos(localTodos);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleRemoveTodo = async (todoId: string) => {
+    const updatedTodos = localTodos.filter((t) => t.id !== todoId);
+    setLocalTodos(updatedTodos);
+    
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error removing todo:", error);
+      setLocalTodos(localTodos);
+      toast.error("Failed to remove task");
+    }
+  };
+
+  const handleUpdateTodo = async (todoId: string, text: string) => {
+    const updatedTodos = localTodos.map((t) =>
+      t.id === todoId ? { ...t, text } : t
+    );
+    setLocalTodos(updatedTodos);
+    
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error updating todo:", error);
+      setLocalTodos(localTodos);
+      toast.error("Failed to update task");
+    }
+  };
+
+  // Notes handler
+  const handleUpdateNotes = async (notes: string) => {
+    setLocalNotes(notes);
+    
+    try {
+      await updateNotesMutation.mutateAsync(notes);
+      onJobUpdate?.();
+    } catch (error) {
+      console.error("Error updating notes:", error);
+      setLocalNotes(job.complaints || "");
+      toast.error("Failed to update notes");
+    }
+  };
+
   const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
 
@@ -216,6 +314,15 @@ export function JobDetailsContainer({
       onPaymentComplete={handlePaymentComplete}
       onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
+      // Todo props
+      todos={localTodos}
+      onAddTodo={handleAddTodo}
+      onToggleTodo={handleToggleTodo}
+      onRemoveTodo={handleRemoveTodo}
+      onUpdateTodo={handleUpdateTodo}
+      // Notes props
+      notes={localNotes}
+      onUpdateNotes={handleUpdateNotes}
     />
   );
 }
