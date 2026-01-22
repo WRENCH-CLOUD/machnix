@@ -89,6 +89,7 @@ export default function TenantLayoutWrapper({
   }, [pathname, router])
 
   const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false)
     refetchOnboarding()
   }, [refetchOnboarding])
 
@@ -217,6 +218,13 @@ export default function TenantLayoutWrapper({
 
   return (
     <SidebarProvider>
+      {/* Onboarding Modal - shown if user hasn't completed onboarding */}
+      {showOnboarding && (
+        <OnboardingModal 
+          initialData={onboardingData}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
       
       <TenantLayoutContent
         tenantName={tenantName}
@@ -229,3 +237,4 @@ export default function TenantLayoutWrapper({
     </SidebarProvider>
   )
 }
+

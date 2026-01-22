@@ -13,7 +13,7 @@ const onboardingSchema = z.object({
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
-  pincode: z.string().optional(),
+  pincode: z.string().min(5, 'pincode is required'),
   businessPhone: z.string().min(1, 'Phone number is required'),
   businessEmail: z.string().email().optional().or(z.literal('')),
   taxRate: z.number().optional(),
