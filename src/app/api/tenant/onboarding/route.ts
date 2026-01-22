@@ -8,19 +8,19 @@ import { z } from 'zod'
 const onboardingSchema = z.object({
   garageName: z.string().min(1, 'Garage name is required'),
   legalName: z.string().optional(),
-  gstNumber: z.string().optional(),
+  gstNumber: z.string().min(1, 'GST Number is required'),
   panNumber: z.string().optional(),
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
-  pincode: z.string().optional(),
+  pincode: z.string().min(5, 'pincode is required'),
   businessPhone: z.string().min(1, 'Phone number is required'),
   businessEmail: z.string().email().optional().or(z.literal('')),
   taxRate: z.number().optional(),
   currency: z.string().optional(),
   invoicePrefix: z.string().optional(),
   jobPrefix: z.string().optional(),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal(''))
+  newPassword: z.string().min(8, 'Password must be at least 8 characters')
 })
 
 // GET /api/tenant/onboarding - Get onboarding status
@@ -53,10 +53,11 @@ export async function GET() {
       tenantName: tenant.name,
       settings: settings
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching onboarding status:', error)
+    const message = error instanceof Error ? error.message : 'Failed to fetch onboarding status'
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch onboarding status' },
+      { error: message },
       { status: 500 }
     )
   }
@@ -114,10 +115,11 @@ export async function POST(request: NextRequest) {
     })
     
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error completing onboarding:', error)
+    const message = error instanceof Error ? error.message : 'Failed to complete onboarding'
     return NextResponse.json(
-      { error: error.message || 'Failed to complete onboarding' },
+      { error: message },
       { status: 500 }
     )
   }

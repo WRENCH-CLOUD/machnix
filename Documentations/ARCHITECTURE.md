@@ -165,7 +165,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
 
 ```
 tenant-slug.wrenchcloud.com → Tenant workspace
-admin.wrenchcloud.com → Admin portal
+wrenchcloud.com/admin → Admin portal
 ```
 
 Handled by middleware in `src/lib/supabase/proxy.ts`
