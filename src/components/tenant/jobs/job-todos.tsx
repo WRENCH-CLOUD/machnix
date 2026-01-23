@@ -1,20 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Trash2, CheckCircle2, GripVertical } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Wrench, RefreshCw, MinusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export interface TodoItem {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: string;
-  completedAt?: string;
-}
+// Re-export shared types for backwards compatibility
+export type { TodoStatus, TodoItem } from "@/modules/job/domain/todo.types";
+import type { TodoItem, TodoStatus } from "@/modules/job/domain/todo.types";
 
 interface JobTodosProps {
   todos: TodoItem[];
@@ -22,6 +18,7 @@ interface JobTodosProps {
   onToggleTodo: (todoId: string) => void;
   onRemoveTodo: (todoId: string) => void;
   onUpdateTodo: (todoId: string, text: string) => void;
+  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -32,6 +29,7 @@ export function JobTodos({
   onToggleTodo,
   onRemoveTodo,
   onUpdateTodo,
+  onUpdateTodoStatus,
   disabled = false,
   className,
 }: JobTodosProps) {
@@ -67,11 +65,19 @@ export function JobTodos({
   };
 
   const saveEdit = () => {
-    if (editingId && editText.trim()) {
-      onUpdateTodo(editingId, editText.trim());
+    if (!editingId) return;
+    const trimmed = editText.trim();
+    // If the trimmed text is empty, cancel to avoid saving empty todos
+    if (!trimmed) {
+      cancelEdit();
+      return;
     }
-    setEditingId(null);
-    setEditText("");
+    const currentTodo = todos.find((todo) => todo.id === editingId);
+    // Only persist the change if the text has actually changed
+    if (!currentTodo || currentTodo.text !== trimmed) {
+      onUpdateTodo(editingId, trimmed);
+    }
+    cancelEdit();
   };
 
   const cancelEdit = () => {
@@ -92,7 +98,7 @@ export function JobTodos({
   const totalCount = todos.length;
 
   return (
-    <Card className={cn("", className)}>
+    <Card className={cn(className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -114,51 +120,99 @@ export function JobTodos({
               <div
                 key={todo.id}
                 className={cn(
-                  "group flex items-center gap-3 p-2 rounded-lg border transition-colors",
+                  "group p-2 rounded-lg border transition-colors",
                   todo.completed
                     ? "bg-muted/30 border-transparent"
                     : "bg-background hover:bg-muted/50 border-border/50"
                 )}
               >
-                <Checkbox
-                  checked={todo.completed}
-                  onCheckedChange={() => !disabled && onToggleTodo(todo.id)}
-                  disabled={disabled}
-                  className="shrink-0"
-                />
-
-                {editingId === todo.id ? (
-                  <Input
-                    ref={editInputRef}
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={handleEditKeyDown}
-                    className="h-7 text-sm flex-1"
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={todo.completed}
+                    onCheckedChange={() => !disabled && onToggleTodo(todo.id)}
+                    disabled={disabled}
+                    className="shrink-0"
                   />
-                ) : (
-                  <span
-                    onClick={() => startEdit(todo)}
-                    className={cn(
-                      "flex-1 text-sm cursor-pointer transition-colors",
-                      todo.completed
-                        ? "line-through text-muted-foreground"
-                        : "text-foreground hover:text-primary"
-                    )}
-                  >
-                    {todo.text}
-                  </span>
-                )}
 
-                {!disabled && !todo.completed && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    onClick={() => onRemoveTodo(todo.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {editingId === todo.id ? (
+                    <Input
+                      ref={editInputRef}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onBlur={saveEdit}
+                      onKeyDown={handleEditKeyDown}
+                      className="h-7 text-sm flex-1"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => startEdit(todo)}
+                      className={cn(
+                        "flex-1 text-sm cursor-pointer transition-colors",
+                        todo.completed
+                          ? "line-through text-muted-foreground"
+                          : "text-foreground hover:text-primary"
+                      )}
+                    >
+                      {todo.text}
+                    </span>
+                  )}
+
+                  {!disabled && !todo.completed && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={() => onRemoveTodo(todo.id)}
+                      aria-label="Delete task"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Status Buttons */}
+                {onUpdateTodoStatus && (
+                  <div className="flex gap-1 mt-2 ml-7">
+                    <Button
+                      variant={todo.status === "changed" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "h-6 px-2 text-xs gap-1",
+                        todo.status === "changed" && "bg-blue-600 hover:bg-blue-700"
+                      )}
+                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "changed" ? null : "changed")}
+                      disabled={disabled}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Changed
+                    </Button>
+                    <Button
+                      variant={todo.status === "repaired" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "h-6 px-2 text-xs gap-1",
+                        todo.status === "repaired" && "bg-green-600 hover:bg-green-700"
+                      )}
+                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "repaired" ? null : "repaired")}
+                      disabled={disabled}
+                    >
+                      <Wrench className="h-3 w-3" />
+                      Repaired
+                    </Button>
+                    <Button
+                      variant={todo.status === "no_change" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "h-6 px-2 text-xs gap-1",
+                        todo.status === "no_change" && "bg-gray-600 hover:bg-gray-700"
+                      )}
+                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "no_change" ? null : "no_change")}
+                      disabled={disabled}
+                    >
+                      <MinusCircle className="h-3 w-3" />
+                      No Change
+                    </Button>
+                  </div>
                 )}
               </div>
             ))}
@@ -184,6 +238,7 @@ export function JobTodos({
               onClick={handleAddTodo}
               disabled={!newTodoText.trim()}
               className="h-9 px-3"
+              aria-label="Add task"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -216,6 +271,7 @@ export function InlineTodos({
       id: `todo-${Date.now()}`,
       text,
       completed: false,
+      status: null,
       createdAt: new Date().toISOString(),
     };
     onChange([...todos, newTodo]);
@@ -226,10 +282,10 @@ export function InlineTodos({
       todos.map((t) =>
         t.id === todoId
           ? {
-              ...t,
-              completed: !t.completed,
-              completedAt: !t.completed ? new Date().toISOString() : undefined,
-            }
+            ...t,
+            completed: !t.completed,
+            completedAt: !t.completed ? new Date().toISOString() : undefined,
+          }
           : t
       )
     );

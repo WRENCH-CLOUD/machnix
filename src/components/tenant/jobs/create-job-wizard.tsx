@@ -19,12 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  User, 
-  Car, 
-  ClipboardList, 
-  CheckCircle2, 
-  Search, 
+import {
+  User,
+  Car,
+  ClipboardList,
+  CheckCircle2,
+  Search,
   Plus,
   Loader2,
   ChevronRight,
@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { InlineTodos, type TodoItem } from "./job-todos";
+import { VehicleServiceHistory } from "./vehicle-service-history";
 
 interface CreateJobWizardProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" });
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [newVehicle, setNewVehicle] = useState({ makeId: "", modelId: "", reg_no: "", vin: "" });
-  
+
   // Vehicle makes/models for dropdowns
   const [makes, setMakes] = useState<{ id: string; name: string }[]>([]);
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
@@ -135,12 +136,12 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
       const res = await fetch("/api/vehicles/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           makeId: newVehicle.makeId,
           modelId: newVehicle.modelId,
           regNo: newVehicle.reg_no,
           vin: newVehicle.vin,
-          customerId: selectedCustomer.id 
+          customerId: selectedCustomer.id
         }),
       });
 
@@ -298,16 +299,16 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
-                  <Input 
-                    placeholder="e.g. Rahul Sharma" 
+                  <Input
+                    placeholder="e.g. Rahul Sharma"
                     value={newCustomer.name}
                     onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input 
-                    placeholder="e.g. +91 9876543210" 
+                  <Input
+                    placeholder="e.g. +91 9876543210"
                     value={newCustomer.phone}
                     onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                   />
@@ -315,8 +316,8 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               </div>
               <div className="space-y-2">
                 <Label>Email (Optional)</Label>
-                <Input 
-                  placeholder="e.g. rahul@example.com" 
+                <Input
+                  placeholder="e.g. rahul@example.com"
                   value={newCustomer.email}
                   onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
                 />
@@ -354,11 +355,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   {customers.map((c) => (
                     <div
                       key={c.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedCustomer?.id === c.id
-                          ? "bg-primary/10 border-primary"
-                          : "hover:bg-muted"
-                      }`}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCustomer?.id === c.id
+                        ? "bg-primary/10 border-primary"
+                        : "hover:bg-muted"
+                        }`}
                       onClick={() => setSelectedCustomer(c)}
                     >
                       <div className="font-medium">{c.name}</div>
@@ -431,8 +431,8 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Registration Number</Label>
-                  <Input 
-                    placeholder="e.g. MH12AB1234" 
+                  <Input
+                    placeholder="e.g. MH12AB1234"
                     value={newVehicle.reg_no}
                     onChange={(e) => {
                       const val = e.target.value.toUpperCase();
@@ -446,20 +446,20 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 </div>
                 <div className="space-y-2">
                   <Label>VIN / Chassis No (Optional)</Label>
-                  <Input 
-                    placeholder="17 digit number" 
+                  <Input
+                    placeholder="17 digit number"
                     value={newVehicle.vin}
                     onChange={(e) => setNewVehicle({ ...newVehicle, vin: e.target.value.toUpperCase() })}
                   />
                 </div>
               </div>
-              <Button 
-                className="w-full mt-4" 
-                onClick={handleAddVehicle} 
+              <Button
+                className="w-full mt-4"
+                onClick={handleAddVehicle}
                 disabled={
-                  !newVehicle.makeId || 
-                  !newVehicle.modelId || 
-                  !newVehicle.reg_no || 
+                  !newVehicle.makeId ||
+                  !newVehicle.modelId ||
+                  !newVehicle.reg_no ||
                   !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ||
                   loading
                 }
@@ -488,11 +488,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   {vehicles.map((v) => (
                     <div
                       key={v.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedVehicle?.id === v.id
-                          ? "bg-primary/10 border-primary"
-                          : "hover:bg-muted"
-                      }`}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedVehicle?.id === v.id
+                        ? "bg-primary/10 border-primary"
+                        : "hover:bg-muted"
+                        }`}
                       onClick={() => setSelectedVehicle(v)}
                     >
                       <div className="font-medium">{v.make} {v.model}</div>
@@ -561,13 +560,22 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
               />
             </div>
-            
+
             {/* Optional Task List */}
             <InlineTodos
               todos={todos}
               onChange={setTodos}
               className="border-dashed"
             />
+
+            {/* Vehicle History */}
+            {selectedVehicle && (
+              <VehicleServiceHistory
+                vehicleId={selectedVehicle.id}
+                compact
+                className="mt-4"
+              />
+            )}
           </div>
         );
 
@@ -590,14 +598,23 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 </div>
               </div>
             </div>
+
+            {/* Vehicle History Short Summary */}
+            {selectedVehicle && (
+              <VehicleServiceHistory
+                vehicleId={selectedVehicle.id}
+                compact
+              />
+            )}
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Job Details</Label>
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                 <div className="flex justify-between items-center">
                   <Badge variant="outline" className="capitalize">{jobDetails.serviceType}</Badge>
                   <Badge className={
-                    jobDetails.priority === 'high' ? 'bg-red-500' : 
-                    jobDetails.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
+                    jobDetails.priority === 'high' ? 'bg-red-500' :
+                      jobDetails.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
                   }>
                     {jobDetails.priority} Priority
                   </Badge>
@@ -650,22 +667,19 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
             return (
               <div key={s.id} className="flex items-center">
                 <div className="flex flex-col items-center gap-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                    isActive ? "border-primary bg-primary text-white" : 
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${isActive ? "border-primary bg-primary text-white" :
                     isCompleted ? "border-primary bg-primary/20 text-primary" : "border-muted text-muted-foreground"
-                  }`}>
+                    }`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}>
+                  <span className={`text-[10px] font-medium uppercase tracking-wider ${isActive ? "text-primary" : "text-muted-foreground"
+                    }`}>
                     {s.label}
                   </span>
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`w-12 h-[2px] mx-2 mb-4 ${
-                    isCompleted ? "bg-primary" : "bg-muted"
-                  }`} />
+                  <div className={`w-12 h-[2px] mx-2 mb-4 ${isCompleted ? "bg-primary" : "bg-muted"
+                    }`} />
                 )}
               </div>
             );

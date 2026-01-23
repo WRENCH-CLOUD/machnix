@@ -44,6 +44,15 @@ export async function PATCH(
       )
     }
 
+    // Validate notes length
+    const MAX_NOTES_LENGTH = 10000
+    if (notes.length > MAX_NOTES_LENGTH) {
+      return NextResponse.json(
+        { error: `Notes must be at most ${MAX_NOTES_LENGTH} characters` },
+        { status: 400 }
+      )
+    }
+
     // Get current job to merge with existing details
     // RLS policy handles tenant isolation
     const { data: existingJob, error: fetchError } = await supabase

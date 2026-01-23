@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
-import { JobTodos, type TodoItem } from "./job-todos";
+import { JobTodos } from "./job-todos";
+import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
+import { VehicleServiceHistory } from "./vehicle-service-history";
 import { cn } from "@/lib/utils";
 
 interface JobOverviewProps {
@@ -20,9 +22,18 @@ interface JobOverviewProps {
   onToggleTodo?: (todoId: string) => void;
   onRemoveTodo?: (todoId: string) => void;
   onUpdateTodo?: (todoId: string, text: string) => void;
+  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   notes?: string;
   onUpdateNotes?: (notes: string) => void;
+  onViewJob?: (jobId: string) => void;
   isEditable?: boolean;
+  // Estimate data for real-time Job Summary
+  estimate?: {
+    parts_total?: number;
+    labor_total?: number;
+    tax_amount?: number;
+    total_amount?: number;
+  };
 }
 
 export function JobOverview({
@@ -32,9 +43,12 @@ export function JobOverview({
   onToggleTodo,
   onRemoveTodo,
   onUpdateTodo,
+  onUpdateTodoStatus,
   notes,
   onUpdateNotes,
+  onViewJob,
   isEditable = true,
+  estimate,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
@@ -44,11 +58,14 @@ export function JobOverview({
   const [isNotesEditing, setIsNotesEditing] = useState(false);
   const [notesDirty, setNotesDirty] = useState(false);
 
-  // Sync local notes when prop changes
+  // Sync local notes when prop changes, but avoid overwriting while editing
   useEffect(() => {
+    if (isNotesEditing || notesDirty) {
+      return;
+    }
     setLocalNotes(notes ?? job.complaints ?? "");
     setNotesDirty(false);
-  }, [notes, job.complaints]);
+  }, [notes, job.complaints, isNotesEditing, notesDirty]);
 
   const handleNotesChange = (value: string) => {
     setLocalNotes(value);
@@ -63,10 +80,11 @@ export function JobOverview({
     }
   };
 
-  // Calculate totals
-  const partsSubtotal = job.partsTotal || 0;
-  const laborSubtotal = job.laborTotal || 0;
-  const total = partsSubtotal + laborSubtotal + (job.tax || 0);
+  // Calculate totals - prefer estimate data for real-time updates, fallback to job data
+  const partsSubtotal = estimate?.parts_total ?? job.partsTotal ?? 0;
+  const laborSubtotal = estimate?.labor_total ?? job.laborTotal ?? 0;
+  const taxAmount = estimate?.tax_amount ?? job.tax ?? 0;
+  const total = estimate?.total_amount ?? (partsSubtotal + laborSubtotal + taxAmount);
 
   return (
     <ScrollArea className="h-[calc(100vh-280px)]">
@@ -181,8 +199,22 @@ export function JobOverview({
           </CardContent>
         </Card>
 
+        {/* Task List - Primary */}
+        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
+          <JobTodos
+            todos={todos}
+            onAddTodo={onAddTodo}
+            onToggleTodo={onToggleTodo}
+            onRemoveTodo={onRemoveTodo}
+            onUpdateTodo={onUpdateTodo}
+            onUpdateTodoStatus={onUpdateTodoStatus}
+            disabled={!isEditable}
+            className="md:col-span-2"
+          />
+        )}
+
         {/* Complaints / Notes */}
-        <Card className="md:col-span-2">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -194,6 +226,7 @@ export function JobOverview({
                   size="sm"
                   onClick={handleSaveNotes}
                   className="h-7 px-2 gap-1"
+                  aria-label="Save notes"
                 >
                   <Save className="w-3.5 h-3.5" />
                   Save
@@ -221,18 +254,6 @@ export function JobOverview({
             )}
           </CardContent>
         </Card>
-
-        {/* Task List */}
-        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
-          <JobTodos
-            todos={todos}
-            onAddTodo={onAddTodo}
-            onToggleTodo={onToggleTodo}
-            onRemoveTodo={onRemoveTodo}
-            onUpdateTodo={onUpdateTodo}
-            disabled={!isEditable}
-          />
-        )}
 
         {/* Quick Stats */}
         <Card>
@@ -267,6 +288,13 @@ export function JobOverview({
             </div>
           </CardContent>
         </Card>
+
+        {/* Vehicle Service History */}
+        <VehicleServiceHistory
+          vehicleId={job.vehicle.id}
+          currentJobId={job.id}
+          onViewJob={onViewJob}
+        />
 
         {/* Activity Timeline */}
         <Card className="md:col-span-3">
