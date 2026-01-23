@@ -544,19 +544,24 @@ export const usePrintableFunctions = ({
           const leftChanged = leftTodo?.status === 'changed';
           const leftRepaired = leftTodo?.status === 'repaired';
           const leftNoChange = leftTodo?.status === 'no_change';
+          const leftCompleted = leftTodo?.completed === true;
 
           const rightChanged = rightTodo?.status === 'changed';
           const rightRepaired = rightTodo?.status === 'repaired';
           const rightNoChange = rightTodo?.status === 'no_change';
+          const rightCompleted = rightTodo?.completed === true;
+
+          const leftStyle = leftCompleted ? 'text-decoration: line-through; color: #888;' : '';
+          const rightStyle = rightCompleted ? 'text-decoration: line-through; color: #888;' : '';
 
           rows.push('<tr>' +
-            '<td class="task-cell">' + (leftTodo ? escapeHtml(leftTodo.text) : '') + '</td>' +
+            '<td class="task-cell" style="' + leftStyle + '">' + (leftTodo ? escapeHtml(leftTodo.text) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
             '<span class="status-option"><span class="checkbox ' + (leftChanged ? 'checked' : '') + '">' + (leftChanged ? '✓' : '') + '</span>C</span>' +
             '<span class="status-option"><span class="checkbox ' + (leftRepaired ? 'checked' : '') + '">' + (leftRepaired ? '✓' : '') + '</span>R</span>' +
             '<span class="status-option"><span class="checkbox ' + (leftNoChange ? 'checked' : '') + '">' + (leftNoChange ? '✓' : '') + '</span>N</span>' +
             '</div></td>' +
-            '<td class="task-cell">' + (rightTodo ? escapeHtml(rightTodo.text) : '') + '</td>' +
+            '<td class="task-cell" style="' + rightStyle + '">' + (rightTodo ? escapeHtml(rightTodo.text) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
             '<span class="status-option"><span class="checkbox ' + (rightChanged ? 'checked' : '') + '">' + (rightChanged ? '✓' : '') + '</span>C</span>' +
             '<span class="status-option"><span class="checkbox ' + (rightRepaired ? 'checked' : '') + '">' + (rightRepaired ? '✓' : '') + '</span>R</span>' +
@@ -598,6 +603,27 @@ export const usePrintableFunctions = ({
           ` : ''}
         </div>
         ` : ''}
+
+        <div class="section" style="margin-top: 15px; page-break-inside: avoid;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <div class="section-title">Assigned Mechanic</div>
+              <div style="font-size: 12px; margin-bottom: 8px;">
+                ${job.mechanic ? `<strong>${escapeHtml(job.mechanic.name)}</strong>${job.mechanic.phone ? ` | ${escapeHtml(job.mechanic.phone)}` : ''}` : '<span style="color: #999; font-style: italic;">Not assigned</span>'}
+              </div>
+              <div style="border-bottom: 1px solid #333; height: 30px; margin-top: 20px;"></div>
+              <div style="font-size: 10px; color: #666; margin-top: 3px;">Mechanic Signature</div>
+            </div>
+            <div>
+              <div class="section-title">Customer Acknowledgment</div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
+                I acknowledge receipt of the vehicle and agree to the work performed.
+              </div>
+              <div style="border-bottom: 1px solid #333; height: 30px; margin-top: 20px;"></div>
+              <div style="font-size: 10px; color: #666; margin-top: 3px;">Customer Signature</div>
+            </div>
+          </div>
+        </div>
 
         <div class="footer">
           Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}

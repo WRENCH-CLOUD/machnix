@@ -154,6 +154,19 @@ export function JobDetailsContainer({
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     try {
+      // Guardrail: When job is being completed/ready, ensure all todos have a status
+      // Block completion if any todo has no status assigned
+      if (newStatus === "completed" || newStatus === "ready") {
+        const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+        if (todosWithUnassignedStatus.length > 0) {
+          toast.warning(
+            `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+            { duration: 5000 }
+          );
+          return; // Block the status change
+        }
+      }
+
       await updateStatusMutation.mutateAsync(newStatus);
       toast.success(`Job status updated to ${newStatus}`);
       onJobUpdate?.();
@@ -304,6 +317,16 @@ export function JobDetailsContainer({
 
   const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
+
+    // Guardrail: Ensure all todos have a status before completing via payment
+    const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+    if (todosWithUnassignedStatus.length > 0) {
+      toast.warning(
+        `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+        { duration: 5000 }
+      );
+      throw new Error("Tasks require status assignment"); // Throw to keep payment modal open
+    }
 
     try {
       // 1. Record Payment
