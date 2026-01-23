@@ -52,6 +52,14 @@ export interface UIJob {
   updated_at?: Date | string
   estimatedCompletion?: Date | string
   complaints: string
+  todos?: {
+    id: string
+    text: string
+    completed: boolean
+    status: "changed" | "repaired" | "no_change" | null
+    createdAt: string
+    completedAt?: string
+  }[]
 }
 
 /**
@@ -66,7 +74,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
   const vehicleModel = vehicle.model ?? vehicle.model_name ?? 'Unknown Model'
   const vehicleReg = vehicle.licensePlate ?? vehicle.license_plate ?? vehicle.reg_no ?? 'N/A'
   const vehicleColor = vehicle.color ?? vehicle.colour ?? null
-  
+
   // Transform to UI format
   const uiJob: any = {
     id: dbJob.id,
@@ -96,6 +104,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     } : null,
     status: dbJob.status,
     complaints: extractComplaints(dbJob.details),
+    todos: extractTodos(dbJob.details),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
     created_at: dbJob.createdAt,
@@ -131,14 +140,27 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
  */
 function extractComplaints(details: any): string {
   if (!details) return 'No complaints recorded'
-  
+
   if (typeof details === 'string') return details
-  
+
   if (typeof details === 'object') {
     return details.complaints || details.description || 'No complaints recorded'
   }
-  
+
   return 'No complaints recorded'
+}
+
+/**
+ * Extract todos from job details JSONB field
+ */
+function extractTodos(details: any): { id: string; text: string; completed: boolean; createdAt: string; completedAt?: string }[] {
+  if (!details || typeof details !== 'object') return []
+
+  if (Array.isArray(details.todos)) {
+    return details.todos
+  }
+
+  return []
 }
 
 /**
