@@ -19,12 +19,12 @@ export async function PATCH(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-    console.log('[todos/PATCH] Updating todos for job:', id)
+
 
     // Validate ID format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!id || !uuidRegex.test(id)) {
-      console.log('[todos/PATCH] Invalid job ID format:', id)
+
       return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
     }
 
@@ -32,7 +32,7 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      console.log('[todos/PATCH] Unauthorized - no user')
+
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -44,16 +44,16 @@ export async function PATCH(
 
     const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
     if (!tenantId) {
-      console.log('[todos/PATCH] Tenant context missing for user:', user.id)
+
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
 
-    console.log('[todos/PATCH] User:', user.id, 'Tenant:', tenantId)
+
 
     const body = await request.json()
     const { todos } = body as { todos: TodoItem[] }
 
-    console.log('[todos/PATCH] Received todos:', JSON.stringify(todos).substring(0, 200))
+
 
     if (!Array.isArray(todos)) {
       return NextResponse.json(
@@ -128,7 +128,7 @@ export async function PATCH(
       todos,
     }
 
-    console.log('[todos/PATCH] Updating with details:', JSON.stringify(updatedDetails).substring(0, 300))
+
 
     // Update the job with new details
     const { data, error } = await supabase
@@ -157,7 +157,7 @@ export async function PATCH(
       )
     }
 
-    console.log('[todos/PATCH] Successfully updated todos for job:', id)
+
 
     return NextResponse.json({
       success: true,
