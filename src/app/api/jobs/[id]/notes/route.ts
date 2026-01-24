@@ -45,7 +45,7 @@ export async function PATCH(
     }
 
     // Validate notes length
-    const MAX_NOTES_LENGTH = 10000
+    const MAX_NOTES_LENGTH = 500 // limit to max 500 words length in notes
     if (notes.length > MAX_NOTES_LENGTH) {
       return NextResponse.json(
         { error: `Notes must be at most ${MAX_NOTES_LENGTH} characters` },
