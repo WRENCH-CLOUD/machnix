@@ -39,42 +39,48 @@ interface AppSidebarProps {
 }
 
 const navItems = [
-  { 
-    id: "dashboard", 
-    label: "Dashboard", 
+  {
+    id: "dashboard",
+    label: "Dashboard",
     icon: LayoutDashboard,
     description: "Overview & analytics"
   },
-  { 
-    id: "jobs-board", 
-    label: "Job Board", 
+  {
+    id: "jobs-board",
+    label: "Job Board",
     icon: ClipboardList,
     description: "Kanban-style job management"
   },
-  { 
-    id: "all-jobs", 
-    label: "All Jobs", 
+  {
+    id: "all-jobs",
+    label: "All Jobs",
     icon: List,
     description: "View all job records"
   },
-  { 
-    id: "customers", 
-    label: "Customers", 
+  {
+    id: "customers",
+    label: "Customers",
     icon: Users,
     description: "Customer management"
   },
-  { 
-    id: "vehicles", 
-    label: "Vehicles", 
+  {
+    id: "vehicles",
+    label: "Vehicles",
     icon: Car,
     description: "Vehicle inventory"
+  },
+  {
+    id: "team",
+    label: "Mechanics",
+    icon: Wrench,
+    description: "Manage mechanics"
   },
 ];
 
 const bottomNavItems = [
-  { 
-    id: "settings", 
-    label: "Settings", 
+  {
+    id: "settings",
+    label: "Settings",
     icon: Settings,
     description: "Garage configuration"
   },
@@ -117,13 +123,13 @@ function CollapseButton() {
   );
 }
 
-function NavItem({ 
-  item, 
-  isActive, 
-  onClick 
-}: { 
-  item: typeof navItems[0]; 
-  isActive: boolean; 
+function NavItem({
+  item,
+  isActive,
+  onClick
+}: {
+  item: typeof navItems[0];
+  isActive: boolean;
   onClick: () => void;
 }) {
   const { state } = useSidebar();
@@ -153,18 +159,18 @@ function NavItem({
               {isActive && (
                 <div className="absolute inset-0 bg-sidebar-primary/5 rounded-md blur-sm" />
               )}
-              
+
               <Icon className={cn(
                 "h-4 w-4 transition-all duration-200",
-                isActive 
-                  ? "text-sidebar-primary" 
+                isActive
+                  ? "text-sidebar-primary"
                   : "text-sidebar-foreground/70 group-hover/nav-item:text-sidebar-foreground"
               )} />
-              
+
               <span className={cn(
                 "transition-colors duration-200",
-                isActive 
-                  ? "font-semibold text-sidebar-foreground" 
+                isActive
+                  ? "font-semibold text-sidebar-foreground"
                   : "text-sidebar-foreground/80 group-hover/nav-item:text-sidebar-foreground"
               )}>
                 {item.label}
@@ -172,8 +178,8 @@ function NavItem({
             </SidebarMenuButton>
           </TooltipTrigger>
           {isCollapsed && (
-            <TooltipContent 
-              side="right" 
+            <TooltipContent
+              side="right"
               sideOffset={12}
               className="flex flex-col gap-0.5"
             >
@@ -192,7 +198,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   const isCollapsed = state === "collapsed";
 
   return (
-    <Sidebar 
+    <Sidebar
       collapsible="icon"
       className={cn(
         "border-r border-sidebar-border/50",
@@ -224,7 +230,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
               )} />
             </div>
           )}
-          
+
           {/* Brand Text */}
           <div className={cn(
             "flex flex-col min-w-0",
@@ -283,7 +289,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         <div className="px-2 pb-2">
           <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
         </div>
-        
+
         <SidebarMenu>
           {bottomNavItems.map((item) => (
             <NavItem

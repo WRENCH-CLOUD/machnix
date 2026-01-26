@@ -315,6 +315,27 @@ export function JobDetailsContainer({
     }
   };
 
+  // Mechanic assignment handler
+  const handleMechanicChange = async (mechanicId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/assign-mechanic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mechanicId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign mechanic');
+      }
+
+      toast.success('Mechanic assigned');
+      onJobUpdate?.();
+    } catch (error) {
+      console.error('Error assigning mechanic:', error);
+      toast.error('Failed to assign mechanic');
+    }
+  };
+
   const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
 
@@ -382,10 +403,10 @@ export function JobDetailsContainer({
       onRemoveTodo={handleRemoveTodo}
       onUpdateTodo={handleUpdateTodo}
       onUpdateTodoStatus={handleUpdateTodoStatus}
-      // Notes props
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}
+      onMechanicChange={handleMechanicChange}
     />
   );
 }
