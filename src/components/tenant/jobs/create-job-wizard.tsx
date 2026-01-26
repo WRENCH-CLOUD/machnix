@@ -35,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { InlineTodos, type TodoItem } from "./job-todos";
 import { VehicleServiceHistory } from "./vehicle-service-history";
+import { MechanicSelect } from "./mechanic-select";
 
 interface CreateJobWizardProps {
   isOpen: boolean;
@@ -81,6 +82,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
 
   // Todos state for job creation
   const [todos, setTodos] = useState<TodoItem[]>([]);
+
+  // Mechanic assignment (optional during creation)
+  const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
   const handleAddCustomer = async () => {
     try {
@@ -260,6 +264,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           vehicleId: selectedVehicle.id,
           ...jobDetails,
           todos: todos.length > 0 ? todos : undefined,
+          assignedMechanicId: selectedMechanicId || undefined,
         }),
       });
 
@@ -567,6 +572,17 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               onChange={setTodos}
               className="border-dashed"
             />
+
+            {/* Mechanic Assignment (Optional) */}
+            <div className="space-y-2">
+              <Label>Assign Mechanic (Optional)</Label>
+              <MechanicSelect
+                value={selectedMechanicId}
+                onChange={(id) => setSelectedMechanicId(id === "__unassigned__" ? "" : id)}
+                placeholder="Select mechanic (optional)"
+                showUnassigned={false}
+              />
+            </div>
 
             {/* Vehicle History */}
             {selectedVehicle && (

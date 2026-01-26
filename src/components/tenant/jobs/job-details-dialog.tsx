@@ -119,6 +119,7 @@ export function JobDetailsDialog({
   notes,
   onUpdateNotes,
   onViewJob,
+  onMechanicChange,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -357,6 +358,7 @@ export function JobDetailsDialog({
                   notes={notes}
                   onUpdateNotes={onUpdateNotes}
                   onViewJob={onViewJob}
+                  onMechanicChange={onMechanicChange}
                   isEditable={job.status !== "completed" && job.status !== "cancelled"}
                   estimate={estimate}
                 />
