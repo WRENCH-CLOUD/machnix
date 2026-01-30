@@ -51,7 +51,7 @@ interface JobBoardProps {
 const COLUMNS: { id: JobStatus; label: string }[] = [
   { id: "received", label: "Received" },
   { id: "working", label: "Working" },
-  { id: "ready", label: "Ready for Payment" },
+  { id: "ready", label: "Ready for Delivery" },
   { id: "completed", label: "Completed" },
 ];
 
