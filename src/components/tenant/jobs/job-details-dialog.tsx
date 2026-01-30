@@ -336,7 +336,7 @@ export function JobDetailsDialog({
                       Invoice
                       {job.status !== "ready" && job.status !== "completed" && (
                         <span className="ml-2 text-xs text-muted-foreground">
-                          (Available when Ready for Payment)
+                          (Available when Ready for Delivery)
                         </span>
                       )}
                     </TabsTrigger>
