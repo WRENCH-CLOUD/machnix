@@ -132,8 +132,6 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log("📞 New demo request saved:", data.id)
-
     return NextResponse.json({ 
       success: true, 
       message: "Demo request received",

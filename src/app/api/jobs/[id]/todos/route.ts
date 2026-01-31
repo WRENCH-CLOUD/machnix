@@ -19,12 +19,9 @@ export async function PATCH(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-
-
     // Validate ID format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!id || !uuidRegex.test(id)) {
-
       return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
     }
 
@@ -32,7 +29,6 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -44,18 +40,13 @@ export async function PATCH(
 
     const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
     if (!tenantId) {
-
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
-
-
-
     const body = await request.json()
     const { todos } = body as { todos: TodoItem[] }
 
-
-
     if (!Array.isArray(todos)) {
+      
       return NextResponse.json(
         { error: 'todos must be an array' },
         { status: 400 }
@@ -128,8 +119,7 @@ export async function PATCH(
       todos,
     }
 
-
-
+    
     // Update the job with new details
     const { data, error } = await supabase
       .schema('tenant')
@@ -156,8 +146,6 @@ export async function PATCH(
         { status: 500 }
       )
     }
-
-
 
     return NextResponse.json({
       success: true,

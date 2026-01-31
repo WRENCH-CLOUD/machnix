@@ -68,7 +68,6 @@ export default function TenantLayoutWrapper({
   } = useOnboardingStatus()
 
   useEffect(() => {
-    console.log("[TenantLayout] Client-side Auth State:", { user: !!user, tenantId, loading, pathname })
   }, [user, tenantId, loading, pathname])
 
   const isOnboardingPage = pathname === "/onboarding"
@@ -105,14 +104,12 @@ export default function TenantLayoutWrapper({
 
     // Not logged in
     if (!user) {
-      console.log("[TenantLayout] No user found, redirecting to login...")
       router.replace("/login")
       return
     }
 
     // Logged in but not a tenant
     if (!tenantId) {
-      console.log("[TenantLayout] No tenantId found, redirecting to no-access...")
       router.replace("/auth/no-access")
       return
     }
