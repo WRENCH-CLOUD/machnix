@@ -1,25 +1,94 @@
 "use client";
 
-import { Phone, Mail, MapPin, Car, User, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
+import { JobTodos } from "./job-todos";
+import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
+import { VehicleServiceHistory } from "./vehicle-service-history";
+import { MechanicSelect } from "./mechanic-select";
+import { cn } from "@/lib/utils";
 
 interface JobOverviewProps {
   job: UIJob;
+  todos?: TodoItem[];
+  onAddTodo?: (text: string) => void;
+  onToggleTodo?: (todoId: string) => void;
+  onRemoveTodo?: (todoId: string) => void;
+  onUpdateTodo?: (todoId: string, text: string) => void;
+  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
+  notes?: string;
+  onUpdateNotes?: (notes: string) => void;
+  onViewJob?: (jobId: string) => void;
+  isEditable?: boolean;
+  // Mechanic assignment
+  onMechanicChange?: (mechanicId: string) => void;
+  // Estimate data for real-time Job Summary
+  estimate?: {
+    parts_total?: number;
+    labor_total?: number;
+    tax_amount?: number;
+    total_amount?: number;
+  };
 }
 
-export function JobOverview({ job }: JobOverviewProps) {
+export function JobOverview({
+  job,
+  todos = [],
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onUpdateTodo,
+  onUpdateTodoStatus,
+  notes,
+  onUpdateNotes,
+  onViewJob,
+  isEditable = true,
+  onMechanicChange,
+  estimate,
+}: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
 
-  // Calculate totals
-  const partsSubtotal = job.partsTotal || 0;
-  const laborSubtotal = job.laborTotal || 0;
-  const total = partsSubtotal + laborSubtotal + (job.tax || 0);
+  // Local state for notes editing
+  const [localNotes, setLocalNotes] = useState(notes ?? job.complaints ?? "");
+  const [isNotesEditing, setIsNotesEditing] = useState(false);
+  const [notesDirty, setNotesDirty] = useState(false);
+
+  // Sync local notes when prop changes, but avoid overwriting while editing
+  useEffect(() => {
+    if (isNotesEditing || notesDirty) {
+      return;
+    }
+    setLocalNotes(notes ?? job.complaints ?? "");
+    setNotesDirty(false);
+  }, [notes, job.complaints, isNotesEditing, notesDirty]);
+
+  const handleNotesChange = (value: string) => {
+    setLocalNotes(value);
+    setNotesDirty(value !== (notes ?? job.complaints ?? ""));
+  };
+
+  const handleSaveNotes = () => {
+    if (onUpdateNotes && notesDirty) {
+      onUpdateNotes(localNotes);
+      setNotesDirty(false);
+      setIsNotesEditing(false);
+    }
+  };
+
+  // Calculate totals - prefer estimate data for real-time updates, fallback to job data
+  const partsSubtotal = estimate?.parts_total ?? job.partsTotal ?? 0;
+  const laborSubtotal = estimate?.labor_total ?? job.laborTotal ?? 0;
+  const taxAmount = estimate?.tax_amount ?? job.tax ?? 0;
+  const total = estimate?.total_amount ?? (partsSubtotal + laborSubtotal + taxAmount);
 
   return (
     <ScrollArea className="h-[calc(100vh-280px)]">
@@ -95,22 +164,52 @@ export function JobOverview({ job }: JobOverviewProps) {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <User className="w-4 h-4" />
+              <HardHat className="w-4 h-4" />
               Assigned Mechanic
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {job.mechanic ? (
+            {isEditable && onMechanicChange ? (
+              <div className="space-y-3">
+                <MechanicSelect
+                  value={job.mechanic?.id}
+                  onChange={(mechanicId) => {
+                    if (mechanicId === "__unassigned__") {
+                      // Handle unassign - for now just don't do anything
+                      return;
+                    }
+                    onMechanicChange(mechanicId);
+                  }}
+                  placeholder="Select mechanic"
+                />
+                {job.mechanic && (
+                  <div className="flex items-center gap-3 min-w-0 p-2 bg-muted/50 rounded-lg">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={job.mechanic.avatar || "/placeholder.svg"} />
+                      <AvatarFallback>
+                        {job.mechanic.name.split(" ").map((n) => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate text-sm">{job.mechanic.name}</p>
+                      {job.mechanic.phone && (
+                        <a
+                          href={`tel:${job.mechanic.phone}`}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {job.mechanic.phone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : job.mechanic ? (
               <div className="flex items-center gap-3 min-w-0">
                 <Avatar className="w-12 h-12">
-                  <AvatarImage
-                    src={job.mechanic.avatar || "/placeholder.svg"}
-                  />
+                  <AvatarImage src={job.mechanic.avatar || "/placeholder.svg"} />
                   <AvatarFallback>
-                    {job.mechanic.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {job.mechanic.name.split(" ").map((n) => n[0]).join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
@@ -118,12 +217,14 @@ export function JobOverview({ job }: JobOverviewProps) {
                   <p className="text-sm text-muted-foreground">
                     {job.mechanic.specialty || "Mechanic"}
                   </p>
-                  <a
-                    href={`tel:${job.mechanic.phone}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    <span className="truncate">{job.mechanic.phone}</span>
-                  </a>
+                  {job.mechanic.phone && (
+                    <a
+                      href={`tel:${job.mechanic.phone}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      <span className="truncate">{job.mechanic.phone}</span>
+                    </a>
+                  )}
                 </div>
               </div>
             ) : (
@@ -134,15 +235,59 @@ export function JobOverview({ job }: JobOverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Complaints */}
-        <Card className="md:col-span-2">
+        {/* Task List - Primary */}
+        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
+          <JobTodos
+            todos={todos}
+            onAddTodo={onAddTodo}
+            onToggleTodo={onToggleTodo}
+            onRemoveTodo={onRemoveTodo}
+            onUpdateTodo={onUpdateTodo}
+            onUpdateTodoStatus={onUpdateTodoStatus}
+            disabled={!isEditable}
+            className="md:col-span-2"
+          />
+        )}
+
+        {/* Complaints / Notes */}
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">
-              Customer Complaint
+            <CardTitle className="text-sm font-semibold flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Customer Complaint / Notes
+              </div>
+              {isEditable && notesDirty && (
+                <Button
+                  size="sm"
+                  onClick={handleSaveNotes}
+                  className="h-7 px-2 gap-1"
+                  aria-label="Save notes"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-foreground wrap-break-word">{job.complaints}</p>
+            {isEditable && onUpdateNotes ? (
+              <Textarea
+                value={localNotes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                onFocus={() => setIsNotesEditing(true)}
+                onBlur={() => {
+                  if (!notesDirty) setIsNotesEditing(false);
+                }}
+                placeholder="Add notes or customer complaints..."
+                className={cn(
+                  "min-h-[80px] resize-none transition-colors",
+                  isNotesEditing && "border-primary"
+                )}
+              />
+            ) : (
+              <p className="text-foreground wrap-break-word">{localNotes || "No complaints recorded"}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -179,6 +324,13 @@ export function JobOverview({ job }: JobOverviewProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Vehicle Service History */}
+        <VehicleServiceHistory
+          vehicleId={job.vehicle.id}
+          currentJobId={job.id}
+          onViewJob={onViewJob}
+        />
 
         {/* Activity Timeline */}
         <Card className="md:col-span-3">

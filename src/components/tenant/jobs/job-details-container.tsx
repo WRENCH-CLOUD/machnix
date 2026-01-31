@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -15,9 +15,13 @@ import {
   useGenerateInvoice,
   useRecordPayment,
   useUpdateJobStatus,
+  useUpdateJobTodos,
+  useUpdateJobNotes,
+  useVehicleJobHistory,
   transformTenantSettingsForJobDetails,
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
+import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -30,6 +34,7 @@ interface JobDetailsContainerProps {
     address: string;
     gstin: string;
   };
+  onViewJob?: (jobId: string) => void;
 }
 
 export function JobDetailsContainer({
@@ -39,6 +44,7 @@ export function JobDetailsContainer({
   onJobUpdate,
   currentUser,
   tenantDetails: tenantDetailsProp,
+  onViewJob,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -62,6 +68,9 @@ export function JobDetailsContainer({
 
   const { data: invoice, isLoading: loadingInvoice, refetch: refetchInvoice } = useInvoiceByJob(job.id);
 
+  // Service history for print
+  const { data: serviceHistoryData } = useVehicleJobHistory(job.vehicle.id, job.id);
+
   // Mutations
   const addItemMutation = useAddEstimateItem(job.id);
   const removeItemMutation = useRemoveEstimateItem(job.id);
@@ -69,6 +78,26 @@ export function JobDetailsContainer({
   const generateInvoiceMutation = useGenerateInvoice(job.id);
   const recordPaymentMutation = useRecordPayment(job.id);
   const updateStatusMutation = useUpdateJobStatus(job.id);
+  const updateTodosMutation = useUpdateJobTodos(job.id);
+  const updateNotesMutation = useUpdateJobNotes(job.id);
+
+  // Helper to normalize todos (add default status for legacy todos)
+  const normalizeTodos = (todos: any[]): TodoItem[] => {
+    return (todos || []).map(t => ({
+      ...t,
+      status: t.status ?? null,
+    }));
+  };
+
+  // Local state for todos and notes (optimistic updates)
+  const [localTodos, setLocalTodos] = useState<TodoItem[]>(normalizeTodos(job.todos || []));
+  const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
+
+  // Sync local state when job changes
+  useEffect(() => {
+    setLocalTodos(normalizeTodos(job.todos || []));
+    setLocalNotes(job.complaints || "");
+  }, [job.id]);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
@@ -125,6 +154,19 @@ export function JobDetailsContainer({
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     try {
+      // Guardrail: When job is being completed/ready, ensure all todos have a status
+      // Block completion if any todo has no status assigned
+      if (newStatus === "completed" || newStatus === "ready") {
+        const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+        if (todosWithUnassignedStatus.length > 0) {
+          toast.warning(
+            `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+            { duration: 5000 }
+          );
+          return; // Block the status change
+        }
+      }
+
       await updateStatusMutation.mutateAsync(newStatus);
       toast.success(`Job status updated to ${newStatus}`);
       onJobUpdate?.();
@@ -149,7 +191,9 @@ export function JobDetailsContainer({
     invoice,
     tenantDetails,
     estimate,
-    notes: job.complaints,
+    notes: localNotes,
+    todos: localTodos,
+    serviceHistory: serviceHistoryData,
   });
 
   const handleGenerateInvoice = async () => {
@@ -166,8 +210,144 @@ export function JobDetailsContainer({
     }
   };
 
+  // Todo handlers
+  const handleAddTodo = async (text: string) => {
+    const newTodo: TodoItem = {
+      id: generateTodoId(),
+      text,
+      completed: false,
+      status: null,
+      createdAt: new Date().toISOString(),
+    };
+    const previousTodos = localTodos;
+    const updatedTodos = [...localTodos, newTodo];
+    setLocalTodos(updatedTodos);
+
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error adding todo:", error);
+      setLocalTodos(previousTodos); // Revert on error
+      toast.error("Failed to add task");
+    }
+  };
+
+  const handleToggleTodo = async (todoId: string) => {
+    const previousTodos = localTodos;
+    const updatedTodos = localTodos.map((t) =>
+      t.id === todoId
+        ? {
+          ...t,
+          completed: !t.completed,
+          completedAt: !t.completed ? new Date().toISOString() : undefined,
+        }
+        : t
+    );
+    setLocalTodos(updatedTodos);
+
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error toggling todo:", error);
+      setLocalTodos(previousTodos);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleRemoveTodo = async (todoId: string) => {
+    const previousTodos = localTodos;
+    const updatedTodos = localTodos.filter((t) => t.id !== todoId);
+    setLocalTodos(updatedTodos);
+
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error removing todo:", error);
+      setLocalTodos(previousTodos);
+      toast.error("Failed to remove task");
+    }
+  };
+
+  const handleUpdateTodo = async (todoId: string, text: string) => {
+    const previousTodos = localTodos;
+    const updatedTodos = localTodos.map((t) =>
+      t.id === todoId ? { ...t, text } : t
+    );
+    setLocalTodos(updatedTodos);
+
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error updating todo:", error);
+      setLocalTodos(previousTodos);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleUpdateTodoStatus = async (todoId: string, status: TodoStatus) => {
+    const previousTodos = localTodos;
+    const updatedTodos = localTodos.map((t) =>
+      t.id === todoId ? { ...t, status } : t
+    );
+    setLocalTodos(updatedTodos);
+
+    try {
+      await updateTodosMutation.mutateAsync(updatedTodos);
+    } catch (error) {
+      console.error("Error updating todo status:", error);
+      setLocalTodos(previousTodos);
+      toast.error("Failed to update task status");
+    }
+  };
+
+  // Notes handler
+  const handleUpdateNotes = async (notes: string) => {
+    const previousNotes = localNotes;
+    setLocalNotes(notes);
+
+    try {
+      await updateNotesMutation.mutateAsync(notes);
+      onJobUpdate?.();
+    } catch (error) {
+      console.error("Error updating notes:", error);
+      setLocalNotes(previousNotes);
+      toast.error("Failed to update notes");
+    }
+  };
+
+  // Mechanic assignment handler
+  const handleMechanicChange = async (mechanicId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/assign-mechanic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mechanicId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign mechanic');
+      }
+
+      toast.success('Mechanic assigned');
+      onJobUpdate?.();
+    } catch (error) {
+      console.error('Error assigning mechanic:', error);
+      toast.error('Failed to assign mechanic');
+    }
+  };
+
   const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
+
+    // Guardrail: Ensure all todos have a status before completing via payment
+    const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+    if (todosWithUnassignedStatus.length > 0) {
+      toast.warning(
+        `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+        { duration: 5000 }
+      );
+      throw new Error("Tasks require status assignment"); // Throw to keep payment modal open
+    }
 
     try {
       // 1. Record Payment
@@ -216,6 +396,17 @@ export function JobDetailsContainer({
       onPaymentComplete={handlePaymentComplete}
       onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
+      // Todo props
+      todos={localTodos}
+      onAddTodo={handleAddTodo}
+      onToggleTodo={handleToggleTodo}
+      onRemoveTodo={handleRemoveTodo}
+      onUpdateTodo={handleUpdateTodo}
+      onUpdateTodoStatus={handleUpdateTodoStatus}
+      notes={localNotes}
+      onUpdateNotes={handleUpdateNotes}
+      onViewJob={onViewJob}
+      onMechanicChange={handleMechanicChange}
     />
   );
 }

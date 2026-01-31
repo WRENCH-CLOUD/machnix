@@ -7,6 +7,15 @@ interface UsePrintableFunctionsProps {
   tenantDetails: any;
   estimate: any;
   notes: string;
+  todos?: Array<{ id: string; text: string; completed: boolean; status?: string | null }>;
+  serviceHistory?: {
+    totalJobs: number;
+    recentJob: {
+      jobNumber: string;
+      createdAt: string;
+      partsWorkedOn: Array<{ name: string; status: string }>;
+    } | null;
+  };
 }
 
 /**
@@ -38,6 +47,8 @@ export const usePrintableFunctions = ({
   tenantDetails,
   estimate,
   notes,
+  todos = [],
+  serviceHistory,
 }: UsePrintableFunctionsProps) => {
   const handleGenerateInvoicePdf = () => {
     if (!invoice) {
@@ -68,9 +79,8 @@ export const usePrintableFunctions = ({
     const customerName = job.customer?.name ?? "";
     const customerPhone = job.customer?.phone ?? "";
     const customerEmail = job.customer?.email ?? "";
-    const vehicleTitle = `${job.vehicle?.year ?? ""} ${
-      job.vehicle?.make ?? ""
-    } ${job.vehicle?.model ?? ""}`.trim();
+    const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
+      } ${job.vehicle?.model ?? ""}`.trim();
     const vehicleReg = job.vehicle?.regNo ?? "";
 
     const pdfContent = `
@@ -106,22 +116,20 @@ export const usePrintableFunctions = ({
           <div class="header-left">
             <div class="title">INVOICE</div>
             <div>${escapeHtml(invoice.invoice_number || job.jobNumber)}</div>
-            <div style="font-size: 12px; color: #666;">Date: ${
-              invoice.invoice_date
-                ? new Date(invoice.invoice_date).toLocaleDateString()
-                : new Date().toLocaleDateString()
-            }</div>
+            <div style="font-size: 12px; color: #666;">Date: ${invoice.invoice_date
+        ? new Date(invoice.invoice_date).toLocaleDateString()
+        : new Date().toLocaleDateString()
+      }</div>
           </div>
           <div class="header-right">
             <div style="font-weight: bold; font-size: 18px;">${escapeHtml(
-              tenantDetails.name || "Garage"
-            )}</div>
+        tenantDetails.name || "Garage"
+      )}</div>
             <div style="font-size: 12px;">${escapeHtml(tenantDetails.address || "")}</div>
-            ${
-              tenantDetails.gstin
-                ? `<div style="font-size: 12px;">GSTIN: ${escapeHtml(tenantDetails.gstin)}</div>`
-                : ""
-            }
+            ${tenantDetails.gstin
+        ? `<div style="font-size: 12px;">GSTIN: ${escapeHtml(tenantDetails.gstin)}</div>`
+        : ""
+      }
           </div>
         </div>
         
@@ -151,23 +159,23 @@ export const usePrintableFunctions = ({
           </thead>
           <tbody>
             ${estimateItems
-              .map(
-                (item: {
-                  custom_name: string;
-                  custom_part_number?: string;
-                  qty: number;
-                  unit_price: number;
-                  labor_cost?: number;
-                }) => {
-                  const partsAmount = item.qty * item.unit_price;
-                  const laborAmount = item.labor_cost || 0;
-                  const lineTotal = partsAmount + laborAmount;
-                  const partNumber =
-                    item.custom_part_number && item.custom_part_number !== ""
-                      ? `<div style="font-size: 11px; color: #666;">${escapeHtml(item.custom_part_number)}</div>`
-                      : "";
+        .map(
+          (item: {
+            custom_name: string;
+            custom_part_number?: string;
+            qty: number;
+            unit_price: number;
+            labor_cost?: number;
+          }) => {
+            const partsAmount = item.qty * item.unit_price;
+            const laborAmount = item.labor_cost || 0;
+            const lineTotal = partsAmount + laborAmount;
+            const partNumber =
+              item.custom_part_number && item.custom_part_number !== ""
+                ? `<div style="font-size: 11px; color: #666;">${escapeHtml(item.custom_part_number)}</div>`
+                : "";
 
-                  return `
+            return `
                   <tr>
                     <td>
                       <div style="font-weight: 500;">${escapeHtml(item.custom_name)}</div>
@@ -175,15 +183,14 @@ export const usePrintableFunctions = ({
                     </td>
                     <td class="text-right">${escapeHtml(item.qty)}</td>
                     <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
-                    <td class="text-right">${
-                      laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
-                    }</td>
+                    <td class="text-right">${laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
+              }</td>
                     <td class="text-right" style="font-weight: 500;">₹${lineTotal.toLocaleString()}</td>
                   </tr>
                 `;
-                }
-              )
-              .join("")}
+          }
+        )
+        .join("")}
           </tbody>
         </table>
         
@@ -208,9 +215,8 @@ export const usePrintableFunctions = ({
             <span>Total:</span>
             <span>₹${total.toLocaleString()}</span>
           </div>
-          ${
-            invoice.paid_amount > 0
-              ? `
+          ${invoice.paid_amount > 0
+        ? `
             <div class="totals-row paid" style="padding-top: 10px; border-top: 1px solid #ddd;">
               <span>Paid:</span>
               <span>₹${Number(invoice.paid_amount).toLocaleString()}</span>
@@ -220,8 +226,8 @@ export const usePrintableFunctions = ({
               <span>₹${(total - invoice.paid_amount).toLocaleString()}</span>
             </div>
           `
-              : ""
-          }
+        : ""
+      }
         </div>
         
         <script>
@@ -272,9 +278,8 @@ export const usePrintableFunctions = ({
     const customerName = job.customer?.name ?? "";
     const customerPhone = job.customer?.phone ?? "";
     const customerEmail = job.customer?.email ?? "";
-    const vehicleTitle = `${job.vehicle?.year ?? ""} ${
-      job.vehicle?.make ?? ""
-    } ${job.vehicle?.model ?? ""}`.trim();
+    const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
+      } ${job.vehicle?.model ?? ""}`.trim();
     const vehicleReg = job.vehicle?.regNo ?? "";
 
     const pdfContent = `
@@ -338,36 +343,35 @@ export const usePrintableFunctions = ({
           </thead>
           <tbody>
             ${estimateItems
-              .map(
-                (item: {
-                  custom_name: string;
-                  custom_part_number?: string;
-                  qty: number;
-                  unit_price: number;
-                  labor_cost?: number;
-                }) => {
-                  const partsAmount = item.qty * item.unit_price;
-                  const laborAmount = item.labor_cost || 0;
-                  const lineTotal = partsAmount + laborAmount;
-                  const partNumber =
-                    item.custom_part_number && item.custom_part_number !== ""
-                      ? escapeHtml(item.custom_part_number)
-                      : "-";
-                  return `
+        .map(
+          (item: {
+            custom_name: string;
+            custom_part_number?: string;
+            qty: number;
+            unit_price: number;
+            labor_cost?: number;
+          }) => {
+            const partsAmount = item.qty * item.unit_price;
+            const laborAmount = item.labor_cost || 0;
+            const lineTotal = partsAmount + laborAmount;
+            const partNumber =
+              item.custom_part_number && item.custom_part_number !== ""
+                ? escapeHtml(item.custom_part_number)
+                : "-";
+            return `
                   <tr>
                     <td>${escapeHtml(item.custom_name)}</td>
                     <td>${partNumber}</td>
                     <td class="text-right">${escapeHtml(item.qty)}</td>
                     <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
-                    <td class="text-right">${
-                      laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
-                    }</td>
+                    <td class="text-right">${laborAmount > 0 ? "₹" + laborAmount.toLocaleString() : "-"
+              }</td>
                     <td class="text-right">₹${lineTotal.toLocaleString()}</td>
                   </tr>
                 `;
-                }
-              )
-              .join("")}
+          }
+        )
+        .join("")}
           </tbody>
         </table>
         
@@ -417,10 +421,9 @@ export const usePrintableFunctions = ({
     const customerName = job.customer?.name ?? "N/A";
     const customerPhone = job.customer?.phone ?? "N/A";
     const customerEmail = job.customer?.email ?? "N/A";
-    
-    const vehicleTitle = `${job.vehicle?.year ?? ""} ${
-      job.vehicle?.make ?? ""
-    } ${job.vehicle?.model ?? ""}`.trim();
+
+    const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
+      } ${job.vehicle?.model ?? ""}`.trim();
     const vehicleReg = job.vehicle?.regNo ?? "N/A";
 
     const pdfContent = `
@@ -431,35 +434,52 @@ export const usePrintableFunctions = ({
         <title>Job Card - ${escapeHtml(job.jobNumber)}</title>
         <style>
           @media print {
-            @page { margin: 1cm; }
+            @page { margin: 0.5cm; }
             body { margin: 0; }
           }
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; color: #333; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-          .header-left h1 { margin: 0; font-size: 28px; font-weight: bold; }
-          .job-number { font-size: 18px; color: #666; margin-top: 5px; }
+          body { font-family: Arial, sans-serif; padding: 10px; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.2; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
+          .header-left h1 { margin: 0; font-size: 20px; font-weight: bold; }
+          .job-number { font-size: 14px; color: #666; margin-top: 2px; }
           .header-right { text-align: right; }
           .status-badge { 
-            display: inline-block; padding: 6px 12px; border-radius: 4px; 
-            font-weight: bold; font-size: 14px; text-transform: uppercase;
+            display: inline-block; padding: 3px 8px; border-radius: 4px; 
+            font-weight: bold; font-size: 11px; text-transform: uppercase;
             background-color: #eee; border: 1px solid #ddd;
           }
           
-          .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; }
-          .section { margin-bottom: 20px; }
-          .section-title { font-size: 14px; text-transform: uppercase; color: #666; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+          .grid-container { display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; margin-bottom: 15px; }
+          .section { margin-bottom: 12px; }
+          .section-title { font-size: 11px; text-transform: uppercase; color: #666; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 3px; margin-bottom: 5px; }
           
-          .info-row { display: flex; margin-bottom: 8px; }
-          .info-label { width: 100px; font-weight: bold; color: #555; }
-          .info-value { flex: 1; }
+          .info-row { display: flex; margin-bottom: 3px; }
+          .info-label { width: 65px; font-weight: bold; color: #555; font-size: 11px; }
+          .info-value { flex: 1; font-size: 11px; }
           
-          .description-box { border: 1px solid #ddd; padding: 15px; border-radius: 4px; min-height: 100px; background-color: #f9f9f9; }
+          .vehicle-highlight { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 8px; border-radius: 4px; }
+          .vehicle-title { color: #1e40af; font-size: 13px; }
           
-          .checklist { margin-top: 30px; }
-          .checklist-item { display: flex; align-items: center; margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #eee; }
-          .checkbox { width: 20px; height: 20px; border: 2px solid #333; margin-right: 15px; }
+          .task-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+          .task-table th, .task-table td { border: 1px solid #333; padding: 16px 8px; font-size: 11px; }
+          .task-table th { background-color: #f0f0f0; font-weight: bold; text-align: left; padding: 6px 8px; }
+          .task-cell { vertical-align: middle; min-height: 35px; }
+          .status-cell { vertical-align: middle; }
+          .status-checkboxes { display: flex; justify-content: space-around; gap: 4px; }
+          .status-option { display: flex; align-items: center; gap: 2px; font-size: 9px; font-weight: bold; }
+          .checkbox { width: 10px; height: 10px; border: 1px solid #333; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; }
+          .checkbox.checked { background-color: #333; color: white; }
           
-          .footer { margin-top: 50px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+          .notes-box { border: 1px solid #ddd; padding: 8px; border-radius: 4px; min-height: 40px; background-color: #f9f9f9; font-size: 11px; white-space: pre-wrap; }
+          
+          .history-section { border: 1px solid #ddd; padding: 8px; border-radius: 4px; margin-top: 10px; background-color: #fff; }
+          .history-badge { display: inline-block; background-color: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-left: 5px; border: 1px solid #e5e7eb; }
+          .history-parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
+          .history-part { font-size: 10px; padding: 3px 6px; border-radius: 3px; border: 1px solid #eee; display: flex; align-items: center; gap: 4px; }
+          .history-part.changed { border-color: #bfdbfe; background-color: #eff6ff; color: #1e40af; }
+          .history-part.repaired { border-color: #bbf7d0; background-color: #f0fdf4; color: #166534; }
+          
+          .footer { margin-top: 10px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
+
         </style>
       </head>
       <body>
@@ -479,35 +499,134 @@ export const usePrintableFunctions = ({
             <div class="section-title">Customer Details</div>
             <div class="info-row">
               <span class="info-label">Name:</span>
-              <span class="info-value">${escapeHtml(customerName)}</span>
+              <span class="info-value"><strong>${escapeHtml(customerName)}</strong></span>
             </div>
             <div class="info-row">
               <span class="info-label">Phone:</span>
               <span class="info-value">${escapeHtml(customerPhone)}</span>
             </div>
-            <div class="info-row">
-              <span class="info-label">Email:</span>
-              <span class="info-value">${escapeHtml(customerEmail)}</span>
-            </div>
           </div>
           
-          <div class="section">
-            <div class="section-title">Vehicle Details</div>
+          <div class="section vehicle-highlight">
+            <div class="section-title" style="color: #1e40af; border-bottom-color: #bfdbfe;">Vehicle Information</div>
             <div class="info-row">
               <span class="info-label">Vehicle:</span>
-              <span class="info-value"><strong>${escapeHtml(vehicleTitle)}</strong></span>
+              <span class="info-value vehicle-title"><strong>${escapeHtml(vehicleTitle)}</strong></span>
             </div>
             <div class="info-row">
               <span class="info-label">Reg No:</span>
-              <span class="info-value" style="font-family: monospace; font-size: 16px;">${escapeHtml(vehicleReg)}</span>
+              <span class="info-value" style="font-family: monospace; font-size: 14px; font-weight: bold;">${escapeHtml(vehicleReg)}</span>
             </div>
           </div>
         </div>
         
+        <div class="section">
+          <div class="section-title">Task List</div>
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Part / Task</th>
+                <th style="width: 25%; text-align: center;">Status</th>
+                <th style="width: 25%;">Part / Task</th>
+                <th style="width: 25%; text-align: center;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(() => {
+        const rows: string[] = [];
+        const totalRows = Math.max(9, Math.ceil(todos.length / 2));
+        for (let i = 0; i < totalRows; i++) {
+          const leftIdx = i;
+          const rightIdx = i + totalRows;
+          const leftTodo = todos[leftIdx];
+          const rightTodo = todos[rightIdx];
+
+          const leftChanged = leftTodo?.status === 'changed';
+          const leftRepaired = leftTodo?.status === 'repaired';
+          const leftNoChange = leftTodo?.status === 'no_change';
+          const leftCompleted = leftTodo?.completed === true;
+
+          const rightChanged = rightTodo?.status === 'changed';
+          const rightRepaired = rightTodo?.status === 'repaired';
+          const rightNoChange = rightTodo?.status === 'no_change';
+          const rightCompleted = rightTodo?.completed === true;
+
+          const leftStyle = leftCompleted ? 'text-decoration: line-through; color: #888;' : '';
+          const rightStyle = rightCompleted ? 'text-decoration: line-through; color: #888;' : '';
+
+          rows.push('<tr>' +
+            '<td class="task-cell" style="' + leftStyle + '">' + (leftTodo ? escapeHtml(leftTodo.text) : '') + '</td>' +
+            '<td class="status-cell"><div class="status-checkboxes">' +
+            '<span class="status-option"><span class="checkbox ' + (leftChanged ? 'checked' : '') + '">' + (leftChanged ? '✓' : '') + '</span>C</span>' +
+            '<span class="status-option"><span class="checkbox ' + (leftRepaired ? 'checked' : '') + '">' + (leftRepaired ? '✓' : '') + '</span>R</span>' +
+            '<span class="status-option"><span class="checkbox ' + (leftNoChange ? 'checked' : '') + '">' + (leftNoChange ? '✓' : '') + '</span>N</span>' +
+            '</div></td>' +
+            '<td class="task-cell" style="' + rightStyle + '">' + (rightTodo ? escapeHtml(rightTodo.text) : '') + '</td>' +
+            '<td class="status-cell"><div class="status-checkboxes">' +
+            '<span class="status-option"><span class="checkbox ' + (rightChanged ? 'checked' : '') + '">' + (rightChanged ? '✓' : '') + '</span>C</span>' +
+            '<span class="status-option"><span class="checkbox ' + (rightRepaired ? 'checked' : '') + '">' + (rightRepaired ? '✓' : '') + '</span>R</span>' +
+            '<span class="status-option"><span class="checkbox ' + (rightNoChange ? 'checked' : '') + '">' + (rightNoChange ? '✓' : '') + '</span>N</span>' +
+            '</div></td>' +
+            '</tr>');
+        }
+        return rows.join('');
+      })()}
+            </tbody>
+          </table>
+          <div style="font-size: 9px; color: #666; margin-top: 2px;">C = Changed | R = Repaired | N = No Change</div>
+        </div>
 
         <div class="section">
-           <div class="section-title">Mechanic Notes</div>
-           <div class="description-box" style="height: 150px;">${escapeHtml(notes)}</div>
+          <div class="section-title">Mechanic Notes</div>
+          <div class="notes-box">${escapeHtml(notes) || '<span style="color: #999; font-style: italic;">No notes recorded</span>'}</div>
+        </div>
+
+        ${serviceHistory && serviceHistory.totalJobs > 1 && serviceHistory.recentJob ? `
+        <div class="section history-section">
+          <div class="section-title" style="border-bottom: none; margin-bottom: 3px; font-size: 12px; color: #333;">
+            LAST SERVICE HISTORY
+            <span class="history-badge">${serviceHistory.totalJobs - 1} previous visit${serviceHistory.totalJobs > 2 ? 's' : ''}</span>
+          </div>
+          <div style="font-size: 11px; margin-bottom: 5px;">
+            <strong>Job #${escapeHtml(serviceHistory.recentJob.jobNumber)}</strong> | 
+            <strong>Date:</strong> ${new Date(serviceHistory.recentJob.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </div>
+          ${serviceHistory.recentJob.partsWorkedOn.length > 0 ? `
+          <div class="history-parts">
+            ${serviceHistory.recentJob.partsWorkedOn.map(part => `
+              <div class="history-part ${part.status}">
+                <span style="font-size: 12px;">${part.status === 'changed' ? '↻' : '🔧'}</span>
+                <strong>${escapeHtml(part.name)}</strong>
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+        </div>
+        ` : ''}
+
+        <div class="section" style="margin-top: 15px; page-break-inside: avoid;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <div class="section-title">Assigned Mechanic</div>
+              <div style="font-size: 12px; margin-bottom: 8px;">
+                ${job.mechanic ? `<strong>${escapeHtml(job.mechanic.name)}</strong>${job.mechanic.phone ? ` | ${escapeHtml(job.mechanic.phone)}` : ''}` : '<span style="color: #999; font-style: italic;">Not assigned</span>'}
+              </div>
+              <div style="border-bottom: 1px solid #333; height: 30px; margin-top: 20px;"></div>
+              <div style="font-size: 10px; color: #666; margin-top: 3px;">Mechanic Signature</div>
+            </div>
+            <div>
+              <div class="section-title">Customer Acknowledgment</div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
+                I acknowledge receipt of the vehicle and agree to the work performed.
+              </div>
+              <div style="border-bottom: 1px solid #333; height: 30px; margin-top: 20px;"></div>
+              <div style="font-size: 10px; color: #666; margin-top: 3px;">Customer Signature</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
         </div>
 
         <script>
@@ -521,7 +640,7 @@ export const usePrintableFunctions = ({
       </body>
       </html>
     `;
-    
+
     printWindow.document.write(pdfContent);
     printWindow.document.close();
   }

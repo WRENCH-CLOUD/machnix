@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (res.ok && mounted) {
             const { user: serverUser } = await res.json();
             if (serverUser?.isImpersonating && serverUser.tenantId) {
-              console.log("[AuthProvider] Impersonation active, tenantId:", serverUser.tenantId);
               setTenantId(serverUser.tenantId);
               setTenantContext(serverUser.tenantId);
             }

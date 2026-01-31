@@ -60,7 +60,7 @@ export const statusConfig: Record<JobStatus, StatusConfigItem> = {
     bgColor: 'bg-amber-500/20',
   },
   ready: {
-    label: 'Ready for Payment',
+    label: 'Ready for Delivery',
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/20',
   },

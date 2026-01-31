@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -22,7 +22,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight } from "lucide-react";
+import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight, HardHat } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,13 @@ import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface JobBoardProps {
   jobs: UIJob[];
@@ -44,7 +51,7 @@ interface JobBoardProps {
 const COLUMNS: { id: JobStatus; label: string }[] = [
   { id: "received", label: "Received" },
   { id: "working", label: "Working" },
-  { id: "ready", label: "Ready for Payment" },
+  { id: "ready", label: "Ready for Delivery" },
   { id: "completed", label: "Completed" },
 ];
 
@@ -102,6 +109,13 @@ function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus;
           <span className="truncate">{job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}</span>
         </div>
       </div>
+
+      {job.mechanic && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <HardHat className="w-3 h-3 shrink-0" />
+          <span className="truncate">{job.mechanic.name}</span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-1">
         <div className="flex flex-col gap-1">
@@ -180,11 +194,33 @@ export function JobBoardView({
     status: JobStatus;
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
+  const [mechanicFilter, setMechanicFilter] = useState<string>("");
+  const [mechanics, setMechanics] = useState<{ id: string; name: string }[]>([]);
   const isMobile = useIsMobile();
 
+  // Load mechanics for filter dropdown
   useEffect(() => {
-    setUiJobs(jobs);
-  }, [jobs]);
+    const loadMechanics = async () => {
+      try {
+        const response = await fetch("/api/mechanics?activeOnly=true");
+        if (response.ok) {
+          const data = await response.json();
+          setMechanics(data);
+        }
+      } catch (error) {
+        console.error("Error loading mechanics:", error);
+      }
+    };
+    loadMechanics();
+  }, []);
+
+  useEffect(() => {
+    // Filter jobs by mechanic if filter is set
+    const filtered = mechanicFilter
+      ? jobs.filter((j) => j.mechanic?.id === mechanicFilter)
+      : jobs;
+    setUiJobs(filtered);
+  }, [jobs, mechanicFilter]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -237,7 +273,7 @@ export function JobBoardView({
     }
   };
 
-  const handleDragOver = (_event: DragOverEvent) => {};
+  const handleDragOver = (_event: DragOverEvent) => { };
 
   const validateStatusTransition = (
     fromStatus: string,
@@ -293,11 +329,11 @@ export function JobBoardView({
         prev.map((job) =>
           job.id === activeId
             ? {
-                ...job,
-                status: targetStatus as string,
-                updatedAt,
-                updated_at: updatedAt,
-              }
+              ...job,
+              status: targetStatus as string,
+              updatedAt,
+              updated_at: updatedAt,
+            }
             : job
         )
       );
@@ -418,10 +454,44 @@ export function JobBoardView({
               <span className="hidden sm:inline">Unhide All</span> ({hiddenStatuses.length})
             </Button>
           )}
-          <Button variant="outline" size="sm" className="gap-1 md:gap-2 bg-transparent">
-            <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filter</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 md:gap-2 bg-transparent">
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {mechanicFilter
+                    ? mechanics.find(m => m.id === mechanicFilter)?.name || "Mechanic"
+                    : "Filter"}
+                </span>
+                {mechanicFilter && (
+                  <span className="ml-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">1</span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setMechanicFilter("")}
+                className={cn(!mechanicFilter && "bg-accent")}
+              >
+                All Mechanics
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {mechanics.length === 0 ? (
+                <DropdownMenuItem disabled>No mechanics available</DropdownMenuItem>
+              ) : (
+                mechanics.map((mechanic) => (
+                  <DropdownMenuItem
+                    key={mechanic.id}
+                    onClick={() => setMechanicFilter(mechanic.id)}
+                    className={cn(mechanicFilter === mechanic.id && "bg-accent")}
+                  >
+                    <HardHat className="w-4 h-4 mr-2" />
+                    {mechanic.name}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="flex rounded-lg border border-border overflow-hidden">
             <Button
               variant="secondary"

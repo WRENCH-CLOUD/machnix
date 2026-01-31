@@ -27,6 +27,7 @@ import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
+import { type TodoItem, type TodoStatus } from "./job-todos";
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -54,12 +55,12 @@ interface JobDetailsDialogProps {
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
   onGenerateInvoice: () => void;
-  
+
   // Payment Modal props
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
   onPaymentComplete: (method: string, ref?: string) => Promise<void>;
-  
+
   // Tenant props
   tenantDetails: {
     name: string;
@@ -67,6 +68,19 @@ interface JobDetailsDialogProps {
     gstin: string;
   };
   onGenerateJobPdf?: () => void;
+
+  // Todo props
+  todos?: TodoItem[];
+  onAddTodo?: (text: string) => void;
+  onToggleTodo?: (todoId: string) => void;
+  onRemoveTodo?: (todoId: string) => void;
+  onUpdateTodo?: (todoId: string, text: string) => void;
+  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
+
+  // Notes props
+  notes?: string;
+  onUpdateNotes?: (notes: string) => void;
+  onViewJob?: (jobId: string) => void;
 }
 
 export function JobDetailsDialog({
@@ -96,6 +110,16 @@ export function JobDetailsDialog({
   onPaymentComplete,
   tenantDetails,
   onGenerateJobPdf,
+  todos = [],
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onUpdateTodo,
+  onUpdateTodoStatus,
+  notes,
+  onUpdateNotes,
+  onViewJob,
+  onMechanicChange,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -312,7 +336,7 @@ export function JobDetailsDialog({
                       Invoice
                       {job.status !== "ready" && job.status !== "completed" && (
                         <span className="ml-2 text-xs text-muted-foreground">
-                          (Available when Ready for Payment)
+                          (Available when Ready for Delivery)
                         </span>
                       )}
                     </TabsTrigger>
@@ -323,7 +347,21 @@ export function JobDetailsDialog({
 
             <div className="flex-1 overflow-hidden relative">
               <TabsContent value="overview" className="m-0 h-full">
-                <JobOverview job={job} />
+                <JobOverview
+                  job={job}
+                  todos={todos}
+                  onAddTodo={onAddTodo}
+                  onToggleTodo={onToggleTodo}
+                  onRemoveTodo={onRemoveTodo}
+                  onUpdateTodo={onUpdateTodo}
+                  onUpdateTodoStatus={onUpdateTodoStatus}
+                  notes={notes}
+                  onUpdateNotes={onUpdateNotes}
+                  onViewJob={onViewJob}
+                  onMechanicChange={onMechanicChange}
+                  isEditable={job.status !== "completed" && job.status !== "cancelled"}
+                  estimate={estimate}
+                />
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">

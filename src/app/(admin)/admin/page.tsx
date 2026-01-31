@@ -40,16 +40,12 @@ export default function AdminOverviewPage() {
       setLoading(true);
       setError(null);
 
-      console.log("[AdminPage] Starting to load tenants...");
-
       // Fetch tenants via admin API
       const response = await fetch('/api/admin/tenants');
       if (!response.ok) {
         throw new Error('Failed to fetch tenants');
       }
       const { tenants } = await response.json();
-
-      console.log("[AdminPage] Loaded tenants:", tenants.length);
       setTenants(tenants as TenantWithStats[]);
     } catch (err) {
       console.error("[AdminPage] Failed to load tenants:", err);

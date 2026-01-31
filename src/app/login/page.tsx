@@ -18,7 +18,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    console.log("HANDLE SUBMIT HIT!@!!!!");
 
     setError("");
     setIsLoading(true);

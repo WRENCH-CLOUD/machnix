@@ -32,8 +32,8 @@ export default function AllJobsPage() {
   const { data: tenantSettings } = useTenantSettings()
 
   // Transform tenant settings to match the format expected by JobDetailsContainer
-  const tenantDetails = useMemo(() => 
-    transformTenantSettingsForJobDetails(tenantSettings), 
+  const tenantDetails = useMemo(() =>
+    transformTenantSettingsForJobDetails(tenantSettings),
     [tenantSettings]
   )
 
@@ -60,7 +60,7 @@ export default function AllJobsPage() {
     try {
       // Call API route - business logic is in the use case
       const response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
-      
+
       // Handle payment required response (402)
       if (response.status === 402) {
         const data = await response.json()
@@ -80,9 +80,9 @@ export default function AllJobsPage() {
       if (!response.ok) {
         throw new Error('Failed to update job status')
       }
-      
+
       await invalidateJobs()
-      
+
       // Update selected job if it's the one being changed
       if (selectedJob?.id === jobId) {
         const updatedJob = transformedJobs.find(j => j.id === jobId)
@@ -112,8 +112,8 @@ export default function AllJobsPage() {
       }
 
       // 2. Update Job Status to completed
-      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, { 
-        status: 'completed' 
+      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, {
+        status: 'completed'
       })
 
       if (!statusRes.ok) {
@@ -149,6 +149,23 @@ export default function AllJobsPage() {
             await invalidateJobs()
           }}
           tenantDetails={tenantDetails}
+          onViewJob={async (jobId) => {
+            const found = transformedJobs.find(j => j.id === jobId);
+            if (found) {
+              setSelectedJob(found);
+            } else {
+              try {
+                const res = await api.get(`/api/jobs/${jobId}`);
+                if (res.ok) {
+                  const dbJob = await res.json();
+                  const uiJob = await transformDatabaseJobToUI(dbJob);
+                  setSelectedJob(uiJob);
+                }
+              } catch (err) {
+                console.error("Error navigating to job:", err);
+              }
+            }
+          }}
         />
       )}
 
