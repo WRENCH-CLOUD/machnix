@@ -231,7 +231,7 @@ export function JobTodos({
               value={newTodoText}
               onChange={(e) => setNewTodoText(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="h-9 text-sm"
+              className="h-9 text-sm border border-border"
             />
             <Button
               size="sm"

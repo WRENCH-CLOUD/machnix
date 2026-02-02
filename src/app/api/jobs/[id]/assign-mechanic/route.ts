@@ -30,6 +30,7 @@ export async function POST(
 
     // Validate mechanic exists and is active
     const { data: mechanic, error: mechanicError } = await supabase
+      .schema('tenant')
       .from('mechanics')
       .select('id, name, is_active')
       .eq('id', mechanicId)

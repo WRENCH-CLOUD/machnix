@@ -18,9 +18,11 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       subtotal: row.subtotal,
       taxAmount: row.tax_amount,
       discountAmount: row.discount_amount,
+      discountPercentage: row.discount_percentage || 0,
       totalAmount: row.total_amount,
       paidAmount: row.paid_amount,
       balance: row.balance,
+      isGstBilled: row.is_gst_billed ?? true,
       invoiceDate: new Date(row.invoice_date),
       dueDate: row.due_date ? new Date(row.due_date) : undefined,
       metadata: row.metadata || {},
@@ -52,9 +54,11 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
       subtotal: invoice.subtotal,
       tax_amount: invoice.taxAmount,
       discount_amount: invoice.discountAmount,
+      discount_percentage: invoice.discountPercentage,
       total_amount: invoice.totalAmount,
       paid_amount: invoice.paidAmount,
       balance: invoice.balance,
+      is_gst_billed: invoice.isGstBilled,
       invoice_date: invoice.invoiceDate.toISOString(),
       due_date: invoice.dueDate?.toISOString(),
       metadata: invoice.metadata,
@@ -122,7 +126,7 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
     if (error) {
       return null
     }
-    
+
     return this.toDomainWithRelations(data)
   }
 
@@ -176,6 +180,8 @@ export class SupabaseInvoiceRepository extends BaseSupabaseRepository<Invoice> i
     if (updates.subtotal !== undefined) dbUpdates.subtotal = updates.subtotal
     if (updates.taxAmount !== undefined) dbUpdates.tax_amount = updates.taxAmount
     if (updates.discountAmount !== undefined) dbUpdates.discount_amount = updates.discountAmount
+    if (updates.discountPercentage !== undefined) dbUpdates.discount_percentage = updates.discountPercentage
+    if (updates.isGstBilled !== undefined) dbUpdates.is_gst_billed = updates.isGstBilled
     if (updates.totalAmount !== undefined) dbUpdates.total_amount = updates.totalAmount
     if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount
     if (updates.balance !== undefined) dbUpdates.balance = updates.balance

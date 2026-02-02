@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   useUpdateJobTodos,
   useUpdateJobNotes,
   useVehicleJobHistory,
+  useUpdateInvoice,
   transformTenantSettingsForJobDetails,
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
@@ -48,6 +49,10 @@ export function JobDetailsContainer({
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // GST and discount state for invoice generation
+  const [isGstBilled, setIsGstBilled] = useState(true);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   // Determine mechanic mode based on user role
   const isMechanicMode = currentUser?.role === "mechanic";
@@ -80,6 +85,59 @@ export function JobDetailsContainer({
   const updateStatusMutation = useUpdateJobStatus(job.id);
   const updateTodosMutation = useUpdateJobTodos(job.id);
   const updateNotesMutation = useUpdateJobNotes(job.id);
+  const updateInvoiceMutation = useUpdateInvoice(job.id);
+
+  // Debounce ref for rate-limiting invoice updates (500ms)
+  const updateInvoiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced function to update invoice GST/discount
+  const debouncedUpdateInvoice = useCallback(
+    (newIsGstBilled: boolean, newDiscountPercentage: number) => {
+      if (!invoice) return;
+
+      // Clear previous timeout
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+
+      // Set new timeout
+      updateInvoiceTimeoutRef.current = setTimeout(() => {
+        updateInvoiceMutation.mutate({
+          invoiceId: invoice.id,
+          isGstBilled: newIsGstBilled,
+          discountPercentage: newDiscountPercentage,
+        });
+      }, 500);
+    },
+    [invoice, updateInvoiceMutation]
+  );
+
+  // GST toggle handler - updates local state immediately, debounces API call
+  const handleGstToggle = useCallback(
+    (value: boolean) => {
+      setIsGstBilled(value);
+      debouncedUpdateInvoice(value, discountPercentage);
+    },
+    [discountPercentage, debouncedUpdateInvoice]
+  );
+
+  // Discount change handler - updates local state immediately, debounces API call
+  const handleDiscountChange = useCallback(
+    (value: number) => {
+      setDiscountPercentage(value);
+      debouncedUpdateInvoice(isGstBilled, value);
+    },
+    [isGstBilled, debouncedUpdateInvoice]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper to normalize todos (add default status for legacy todos)
   const normalizeTodos = (todos: any[]): TodoItem[] => {
@@ -98,6 +156,14 @@ export function JobDetailsContainer({
     setLocalTodos(normalizeTodos(job.todos || []));
     setLocalNotes(job.complaints || "");
   }, [job.id]);
+
+  // Sync GST and discount state from existing invoice
+  useEffect(() => {
+    if (invoice) {
+      setIsGstBilled(invoice.isGstBilled ?? true);
+      setDiscountPercentage(invoice.discountPercentage ?? 0);
+    }
+  }, [invoice]);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
@@ -148,7 +214,30 @@ export function JobDetailsContainer({
     refetchInvoice();
   };
 
-  const handleMarkPaid = () => {
+  const handleMarkPaid = async () => {
+    // If already paid, direct completion (bypass payment modal)
+    if (invoice?.status === "paid") {
+      // Guardrail: Ensure all todos have a status
+      const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+      if (todosWithUnassignedStatus.length > 0) {
+        toast.warning(
+          `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+          { duration: 5000 }
+        );
+        return;
+      }
+
+      try {
+        await updateStatusMutation.mutateAsync("completed");
+        toast.success("Job completed successfully");
+        onJobUpdate?.();
+      } catch (error) {
+        console.error("Error completing job:", error);
+        toast.error("Failed to complete job");
+      }
+      return;
+    }
+
     setShowPaymentModal(true);
   };
 
@@ -194,6 +283,8 @@ export function JobDetailsContainer({
     notes: localNotes,
     todos: localTodos,
     serviceHistory: serviceHistoryData,
+    isGstBilled,
+    discountPercentage,
   });
 
   const handleGenerateInvoice = async () => {
@@ -203,7 +294,11 @@ export function JobDetailsContainer({
     }
 
     try {
-      await generateInvoiceMutation.mutateAsync({ estimateId: estimate.id });
+      await generateInvoiceMutation.mutateAsync({
+        estimateId: estimate.id,
+        isGstBilled,
+        discountPercentage,
+      });
       toast.success("Invoice generated");
     } catch (error) {
       console.error("Error generating invoice:", error);
@@ -353,7 +448,7 @@ export function JobDetailsContainer({
       // 1. Record Payment
       await recordPaymentMutation.mutateAsync({
         invoiceId: invoice.id,
-        amount: invoice.totalAmount || invoice.total_amount || 0,
+        amount: invoice.totalAmount || 0,
         method,
       });
 
@@ -407,6 +502,10 @@ export function JobDetailsContainer({
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}
       onMechanicChange={handleMechanicChange}
+      isGstBilled={isGstBilled}
+      onGstToggle={handleGstToggle}
+      discountPercentage={discountPercentage}
+      onDiscountChange={handleDiscountChange}
     />
   );
 }

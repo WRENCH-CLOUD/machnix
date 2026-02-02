@@ -19,12 +19,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const { estimateId, isGstBilled = true, discountPercentage = 0 } = body
 
     const invoiceRepo = new SupabaseInvoiceRepository(supabase, tenantId)
     const estimateRepo = new SupabaseEstimateRepository(supabase, tenantId)
     const useCase = new GenerateInvoiceFromEstimateUseCase(invoiceRepo, estimateRepo)
 
-    const invoice = await useCase.execute(body.estimateId, tenantId)
+    const invoice = await useCase.execute({
+      estimateId,
+      isGstBilled,
+      discountPercentage,
+    }, tenantId)
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error: any) {
