@@ -18,7 +18,7 @@ export interface CreateInvoiceDTO {
  * Creates a new invoice in the system
  */
 export class CreateInvoiceUseCase {
-  constructor(private readonly repository: InvoiceRepository) {}
+  constructor(private readonly repository: InvoiceRepository) { }
 
   async execute(dto: CreateInvoiceDTO, tenantId: string): Promise<Invoice> {
     // Validation
@@ -50,9 +50,11 @@ export class CreateInvoiceUseCase {
       subtotal: dto.subtotal,
       taxAmount,
       discountAmount,
+      discountPercentage: 0,
       totalAmount,
       paidAmount: 0,
       balance: totalAmount,
+      isGstBilled: taxAmount > 0,
       invoiceDate: dto.invoiceDate || new Date(),
       dueDate: dto.dueDate,
       metadata: dto.metadata || {},

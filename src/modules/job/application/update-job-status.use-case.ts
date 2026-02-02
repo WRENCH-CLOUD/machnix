@@ -8,7 +8,7 @@ import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/applicatio
 /**
  * Result types for UpdateJobStatusUseCase
  */
-export type UpdateJobStatusResult = 
+export type UpdateJobStatusResult =
   | { success: true; job: JobCard }
   | { success: false; paymentRequired: true; invoiceId: string; balance: number; jobNumber: string }
 
@@ -41,9 +41,9 @@ export class UpdateJobStatusUseCase {
     private readonly repository: JobRepository,
     private readonly estimateRepository?: EstimateRepository,
     private readonly invoiceRepository?: InvoiceRepository,
-  ) {}
+  ) { }
 
-  async execute(jobStatusCommand : jobStatusCommand): Promise<UpdateJobStatusResult> {
+  async execute(jobStatusCommand: jobStatusCommand): Promise<UpdateJobStatusResult> {
     // Validate status transition
     const { job_id: jobId, status } = jobStatusCommand
     const validStatuses: JobStatus[] = ['received', 'working', 'ready', 'completed', 'cancelled']
@@ -130,11 +130,10 @@ export class UpdateJobStatusUseCase {
 
       const payments = invoiceWithRelations.payments || []
       // Check if invoice is paid - status should be 'paid' OR balance should be 0 (or both)
-      const isPaid = invoiceWithRelations.status === 'paid' || 
+      const isPaid = invoiceWithRelations.status === 'paid' ||
         (invoiceWithRelations.balance !== undefined && invoiceWithRelations.balance !== null && invoiceWithRelations.balance <= 0)
-      const hasRecordedPayment = payments.length > 0
 
-      if (!isPaid || !hasRecordedPayment) {
+      if (!isPaid) {
         return {
           success: false,
           paymentRequired: true,
