@@ -25,23 +25,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const validatedBody = generateInvoiceSchema.parse(body)
+    const validationResult = generateInvoiceSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: validationResult.error.errors
+      }, { status: 400 })
+    }
 
     const invoiceRepo = new SupabaseInvoiceRepository(supabase, tenantId)
     const estimateRepo = new SupabaseEstimateRepository(supabase, tenantId)
     const useCase = new GenerateInvoiceFromEstimateUseCase(invoiceRepo, estimateRepo)
 
-    const invoice = await useCase.execute(validatedBody.estimateId, tenantId)
+    const invoice = await useCase.execute(validationResult.data.estimateId, tenantId)
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 })
-    }
     console.error('Error generating invoice from estimate:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate invoice' },
-      { status: 400 }
+      { status: 500 }
     )
   }
 }
