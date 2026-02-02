@@ -11,9 +11,9 @@ const createInvoiceSchema = z.object({
   subtotal: z.number().min(0, "Subtotal must be positive"),
   taxAmount: z.number().min(0).optional(),
   discountAmount: z.number().min(0).optional(),
-  // Accept string dates and transform to Date objects
-  invoiceDate: z.string().datetime().optional().transform(str => str ? new Date(str) : undefined),
-  dueDate: z.string().datetime().optional().transform(str => str ? new Date(str) : undefined),
+  // Accept string dates and coerce to Date objects
+  invoiceDate: z.coerce.date().optional(),
+  dueDate: z.coerce.date().optional(),
   metadata: z.record(z.any()).optional(),
 })
 
