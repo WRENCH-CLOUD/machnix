@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, Search, ExternalLink, Car, User, Briefcase } from "lucide-react";
+import { CreditCard, Search, Car, User, Briefcase } from "lucide-react";
 import Link from "next/link";
 
 export default function TransactionsPage() {

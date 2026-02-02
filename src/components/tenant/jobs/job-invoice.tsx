@@ -72,7 +72,6 @@ export function JobInvoice({
   const hasInvoice = Boolean(invoice);
   const invoiceIsGstBilled = invoice?.is_gst_billed ?? true;
   const invoiceDiscountPercentage = invoice?.discount_percentage ?? 0;
-  const finalSubtotal = invoice?.subtotal ?? subtotal;
   const finalDiscount = invoice?.discount_amount ?? previewDiscountAmount;
   const finalTax = invoice?.tax_amount ?? previewTax;
   const finalTotal = invoice?.total_amount ?? previewTotal;
