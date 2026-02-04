@@ -16,6 +16,9 @@ interface UsePrintableFunctionsProps {
       partsWorkedOn: Array<{ name: string; status: string }>;
     } | null;
   };
+  // GST and discount from local state (for immediate PDF updates)
+  isGstBilled: boolean;
+  discountPercentage: number;
 }
 
 /**
@@ -49,6 +52,8 @@ export const usePrintableFunctions = ({
   notes,
   todos = [],
   serviceHistory,
+  isGstBilled,
+  discountPercentage,
 }: UsePrintableFunctionsProps) => {
   const handleGenerateInvoicePdf = () => {
     if (!invoice) {
@@ -73,8 +78,12 @@ export const usePrintableFunctions = ({
       0
     );
     const subtotal = partsSubtotal + laborSubtotal;
-    const tax = subtotal * 0.18;
-    const total = subtotal + tax;
+
+    // Use local state values for GST and discount (passed as props)
+    const discountAmount = subtotal * (discountPercentage / 100);
+    const taxableAmount = subtotal - discountAmount;
+    const tax = isGstBilled ? taxableAmount * 0.18 : 0;
+    const total = taxableAmount + tax;
 
     const customerName = job.customer?.name ?? "";
     const customerPhone = job.customer?.phone ?? "";
@@ -114,7 +123,7 @@ export const usePrintableFunctions = ({
       <body>
         <div class="header">
           <div class="header-left">
-            <div class="title">INVOICE</div>
+            <div class="title">${isGstBilled ? 'TAX INVOICE' : 'BILL OF SUPPLY'}</div>
             <div>${escapeHtml(invoice.invoice_number || job.jobNumber)}</div>
             <div style="font-size: 12px; color: #666;">Date: ${invoice.invoice_date
         ? new Date(invoice.invoice_date).toLocaleDateString()
@@ -207,23 +216,31 @@ export const usePrintableFunctions = ({
             <span>Subtotal:</span>
             <span>₹${subtotal.toLocaleString()}</span>
           </div>
+          ${discountPercentage > 0 ? `
+          <div class="totals-row">
+            <span>Discount (${discountPercentage}%):</span>
+            <span>-₹${discountAmount.toLocaleString()}</span>
+          </div>
+          ` : ''}
+          ${isGstBilled ? `
           <div class="totals-row">
             <span>GST (18%):</span>
             <span>₹${tax.toLocaleString()}</span>
           </div>
+          ` : ''}
           <div class="totals-row total-final">
             <span>Total:</span>
             <span>₹${total.toLocaleString()}</span>
           </div>
-          ${invoice.paid_amount > 0
+          ${invoice.paidAmount > 0
         ? `
             <div class="totals-row paid" style="padding-top: 10px; border-top: 1px solid #ddd;">
               <span>Paid:</span>
-              <span>₹${Number(invoice.paid_amount).toLocaleString()}</span>
+              <span>₹${Number(invoice.paidAmount).toLocaleString()}</span>
             </div>
             <div class="totals-row balance" style="font-weight: bold; font-size: 18px;">
               <span>Balance Due:</span>
-              <span>₹${(total - invoice.paid_amount).toLocaleString()}</span>
+              <span>₹${(total - invoice.paidAmount).toLocaleString()}</span>
             </div>
           `
         : ""
