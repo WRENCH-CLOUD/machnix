@@ -65,7 +65,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -77,7 +77,7 @@ export default function RootLayout({
           </QueryProvider>
         </ThemeProvider>
         <Toaster />
-        <Analytics />
+        <Analytics mode="development"/>
       </body>
     </html>
   )
