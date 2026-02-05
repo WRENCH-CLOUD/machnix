@@ -3,6 +3,7 @@ import { TenantRepository } from "./tenant.repository";
 import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { TenantSettings } from "../domain/tenant-settings.entity";
+import { GupshupSettings, TriggerMode } from "../domain/gupshup-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export class SupabaseTenantRepository implements TenantRepository {
@@ -87,20 +88,20 @@ export class SupabaseTenantRepository implements TenantRepository {
       businessPhone: row.business_phone,
       businessEmail: row.business_email,
       website: row.website,
-      
+
       taxRate: row.tax_rate,
       currency: row.currency,
       timezone: row.timezone,
-      
+
       smsEnabled: row.sms_enabled,
       emailEnabled: row.email_enabled,
       whatsappEnabled: row.whatsapp_enabled,
-      
+
       invoicePrefix: row.invoice_prefix,
       jobPrefix: row.job_prefix,
       estimatePrefix: row.estimate_prefix,
       invoiceFooter: row.invoice_footer,
-      
+
       logoUrl: row.logo_url,
       updatedAt: new Date(row.updated_at)
     };
@@ -120,7 +121,7 @@ export class SupabaseTenantRepository implements TenantRepository {
 
   async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
     const dbSettings: any = {};
-    
+
     // Map domain fields to DB columns
     if (settings.legalName !== undefined) dbSettings.legal_name = settings.legalName;
     if (settings.gstNumber !== undefined) dbSettings.gst_number = settings.gstNumber;
@@ -132,11 +133,11 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (settings.businessPhone !== undefined) dbSettings.business_phone = settings.businessPhone;
     if (settings.businessEmail !== undefined) dbSettings.business_email = settings.businessEmail;
     if (settings.website !== undefined) dbSettings.website = settings.website;
-    
+
     if (settings.taxRate !== undefined) dbSettings.tax_rate = settings.taxRate;
     if (settings.currency !== undefined) dbSettings.currency = settings.currency;
     if (settings.timezone !== undefined) dbSettings.timezone = settings.timezone;
-    
+
     if (settings.invoicePrefix !== undefined) dbSettings.invoice_prefix = settings.invoicePrefix;
     if (settings.jobPrefix !== undefined) dbSettings.job_prefix = settings.jobPrefix;
     if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
@@ -183,7 +184,7 @@ export class SupabaseTenantRepository implements TenantRepository {
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
         .eq("status", "received"),
-      
+
       // Ready jobs (ready status)
       this.supabase
         .schema("tenant")
@@ -191,7 +192,7 @@ export class SupabaseTenantRepository implements TenantRepository {
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
         .eq("status", "ready"),
-      
+
       // Jobs created this week
       this.supabase
         .schema("tenant")
@@ -243,7 +244,7 @@ export class SupabaseTenantRepository implements TenantRepository {
       .from('vehicles')
       .select('id, reg_no')
       .in('id', vehicleIds);
-    
+
     const vehicleMap = new Map((vehicles || []).map(v => [v.id, v]));
 
     return data.map(job => {
@@ -308,6 +309,49 @@ export class SupabaseTenantRepository implements TenantRepository {
       .from("tenants")
       .delete()
       .eq("id", id);
+    if (error) throw error;
+  }
+
+  // ============================================
+  // Gupshup Settings Methods
+  // ============================================
+
+  private toGupshupSettingsDomain(row: any): GupshupSettings {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      sourceNumber: row.source_number,
+      isActive: row.is_active,
+      triggerMode: row.trigger_mode as TriggerMode,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+    };
+  }
+
+  async getGupshupSettings(tenantId: string): Promise<GupshupSettings | null> {
+    const { data, error } = await this.supabase
+      .schema("tenant")
+      .from("gupshup_settings")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.toGupshupSettingsDomain(data) : null;
+  }
+
+  async upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void> {
+    const dbSettings: any = { tenant_id: tenantId };
+
+    if (settings.sourceNumber !== undefined) dbSettings.source_number = settings.sourceNumber;
+    if (settings.isActive !== undefined) dbSettings.is_active = settings.isActive;
+    if (settings.triggerMode !== undefined) dbSettings.trigger_mode = settings.triggerMode;
+
+    const { error } = await this.supabase
+      .schema("tenant")
+      .from("gupshup_settings")
+      .upsert(dbSettings, { onConflict: 'tenant_id' });
+
     if (error) throw error;
   }
 }
