@@ -1,5 +1,6 @@
 import { EstimateRepository } from '../domain/estimate.repository'
 import { Estimate } from '../domain/estimate.entity'
+import { generateFormattedId } from '@/shared/utils/generators'
 
 export interface CreateEstimateDTO {
   customerId: string
@@ -19,14 +20,14 @@ export interface CreateEstimateDTO {
  * Creates a new estimate in the system
  */
 export class CreateEstimateUseCase {
-  constructor(private readonly repository: EstimateRepository) {}
+  constructor(private readonly repository: EstimateRepository) { }
 
   async execute(dto: CreateEstimateDTO, tenantId: string, createdBy?: string): Promise<Estimate> {
     // Validation
-    if (!dto.customerId || dto.customerId.trim().length === 0) {
+    if (!dto.customerId?.trim()) {
       throw new Error('Customer ID is required')
     }
-    if (!dto.vehicleId || dto.vehicleId.trim().length === 0) {
+    if (!dto.vehicleId?.trim()) {
       throw new Error('Vehicle ID is required')
     }
     if (dto.laborTotal < 0) {
@@ -36,11 +37,8 @@ export class CreateEstimateUseCase {
       throw new Error('Parts total cannot be negative')
     }
 
-    // Generate estimate number (format: EST-YYYYMMDD-XXXX)
-    const date = new Date()
-    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '')
-    const randomNum = Math.floor(1000 + Math.random() * 9000)
-    const estimateNumber = `EST-${dateStr}-${randomNum}`
+    // Generate estimate number
+    const estimateNumber = generateFormattedId('EST')
 
     // Calculate totals
     const subtotal = dto.laborTotal + dto.partsTotal

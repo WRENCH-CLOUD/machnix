@@ -14,11 +14,11 @@ export interface UpdateCustomerDTO {
  * Updates an existing customer's information
  */
 export class UpdateCustomerUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(private readonly repository: CustomerRepository) { }
 
   async execute(id: string, dto: UpdateCustomerDTO): Promise<Customer> {
-    // Validation
-    if (dto.name !== undefined && dto.name.trim().length === 0) {
+    // Validation - only check if name is explicitly set to empty
+    if (dto.name !== undefined && !dto.name.trim()) {
       throw new Error('Customer name cannot be empty')
     }
 

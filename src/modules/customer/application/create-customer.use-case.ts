@@ -12,7 +12,7 @@ export interface CreateCustomerDTO {
 /**
  * Result type for CreateCustomerUseCase
  */
-export type CreateCustomerResult = 
+export type CreateCustomerResult =
   | { success: true; customer: Customer }
   | { success: false; duplicatePhone: true; existingCustomer: Customer }
 
@@ -21,11 +21,11 @@ export type CreateCustomerResult =
  * Creates a new customer in the system
  */
 export class CreateCustomerUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(private readonly repository: CustomerRepository) { }
 
   async execute(dto: CreateCustomerDTO, tenantId: string): Promise<CreateCustomerResult> {
     // Validation
-    if (!dto.name || dto.name.trim().length === 0) {
+    if (!dto.name?.trim()) {
       throw new Error('Customer name is required')
     }
 

@@ -2,6 +2,7 @@ import { JobRepository } from '../domain/job.repository'
 import { JobCard, JobStatus } from '../domain/job.entity'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { CreateEstimateUseCase } from '@/modules/estimate/application/create-estimate.use-case'
+import { generateFormattedId } from '@/shared/utils/generators'
 
 export interface CreateJobDTO {
   customerId: string
@@ -30,7 +31,7 @@ export class CreateJobUseCase {
   constructor(
     private readonly repository: JobRepository,
     private readonly estimateRepository?: EstimateRepository
-  ) {}
+  ) { }
 
   async execute(dto: CreateJobDTO, tenantId: string, createdBy?: string): Promise<JobCard> {
     // Validation
@@ -42,10 +43,7 @@ export class CreateJobUseCase {
     }
 
     // Generate job number (format: JOB-YYYYMMDD-XXXX)
-    const date = new Date()
-    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '')
-    const randomNum = Math.floor(1000 + Math.random() * 9000)
-    const jobNumber = `JOB-${dateStr}-${randomNum}`
+    const jobNumber = generateFormattedId('JOB')
 
     const details = {
       ...(dto.details || {}),

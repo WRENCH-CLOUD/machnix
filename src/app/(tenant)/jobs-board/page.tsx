@@ -65,6 +65,27 @@ export default function JobsPage() {
     return validTransitions[fromStatus]?.includes(toStatus) ?? false
   }
 
+  /**
+   * Check if an invoice has an unpaid balance and set up pending completion if so
+   */
+  const checkInvoicePaymentRequired = (
+    invoice: { id: string; status: string; totalAmount?: number; total_amount?: number } | null,
+    jobId: string,
+    jobNumber: string
+  ): boolean => {
+    if (!invoice) return false
+
+    const isUnpaid = invoice.status !== 'paid'
+    const total = invoice.totalAmount || invoice.total_amount || 0
+
+    if (isUnpaid && total > 0) {
+      setPendingCompletion({ jobId, invoiceId: invoice.id, balance: total, jobNumber })
+      setShowUnpaidWarning(true)
+      return true
+    }
+    return false
+  }
+
   const jobsQuery = useQuery({
     queryKey: jobsQueryKey,
     enabled: Boolean(user && tenantId),
@@ -181,19 +202,9 @@ export default function JobsPage() {
 
         if (invRes.ok) {
           const invoice = await invRes.json()
-          // Check if invoice is unpaid and has a total
-          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
-            const total = invoice.totalAmount || invoice.total_amount
-            setPendingCompletion({
-              jobId,
-              invoiceId: invoice.id,
-              balance: total,
-              jobNumber: oldJobNumber || '',
-            })
-            setShowUnpaidWarning(true)
-            return
-          }
+          if (checkInvoicePaymentRequired(invoice, jobId, oldJobNumber || '')) return
         } else if (invRes.status === 404) {
+          // No invoice exists - try to generate from estimate
           const estRes = await api.get(`/api/estimates/by-job/${jobId}`)
           if (!estRes.ok) {
             alert('Cannot complete job: No estimate found for this job.')
@@ -201,7 +212,7 @@ export default function JobsPage() {
           }
 
           const estimate = await estRes.json()
-          if (!estimate || !estimate.id) {
+          if (!estimate?.id) {
             alert('Cannot complete job: Invalid estimate data.')
             return
           }
@@ -213,18 +224,7 @@ export default function JobsPage() {
           }
 
           const invoice = await genRes.json()
-          // Check if invoice is unpaid and has a total
-          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
-            const total = invoice.totalAmount || invoice.total_amount
-            setPendingCompletion({
-              jobId,
-              invoiceId: invoice.id,
-              balance: total,
-              jobNumber: oldJobNumber || '',
-            })
-            setShowUnpaidWarning(true)
-            return
-          }
+          if (checkInvoicePaymentRequired(invoice, jobId, oldJobNumber || '')) return
         }
       }
 
