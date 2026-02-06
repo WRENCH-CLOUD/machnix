@@ -36,7 +36,8 @@ export interface JobCardWithRelations extends JobCard {
   mechanic?: any
 }
 
-// TODO: add DVI items 
+// Note: DVI (Digital Vehicle Inspection) items will be added in a future version
+// per ROADMAP - currently excluded from V1
 
 /**
  * Status Configuration

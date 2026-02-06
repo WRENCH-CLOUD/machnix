@@ -99,8 +99,8 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
       name: dbJob.mechanic.name,
       phone: dbJob.mechanic.phone || null,
       email: dbJob.mechanic.email || null,
-      avatar: null, // TODO: add avatar field to mechanic table
-      specialty: 'Mechanic', // TODO: add specialty field to database
+      avatar: null, // Note: Avatar field to be added to mechanic table in future version
+      specialty: 'Mechanic', // Note: Specialty field to be added to database in future version
     } : null,
     status: dbJob.status,
     complaints: extractComplaints(dbJob.details),
