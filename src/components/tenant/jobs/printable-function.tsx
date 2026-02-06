@@ -437,11 +437,11 @@ export const usePrintableFunctions = ({
             @page { margin: 0.5cm; }
             body { margin: 0; }
           }
-          body { font-family: Arial, sans-serif; padding: 10px; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.2; }
+          body { font-family: Arial, sans-serif; padding: 10px; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.2; word-wrap: break-word; }
           .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
           .header-left h1 { margin: 0; font-size: 20px; font-weight: bold; }
           .job-number { font-size: 14px; color: #666; margin-top: 2px; }
-          .header-right { text-align: right; }
+          .header-right { text-align: right; word-break: break-word; max-width: 200px; }
           .status-badge { 
             display: inline-block; padding: 3px 8px; border-radius: 4px; 
             font-weight: bold; font-size: 11px; text-transform: uppercase;
@@ -453,28 +453,28 @@ export const usePrintableFunctions = ({
           .section-title { font-size: 11px; text-transform: uppercase; color: #666; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 3px; margin-bottom: 5px; }
           
           .info-row { display: flex; margin-bottom: 3px; }
-          .info-label { width: 65px; font-weight: bold; color: #555; font-size: 11px; }
-          .info-value { flex: 1; font-size: 11px; }
+          .info-label { width: 65px; font-weight: bold; color: #555; font-size: 11px; flex-shrink: 0; }
+          .info-value { flex: 1; font-size: 11px; word-break: break-word; overflow-wrap: break-word; }
           
           .vehicle-highlight { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 8px; border-radius: 4px; }
           .vehicle-title { color: #1e40af; font-size: 13px; }
           
-          .task-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-          .task-table th, .task-table td { border: 1px solid #333; padding: 16px 8px; font-size: 11px; }
+          .task-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: fixed; }
+          .task-table th, .task-table td { border: 1px solid #333; padding: 6px 8px; font-size: 11px; word-break: break-word; overflow-wrap: break-word; }
           .task-table th { background-color: #f0f0f0; font-weight: bold; text-align: left; padding: 6px 8px; }
-          .task-cell { vertical-align: middle; min-height: 35px; }
+          .task-cell { vertical-align: middle; min-height: 35px; max-width: 0; word-break: break-word; hyphens: auto; }
           .status-cell { vertical-align: middle; }
           .status-checkboxes { display: flex; justify-content: space-around; gap: 4px; }
           .status-option { display: flex; align-items: center; gap: 2px; font-size: 9px; font-weight: bold; }
-          .checkbox { width: 10px; height: 10px; border: 1px solid #333; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; }
+          .checkbox { width: 10px; height: 10px; border: 1px solid #333; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
           .checkbox.checked { background-color: #333; color: white; }
           
-          .notes-box { border: 1px solid #ddd; padding: 8px; border-radius: 4px; min-height: 40px; background-color: #f9f9f9; font-size: 11px; white-space: pre-wrap; }
+          .notes-box { border: 1px solid #ddd; padding: 8px; border-radius: 4px; min-height: 40px; background-color: #f9f9f9; font-size: 11px; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; }
           
           .history-section { border: 1px solid #ddd; padding: 8px; border-radius: 4px; margin-top: 10px; background-color: #fff; }
           .history-badge { display: inline-block; background-color: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-left: 5px; border: 1px solid #e5e7eb; }
           .history-parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
-          .history-part { font-size: 10px; padding: 3px 6px; border-radius: 3px; border: 1px solid #eee; display: flex; align-items: center; gap: 4px; }
+          .history-part { font-size: 10px; padding: 3px 6px; border-radius: 3px; border: 1px solid #eee; display: flex; align-items: center; gap: 4px; word-break: break-word; overflow-wrap: break-word; }
           .history-part.changed { border-color: #bfdbfe; background-color: #eff6ff; color: #1e40af; }
           .history-part.repaired { border-color: #bbf7d0; background-color: #f0fdf4; color: #166534; }
           

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -22,6 +22,10 @@ import {
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
 import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Maximum number of tasks allowed per job
+const MAX_TASKS = 24;
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -92,12 +96,47 @@ export function JobDetailsContainer({
   // Local state for todos and notes (optimistic updates)
   const [localTodos, setLocalTodos] = useState<TodoItem[]>(normalizeTodos(job.todos || []));
   const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
+  
+  // Pending updates ref to track if there are unsaved changes
+  const pendingTodosRef = useRef<TodoItem[] | null>(null);
+  const isSavingTodosRef = useRef(false);
 
   // Sync local state when job changes
   useEffect(() => {
     setLocalTodos(normalizeTodos(job.todos || []));
     setLocalNotes(job.complaints || "");
   }, [job.id]);
+
+  // Function to persist todos to backend
+  const persistTodos = useCallback(async (todos: TodoItem[]) => {
+    if (isSavingTodosRef.current) {
+      // If already saving, queue these todos for next save
+      pendingTodosRef.current = todos;
+      return;
+    }
+
+    try {
+      isSavingTodosRef.current = true;
+      await updateTodosMutation.mutateAsync(todos);
+      
+      // Check if there are pending updates
+      if (pendingTodosRef.current) {
+        const nextTodos = pendingTodosRef.current;
+        pendingTodosRef.current = null;
+        isSavingTodosRef.current = false;
+        // Recursively save pending todos
+        await persistTodos(nextTodos);
+      }
+    } catch (error) {
+      console.error("Error persisting todos:", error);
+      throw error;
+    } finally {
+      isSavingTodosRef.current = false;
+    }
+  }, [updateTodosMutation]);
+
+  // Debounced version of persistTodos (500ms delay)
+  const debouncedPersistTodos = useDebounce(persistTodos, 500);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
@@ -210,8 +249,14 @@ export function JobDetailsContainer({
     }
   };
 
-  // Todo handlers
+  // Todo handlers with debouncing and task limit
   const handleAddTodo = async (text: string) => {
+    // Check task limit
+    if (localTodos.length >= MAX_TASKS) {
+      toast.error(`Cannot add more than ${MAX_TASKS} tasks per job`);
+      return;
+    }
+
     const newTodo: TodoItem = {
       id: generateTodoId(),
       text,
@@ -221,9 +266,12 @@ export function JobDetailsContainer({
     };
     const previousTodos = localTodos;
     const updatedTodos = [...localTodos, newTodo];
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
+      // Immediate save for add operations (no debounce)
       await updateTodosMutation.mutateAsync(updatedTodos);
     } catch (error) {
       console.error("Error adding todo:", error);
@@ -243,10 +291,13 @@ export function JobDetailsContainer({
         }
         : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
+      // Use debounced save for toggle operations
+      debouncedPersistTodos(updatedTodos);
     } catch (error) {
       console.error("Error toggling todo:", error);
       setLocalTodos(previousTodos);
@@ -257,9 +308,12 @@ export function JobDetailsContainer({
   const handleRemoveTodo = async (todoId: string) => {
     const previousTodos = localTodos;
     const updatedTodos = localTodos.filter((t) => t.id !== todoId);
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
+      // Immediate save for delete operations (no debounce)
       await updateTodosMutation.mutateAsync(updatedTodos);
     } catch (error) {
       console.error("Error removing todo:", error);
@@ -273,10 +327,13 @@ export function JobDetailsContainer({
     const updatedTodos = localTodos.map((t) =>
       t.id === todoId ? { ...t, text } : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
+      // Use debounced save for text updates (reduces API calls during typing)
+      debouncedPersistTodos(updatedTodos);
     } catch (error) {
       console.error("Error updating todo:", error);
       setLocalTodos(previousTodos);
@@ -289,10 +346,13 @@ export function JobDetailsContainer({
     const updatedTodos = localTodos.map((t) =>
       t.id === todoId ? { ...t, status } : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
+      // Use debounced save for status updates
+      debouncedPersistTodos(updatedTodos);
     } catch (error) {
       console.error("Error updating todo status:", error);
       setLocalTodos(previousTodos);
