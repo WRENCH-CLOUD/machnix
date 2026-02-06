@@ -132,12 +132,15 @@ export function JobDetailsContainer({
         // Recursively save pending todos (async, don't await)
         persistTodos(nextTodos).catch(err => {
           console.error("Error persisting queued todos:", err);
+          toast.error("Failed to save queued task changes");
         });
       }
     }
   }, [updateTodosMutation]);
 
   // Debounced version of persistTodos (500ms delay)
+  // Note: For debounced operations, we accept eventual consistency
+  // The UI updates optimistically, and errors are shown via toast
   const debouncedPersistTodos = useDebounce(persistTodos, 500);
 
   // Handlers
@@ -297,7 +300,9 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    // Use debounced save for toggle operations (errors handled in persistTodos)
+    // Use debounced save for toggle operations
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // This is acceptable for toggle/status updates as they're low-risk
     debouncedPersistTodos(updatedTodos);
   };
 
@@ -327,7 +332,9 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    // Use debounced save for text updates (errors handled in persistTodos)
+    // Use debounced save for text updates (reduces API calls during typing)
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // User can manually fix if needed by refreshing or re-editing
     debouncedPersistTodos(updatedTodos);
   };
 
@@ -340,7 +347,9 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    // Use debounced save for status updates (errors handled in persistTodos)
+    // Use debounced save for status updates
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // This is acceptable for status updates as they're low-risk
     debouncedPersistTodos(updatedTodos);
   };
 
