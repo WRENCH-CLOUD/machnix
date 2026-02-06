@@ -14,7 +14,7 @@ export interface RecordPaymentDTO {
  * Records a payment transaction for an invoice
  */
 export class RecordPaymentUseCase {
-  constructor(private readonly repository: InvoiceRepository) {}
+  constructor(private readonly repository: InvoiceRepository) { }
 
   async execute(invoiceId: string, dto: RecordPaymentDTO, tenantId: string): Promise<Invoice> {
     // Validation
@@ -40,9 +40,11 @@ export class RecordPaymentUseCase {
 
     // For simplified flow, we don't check balance - just ensure amount is reasonable
     // Use totalAmount if balance is not set (backwards compatibility)
-    const invoiceTotal = invoice.balance || invoice.totalAmount || 0;
+    const invoiceTotal = invoice.balance ?? invoice.totalAmount ?? 0
+
+    // Only validate if we have a valid total to check against
     if (invoiceTotal > 0 && dto.amount > invoiceTotal) {
-      throw new Error('Payment amount exceeds invoice total')
+      throw new Error(`Payment amount (${dto.amount}) exceeds outstanding balance (${invoiceTotal})`)
     }
 
     const payment: Omit<PaymentTransaction, 'id' | 'createdAt'> = {
