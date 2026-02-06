@@ -7,6 +7,8 @@ import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/es
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
+import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
 
 export async function POST(
   request: NextRequest,
@@ -42,7 +44,7 @@ export async function POST(
 
     const body = await request.json()
     const { status } = body as { status: JobStatus }
-    
+
     if (!status) {
       return NextResponse.json(
         { error: 'Status is required' },
@@ -58,17 +60,28 @@ export async function POST(
         { status: 400 }
       )
     }
-    
+
+    // Instantiate repositories
     const repository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const invoiceRepository = new SupabaseInvoiceRepository(supabase, tenantId)
-    const useCase = new UpdateJobStatusUseCase(repository, estimateRepository, invoiceRepository)
+    const customerRepository = new SupabaseCustomerRepository(supabase, tenantId) // Works because it extends BaseSupabaseRepository which takes context
+    const tenantRepository = new SupabaseTenantRepository(supabase) // Doesn't take tenantId context in constructor
+
+    const useCase = new UpdateJobStatusUseCase(
+      repository,
+      estimateRepository,
+      invoiceRepository,
+      customerRepository,
+      tenantRepository
+    )
+
     const cmd: jobStatusCommand = {
       job_id: id as any,
       status,
     }
     const result = await useCase.execute(cmd)
-    
+
     if (!result.success) {
       // Return payment required response with 402 status
       return NextResponse.json({
