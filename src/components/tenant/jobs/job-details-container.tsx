@@ -118,20 +118,22 @@ export function JobDetailsContainer({
     try {
       isSavingTodosRef.current = true;
       await updateTodosMutation.mutateAsync(todos);
-      
-      // Check if there are pending updates
-      if (pendingTodosRef.current) {
-        const nextTodos = pendingTodosRef.current;
-        pendingTodosRef.current = null;
-        isSavingTodosRef.current = false;
-        // Recursively save pending todos
-        await persistTodos(nextTodos);
-      }
     } catch (error) {
       console.error("Error persisting todos:", error);
+      toast.error("Failed to save task changes");
       throw error;
     } finally {
       isSavingTodosRef.current = false;
+      
+      // Check if there are pending updates after finishing
+      if (pendingTodosRef.current) {
+        const nextTodos = pendingTodosRef.current;
+        pendingTodosRef.current = null;
+        // Recursively save pending todos (async, don't await)
+        persistTodos(nextTodos).catch(err => {
+          console.error("Error persisting queued todos:", err);
+        });
+      }
     }
   }, [updateTodosMutation]);
 
@@ -295,14 +297,8 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      // Use debounced save for toggle operations
-      debouncedPersistTodos(updatedTodos);
-    } catch (error) {
-      console.error("Error toggling todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
+    // Use debounced save for toggle operations (errors handled in persistTodos)
+    debouncedPersistTodos(updatedTodos);
   };
 
   const handleRemoveTodo = async (todoId: string) => {
@@ -331,14 +327,8 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      // Use debounced save for text updates (reduces API calls during typing)
-      debouncedPersistTodos(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
+    // Use debounced save for text updates (errors handled in persistTodos)
+    debouncedPersistTodos(updatedTodos);
   };
 
   const handleUpdateTodoStatus = async (todoId: string, status: TodoStatus) => {
@@ -350,14 +340,8 @@ export function JobDetailsContainer({
     // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      // Use debounced save for status updates
-      debouncedPersistTodos(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo status:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task status");
-    }
+    // Use debounced save for status updates (errors handled in persistTodos)
+    debouncedPersistTodos(updatedTodos);
   };
 
   // Notes handler
