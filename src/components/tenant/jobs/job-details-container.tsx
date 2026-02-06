@@ -100,6 +100,8 @@ export function JobDetailsContainer({
   // Pending updates ref to track if there are unsaved changes
   const pendingTodosRef = useRef<TodoItem[] | null>(null);
   const isSavingTodosRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const MAX_RETRY_COUNT = 3;
 
   // Sync local state when job changes
   useEffect(() => {
@@ -118,6 +120,8 @@ export function JobDetailsContainer({
     try {
       isSavingTodosRef.current = true;
       await updateTodosMutation.mutateAsync(todos);
+      // Reset retry count on success
+      retryCountRef.current = 0;
     } catch (error) {
       console.error("Error persisting todos:", error);
       toast.error("Failed to save task changes");
@@ -127,8 +131,19 @@ export function JobDetailsContainer({
       
       // Check if there are pending updates after finishing
       if (pendingTodosRef.current) {
+        // Prevent infinite retry loops by limiting retry attempts
+        if (retryCountRef.current >= MAX_RETRY_COUNT) {
+          console.error("Max retry count reached for queued todos");
+          toast.error("Unable to save task changes after multiple attempts. Please refresh and try again.");
+          pendingTodosRef.current = null;
+          retryCountRef.current = 0;
+          return;
+        }
+        
         const nextTodos = pendingTodosRef.current;
         pendingTodosRef.current = null;
+        retryCountRef.current += 1;
+        
         // Recursively save pending todos (async, don't await)
         persistTodos(nextTodos).catch(err => {
           console.error("Error persisting queued todos:", err);
@@ -139,8 +154,12 @@ export function JobDetailsContainer({
   }, [updateTodosMutation]);
 
   // Debounced version of persistTodos (500ms delay)
-  // Note: For debounced operations, we accept eventual consistency
-  // The UI updates optimistically, and errors are shown via toast
+  // IMPORTANT: Debounced operations accept eventual consistency trade-off
+  // - UI updates immediately (optimistic)
+  // - Backend sync happens after 500ms delay
+  // - Errors shown via toast, but NO automatic rollback to prevent jarring UX
+  // - If network fails, UI may show stale data until page refresh
+  // - This is acceptable for low-risk operations (toggle/text/status updates)
   const debouncedPersistTodos = useDebounce(persistTodos, 500);
 
   // Handlers
