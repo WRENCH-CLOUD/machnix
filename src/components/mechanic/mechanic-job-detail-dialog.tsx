@@ -237,7 +237,6 @@ export function MechanicJobDetailDialog({
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-4 gap-2">
                 {Object.entries(dviStatusConfig).map(([key, config]) => {
-                  // FIXME: create and or if exsist import dviStatusConfig
                   const count = dviItems.filter((i) => i.status === key).length;
                   return (
                     <Card

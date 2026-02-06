@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// TODO: update path of the missing function GlobalAnalytics i guess need to be created @sagun-py0909
-// import { GlobalAnalytics } from "@/modules/analytics";
+import { type GlobalAnalytics } from "@/modules/analytics";
 import { TenantDetailsDialog } from "@/components/admin/tenant-details-dialog";
 import { OverviewView } from "@/components/admin/overview-view";
 import {
@@ -26,8 +25,8 @@ export default function AdminOverviewPage() {
   const [tenantDetailsError, setTenantDetailsError] = useState<string | null>(
     null
   );
-  // const [globalAnalytics, setGlobalAnalytics] =
-  //   useState<GlobalAnalytics | null>(null);
+  const [globalAnalytics, setGlobalAnalytics] =
+    useState<GlobalAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => {
@@ -63,7 +62,7 @@ export default function AdminOverviewPage() {
         throw new Error("Failed to fetch analytics");
       }
       const { analytics } = await response.json();
-      // setGlobalAnalytics(analytics);
+      setGlobalAnalytics(analytics);
     } catch (err) {
       console.error("Failed to load analytics:", err);
     } finally {
@@ -103,7 +102,7 @@ export default function AdminOverviewPage() {
         onSearchChange={setSearchQuery}
         onRefresh={loadTenants}
         onViewDetails={handleViewDetails}
-        // globalAnalytics={globalAnalytics}
+        globalAnalytics={globalAnalytics}
         analyticsLoading={analyticsLoading}
       />
 

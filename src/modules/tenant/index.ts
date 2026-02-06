@@ -6,8 +6,8 @@ export type { TenantWithStats, TenantStats } from './domain/tenant-stats.entity'
 export { CreateTenantWithOwnerUseCase } from './application/create-tenant-with-owner-usecase'
 export { GetAllTenantsWithStatsUseCase } from './application/get-all-tenants-with-stats.usecase'
 export { GetTenantWithStatsUseCase } from './application/get-tenant-with-stats.usecase'
-export { UpdateTenantUseCase } from './application/update-tenant.usecase'// TODO: to be implemented
-export { DeleteTenantUseCase } from './application/delete-tenant.usecase'// TODO: to be implemented
+export { UpdateTenantUseCase } from './application/update-tenant.usecase'
+export { DeleteTenantUseCase } from './application/delete-tenant.usecase'
 
 // Infrastructure exports
 export type { TenantRepository } from './infrastructure/tenant.repository'
