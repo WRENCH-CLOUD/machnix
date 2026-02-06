@@ -110,7 +110,7 @@ export function JobDetailsContainer({
   }, [job.id]);
 
   // Function to persist todos to backend
-  const persistTodos = useCallback(async (todos: TodoItem[]) => {
+  const persistTodos = useCallback(async (todos: TodoItem[], isRetry: boolean = false) => {
     if (isSavingTodosRef.current) {
       // If already saving, queue these todos for next save
       pendingTodosRef.current = todos;
@@ -132,7 +132,10 @@ export function JobDetailsContainer({
       // Check if there are pending updates after finishing
       if (pendingTodosRef.current) {
         // Prevent infinite retry loops by limiting retry attempts
-        if (retryCountRef.current >= MAX_RETRY_COUNT) {
+        // Only increment retry count if this was already a retry
+        const currentRetryCount = isRetry ? retryCountRef.current : 0;
+        
+        if (currentRetryCount >= MAX_RETRY_COUNT) {
           console.error("Max retry count reached for queued todos");
           toast.error("Unable to save task changes after multiple attempts. Please refresh and try again.");
           pendingTodosRef.current = null;
@@ -142,10 +145,13 @@ export function JobDetailsContainer({
         
         const nextTodos = pendingTodosRef.current;
         pendingTodosRef.current = null;
-        retryCountRef.current += 1;
+        if (isRetry) {
+          retryCountRef.current += 1;
+        }
         
         // Recursively save pending todos (async, don't await)
-        persistTodos(nextTodos).catch(err => {
+        // Mark this as a retry if the parent was a retry
+        persistTodos(nextTodos, isRetry || currentRetryCount > 0).catch(err => {
           console.error("Error persisting queued todos:", err);
           toast.error("Failed to save queued task changes");
         });
@@ -275,7 +281,8 @@ export function JobDetailsContainer({
 
   // Todo handlers with debouncing and task limit
   const handleAddTodo = async (text: string) => {
-    // Check task limit
+    // Check task limit (based on local state - may diverge from server during pending saves)
+    // This is acceptable as it's a soft limit for UX, not a hard constraint
     if (localTodos.length >= MAX_TASKS) {
       toast.error(`Cannot add more than ${MAX_TASKS} tasks per job`);
       return;
