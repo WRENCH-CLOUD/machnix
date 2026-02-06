@@ -1,5 +1,6 @@
 import { InvoiceRepository } from '../domain/invoice.repository'
 import { Invoice } from '../domain/invoice.entity'
+import { generateFormattedId } from '@/shared/utils/generators'
 
 export interface CreateInvoiceDTO {
   customerId: string
@@ -22,18 +23,15 @@ export class CreateInvoiceUseCase {
 
   async execute(dto: CreateInvoiceDTO, tenantId: string): Promise<Invoice> {
     // Validation
-    if (!dto.customerId || dto.customerId.trim().length === 0) {
+    if (!dto.customerId?.trim()) {
       throw new Error('Customer ID is required')
     }
     if (dto.subtotal < 0) {
       throw new Error('Subtotal cannot be negative')
     }
 
-    // Generate invoice number (format: INV-YYYYMMDD-XXXX)
-    const date = new Date()
-    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '')
-    const randomNum = Math.floor(1000 + Math.random() * 9000)
-    const invoiceNumber = `INV-${dateStr}-${randomNum}`
+    // Generate invoice number
+    const invoiceNumber = generateFormattedId('INV')
 
     // Calculate totals
     const taxAmount = dto.taxAmount || 0

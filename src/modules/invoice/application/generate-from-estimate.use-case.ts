@@ -1,6 +1,7 @@
 import { InvoiceRepository } from '../domain/invoice.repository'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { Invoice } from '../domain/invoice.entity'
+import { generateFormattedId } from '@/shared/utils/generators'
 
 export interface GenerateInvoiceOptions {
   estimateId: string
@@ -14,11 +15,10 @@ export class GenerateInvoiceFromEstimateUseCase {
     private readonly estimateRepo: EstimateRepository
   ) { }
 
+  private readonly GST_RATE = 0.18
+
   async execute(options: GenerateInvoiceOptions | string, tenantId: string): Promise<Invoice> {
-    // Support both old string signature and new options object
-    const estimateId = typeof options === 'string' ? options : options.estimateId
-    const isGstBilled = typeof options === 'string' ? true : (options.isGstBilled ?? true)
-    const discountPercentage = typeof options === 'string' ? 0 : (options.discountPercentage ?? 0)
+    const { estimateId, isGstBilled, discountPercentage } = this.parseOptions(options)
 
     const estimate = await this.estimateRepo.findById(estimateId)
     if (!estimate) {
@@ -35,11 +35,15 @@ export class GenerateInvoiceFromEstimateUseCase {
     const subtotal = estimate.subtotal
     const discountAmount = subtotal * (discountPercentage / 100)
     const taxableAmount = subtotal - discountAmount
-    const taxAmount = isGstBilled ? taxableAmount * 0.18 : 0
+    const taxAmount = isGstBilled ? taxableAmount * this.GST_RATE : 0
     const totalAmount = taxableAmount + taxAmount
 
     if (existingInvoice) {
       // Update existing invoice with new GST/discount settings
+      // Recalculate balance based on current totals and existing paid amount
+      const balance = totalAmount - existingInvoice.paidAmount
+      const status = balance <= 0 ? 'paid' : existingInvoice.status
+
       return this.invoiceRepo.update(existingInvoice.id, {
         subtotal,
         taxAmount,
@@ -47,17 +51,16 @@ export class GenerateInvoiceFromEstimateUseCase {
         discountPercentage,
         isGstBilled,
         totalAmount,
-        // Recalculate balance based on current totals and existing paid amount
-        balance: totalAmount - existingInvoice.paidAmount,
-        // Update status if needed
-        status: totalAmount - existingInvoice.paidAmount <= 0 ? 'paid' : existingInvoice.status,
+        balance,
+        status,
       })
     }
 
     // Create new invoice
-    const invoiceNumber = `INV-${Date.now()}`
+    const invoiceNumber = generateFormattedId('INV')
     const invoiceDate = new Date()
-    const dueDate = new Date(invoiceDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const dueDate = new Date(invoiceDate)
+    dueDate.setDate(dueDate.getDate() + 7) // 7 days due date
 
     const invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> = {
       tenantId,
@@ -82,5 +85,16 @@ export class GenerateInvoiceFromEstimateUseCase {
     }
 
     return this.invoiceRepo.create(invoice)
+  }
+
+  private parseOptions(options: GenerateInvoiceOptions | string): { estimateId: string, isGstBilled: boolean, discountPercentage: number } {
+    if (typeof options === 'string') {
+      return { estimateId: options, isGstBilled: true, discountPercentage: 0 }
+    }
+    return {
+      estimateId: options.estimateId,
+      isGstBilled: options.isGstBilled ?? true,
+      discountPercentage: options.discountPercentage ?? 0
+    }
   }
 }

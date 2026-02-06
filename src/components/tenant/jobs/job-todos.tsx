@@ -173,45 +173,26 @@ export function JobTodos({
                 {/* Status Buttons */}
                 {onUpdateTodoStatus && (
                   <div className="flex gap-1 mt-2 ml-7">
-                    <Button
-                      variant={todo.status === "changed" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "changed" && "bg-blue-600 hover:bg-blue-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "changed" ? null : "changed")}
-                      disabled={disabled}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      Changed
-                    </Button>
-                    <Button
-                      variant={todo.status === "repaired" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "repaired" && "bg-green-600 hover:bg-green-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "repaired" ? null : "repaired")}
-                      disabled={disabled}
-                    >
-                      <Wrench className="h-3 w-3" />
-                      Repaired
-                    </Button>
-                    <Button
-                      variant={todo.status === "no_change" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "no_change" && "bg-gray-600 hover:bg-gray-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "no_change" ? null : "no_change")}
-                      disabled={disabled}
-                    >
-                      <MinusCircle className="h-3 w-3" />
-                      No Change
-                    </Button>
+                    {[
+                      { status: "changed" as const, icon: RefreshCw, label: "Changed", color: "bg-blue-600 hover:bg-blue-700" },
+                      { status: "repaired" as const, icon: Wrench, label: "Repaired", color: "bg-green-600 hover:bg-green-700" },
+                      { status: "no_change" as const, icon: MinusCircle, label: "No Change", color: "bg-gray-600 hover:bg-gray-700" },
+                    ].map(({ status, icon: Icon, label, color }) => (
+                      <Button
+                        key={status}
+                        variant={todo.status === status ? "default" : "outline"}
+                        size="sm"
+                        className={cn(
+                          "h-6 px-2 text-xs gap-1",
+                          todo.status === status && color
+                        )}
+                        onClick={() => onUpdateTodoStatus(todo.id, todo.status === status ? null : status)}
+                        disabled={disabled}
+                      >
+                        <Icon className="h-3 w-3" />
+                        {label}
+                      </Button>
+                    ))}
                   </div>
                 )}
               </div>
