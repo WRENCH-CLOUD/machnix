@@ -80,6 +80,7 @@
     "react-resizable-panels": "^2.1.9",
     "recharts": "latest",
     "reflect-metadata": "^0.2.2",
+    "shadcn": "^3.8.4",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.1",
     "tailwindcss-animate": "^1.0.7",
