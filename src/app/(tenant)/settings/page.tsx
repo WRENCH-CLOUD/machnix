@@ -102,7 +102,7 @@ export default function TenantSettingsPage() {
       {/* Garage Profile */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-2xl">
             <Building2 className="h-5 w-5" />
             Garage Profile
           </CardTitle>
@@ -113,7 +113,7 @@ export default function TenantSettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="gstNumber">GST Number</Label>
+              <Label className="font-bold" htmlFor="gstNumber">GST Number</Label>
               <Input
                 id="gstNumber"
                 value={profile.gstNumber}
@@ -124,7 +124,7 @@ export default function TenantSettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-2">
+            <Label htmlFor="address" className="flex items-center gap-2 font-bold">
               <MapPin className="h-4 w-4" />
               Address (Garage Address)
             </Label>
@@ -138,7 +138,7 @@ export default function TenantSettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label className="font-bold" htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={profile.city}
@@ -147,7 +147,7 @@ export default function TenantSettingsPage() {
               />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label className="font-bold" htmlFor="state">State</Label>
               <Input
                 id="state"
                 value={profile.state}
@@ -156,7 +156,7 @@ export default function TenantSettingsPage() {
               />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode</Label>
+              <Label className="font-bold" htmlFor="pincode">Pincode</Label>
               <Input
                 id="pincode"
                 value={profile.pincode}
@@ -168,7 +168,7 @@ export default function TenantSettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
+              <Label htmlFor="phone" className="flex items-center gap-2 font-bold">
                 <Phone className="h-4 w-4" />
                 Phone
               </Label>
@@ -180,7 +180,7 @@ export default function TenantSettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
+              <Label htmlFor="email" className="flex items-center gap-2 font-bold">
                 <Mail className="h-4 w-4" />
                 Email
               </Label>
