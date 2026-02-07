@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat } from "lucide-react";
+import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -102,60 +102,56 @@ export function JobOverview({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <p className="font-medium text-foreground wrap-break-word">{job.customer.name}</p>
-            </div>
-            <a
-              href={`tel:${job.customer.phone}`}
-              className="flex items-center gap-2 text-sm text-primary hover:underline min-w-0"
-            >
-              <Phone className="w-4 h-4" />
-              <span className="truncate">{job.customer.phone}</span>
-            </a>
-            <a
-              href={`mailto:${job.customer.email}`}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground min-w-0"
-            >
-              <Mail className="w-4 h-4" />
-              <span className="truncate">{job.customer.email}</span>
-            </a>
-            {job.customer.address && (
-              <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
-                <MapPin className="w-4 h-4 mt-0.5" />
-                <span className="wrap-break-word">{job.customer.address}</span>
+            {/* Customer Details */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Customer Information
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <User className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm warp-warp-break-words">{job.customer.name}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm font-mono break-all">{job.customer.phone}</span>
+                </div>
+                {job.customer.email && (
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <span className="text-sm break-all">{job.customer.email}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
 
-        {/* Vehicle Info */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Car className="w-4 h-4" />
-              Vehicle
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Make</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.make}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Model</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.model}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Year</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.year}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Reg No</span>
-              <span className="font-mono font-medium min-w-0 text-right truncate">{job.vehicle.regNo}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 min-w-0">
-              <span className="text-muted-foreground shrink-0">Color</span>
-              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.color || "N/A"}</span>
+            {/* Vehicle Details */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Vehicle Information
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Car className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm warp-break-words">
+                    {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm font-mono break-all">
+                    {job.vehicle.regNo}
+                  </span>
+                </div>
+                {job.vehicle.regNo && (
+                  <div className="flex items-start gap-2">
+                    <Hash className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-mono break-all">
+                      {job.vehicle.regNo}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

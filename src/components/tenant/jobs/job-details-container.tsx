@@ -25,7 +25,7 @@ import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/do
 import { useDebounce } from "@/hooks/useDebounce";
 
 // Maximum number of tasks allowed per job
-const MAX_TASKS = 24;
+const MAX_TASKS = 30;
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -281,13 +281,7 @@ export function JobDetailsContainer({
 
   // Todo handlers with debouncing and task limit
   const handleAddTodo = async (text: string) => {
-    // Check task limit (based on local state - may diverge from server during pending saves)
-    // This is acceptable as it's a soft limit for UX, not a hard constraint
-    if (localTodos.length >= MAX_TASKS) {
-      toast.error(`Cannot add more than ${MAX_TASKS} tasks per job`);
-      return;
-    }
-
+    // Note: Task limit is now enforced in JobTodos component
     const newTodo: TodoItem = {
       id: generateTodoId(),
       text,
@@ -482,6 +476,7 @@ export function JobDetailsContainer({
       onRemoveTodo={handleRemoveTodo}
       onUpdateTodo={handleUpdateTodo}
       onUpdateTodoStatus={handleUpdateTodoStatus}
+      maxTodos={MAX_TASKS}
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}

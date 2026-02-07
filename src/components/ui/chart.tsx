@@ -257,7 +257,7 @@ function ChartLegendContent({
   verticalAlign = 'bottom',
   nameKey,
 }: React.ComponentProps<'div'> &
-  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
+  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {//FIXME: LegendProps is not exported from Recharts, so we have to pick the props manually.
     hideIcon?: boolean
     nameKey?: string
   }) {
