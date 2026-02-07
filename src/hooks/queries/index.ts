@@ -65,6 +65,10 @@ export const queryKeys = {
     all: ["invoices"] as const,
     byJob: (jobId: string) => [...queryKeys.invoices.all, "by-job", jobId] as const,
   },
+  transactions: {
+    all: ["transactions"] as const,
+    list: () => [...queryKeys.transactions.all, "list"] as const,
+  },
 } as const;
 
 // ============================================
@@ -287,12 +291,16 @@ export function useEstimateByJob(
 
 interface Invoice {
   id: string;
-  invoice_number: string;
-  invoice_date: string;
+  invoiceNumber: string;
+  invoiceDate: string | Date;
   status: string;
-  paid_amount: number;
+  paidAmount: number;
   totalAmount?: number;
-  total_amount?: number;
+  taxAmount?: number;
+  subtotal?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
+  isGstBilled?: boolean;
 }
 
 export function useInvoiceByJob(jobId: string | undefined) {
@@ -398,10 +406,19 @@ export function useGenerateInvoice(jobId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ estimateId }: { estimateId: string }) => {
+    mutationFn: async ({
+      estimateId,
+      isGstBilled = true,
+      discountPercentage = 0,
+    }: {
+      estimateId: string;
+      isGstBilled?: boolean;
+      discountPercentage?: number;
+    }) => {
       const res = await api.post("/api/invoices/generate", {
-        jobcardId: jobId,
         estimateId,
+        isGstBilled,
+        discountPercentage,
       });
       if (!res.ok) throw new Error("Failed to generate invoice");
       return res.json();
@@ -439,6 +456,37 @@ export function useRecordPayment(jobId: string) {
   });
 }
 
+/**
+ * Mutation to update invoice GST/discount settings
+ * Used for real-time toggle updates
+ */
+export function useUpdateInvoice(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      invoiceId,
+      isGstBilled,
+      discountPercentage,
+    }: {
+      invoiceId: string;
+      isGstBilled?: boolean;
+      discountPercentage?: number;
+    }) => {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isGstBilled, discountPercentage }),
+      });
+      if (!res.ok) throw new Error("Failed to update invoice");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
 // ============================================
 // Job Status Mutation
 // ============================================
@@ -449,7 +497,14 @@ export function useUpdateJobStatus(jobId: string) {
   return useMutation({
     mutationFn: async (status: string) => {
       const res = await api.post(`/api/jobs/${jobId}/update-status`, { status });
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const error = new Error(errorData.error || "Failed to update status");
+        (error as any).status = res.status;
+        (error as any).paymentRequired = errorData.paymentRequired;
+        (error as any).balance = errorData.balance;
+        throw error;
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -546,4 +601,34 @@ export function useInvalidateQueries() {
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
     },
   };
+}
+
+// ============================================
+// Transactions Query
+// ============================================
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  mode: string;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+  invoice: { id: string; invoiceNumber: string } | null;
+  customer: { id: string; name: string; phone: string } | null;
+  vehicle: { id: string; regNo: string; make: string; model: string } | null;
+  jobcard: { id: string; jobNumber: string } | null;
+}
+
+export function useTransactions() {
+  return useQuery({
+    queryKey: queryKeys.transactions.list(),
+    queryFn: async (): Promise<Transaction[]> => {
+      const res = await fetch("/api/transactions");
+      if (!res.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+      return res.json();
+    },
+  });
 }

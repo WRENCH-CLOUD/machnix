@@ -19,17 +19,17 @@ export interface CreateVehicleDTO {
  * Creates a new vehicle in the system
  */
 export class CreateVehicleUseCase {
-  constructor(private readonly repository: VehicleRepository) {}
+  constructor(private readonly repository: VehicleRepository) { }
 
   async execute(dto: CreateVehicleDTO, tenantId: string): Promise<Vehicle> {
     // Validation
-    if (!dto.customerId || dto.customerId.trim().length === 0) {
+    if (!dto.customerId?.trim()) {
       throw new Error('Customer ID is required')
     }
-    if (!dto.make || dto.make.trim().length === 0) {
+    if (!dto.make?.trim()) {
       throw new Error('Vehicle make is required')
     }
-    if (!dto.model || dto.model.trim().length === 0) {
+    if (!dto.model?.trim()) {
       throw new Error('Vehicle model is required')
     }
 

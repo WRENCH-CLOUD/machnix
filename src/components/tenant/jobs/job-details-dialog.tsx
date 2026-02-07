@@ -55,6 +55,11 @@ interface JobDetailsDialogProps {
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
   onGenerateInvoice: () => void;
+  // GST and discount props
+  isGstBilled?: boolean;
+  onGstToggle?: (value: boolean) => void;
+  discountPercentage?: number;
+  onDiscountChange?: (value: number) => void;
 
   // Payment Modal props
   showPaymentModal: boolean;
@@ -388,6 +393,10 @@ export function JobDetailsDialog({
                   invoice={invoice}
                   estimateItems={estimateItems}
                   loading={loadingInvoice}
+                  isGstBilled={isGstBilled}
+                  onGstToggle={onGstToggle}
+                  discountPercentage={discountPercentage}
+                  onDiscountChange={onDiscountChange}
                   onRetry={onRetryInvoice}
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}
