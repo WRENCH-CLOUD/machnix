@@ -189,7 +189,7 @@ export class UpdateJobStatusUseCase {
 
       // Check if active and mode is auto or both
       if (!settings?.isActive) return
-      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return //FIXME: 
+      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return //FIXME: needs to setup and gupshup settings in tenant module.
 
       // Determine event type
       let event: 'job_ready' | 'job_delivered' | undefined
