@@ -2,10 +2,22 @@ import { env } from '@/lib/env'
 
 export type WhatsAppTemplateType = 'vehicle_status_update'
 
-export interface VehicleStatusUpdateParams {
-    vehicleName: string
-    status: string
+/** Job status to display text mapping */
+export const STATUS_DISPLAY_TEXT: Record<string, string> = {
+    received: 'RECEIVED YOUR VEHICLE',
+    working: 'WORK ON THE VEHICLE STARTED',
+    ready: 'VEHICLE READY FOR DELIVERY',
+    completed: 'DELIVERED SUCCESSFULLY',
+}
+
+export interface VehicleStatusParams {
+    /** Job status: received, working, ready, completed */
+    jobStatus: string
+    /** Vehicle registration number */
+    vehicleNumber: string
+    /** Tenant garage name */
     garageName: string
+    /** Custom note (manual for received, auto for others) */
     note: string
 }
 
@@ -18,24 +30,19 @@ interface SendMessageResponse {
 /**
  * Gupshup WhatsApp Business API Service
  * 
- * Centralized service for sending WhatsApp template messages via Gupshup.
- * Uses platform-level credentials AND source number from env vars.
- * All messages are sent from the single WrenchCloud WhatsApp number.
+ * Template: {{1}} status, {{2}} vehicle, {{3}} garage, {{4}} note
  */
 export class GupshupService {
-    private readonly apiUrl = 'https://api.gupshup.io/wa/api/v1/msg'
+    private readonly templateApiUrl = 'https://api.gupshup.io/wa/api/v1/template/msg'
 
-    /** Check if Gupshup is configured at the platform level */
     isConfigured(): boolean {
         return env.hasGupshupConfig
     }
 
-    /** Get the centralized WrenchCloud source number */
     getSourceNumber(): string | undefined {
         return env.GUPSHUP_SOURCE_NUMBER
     }
 
-    /** Get the template ID for a given template type */
     private getTemplateId(templateType: WhatsAppTemplateType): string | undefined {
         const templateMap: Record<WhatsAppTemplateType, string | undefined> = {
             vehicle_status_update: env.GUPSHUP_TEMPLATE_VEHICLE_STATUS,
@@ -43,7 +50,6 @@ export class GupshupService {
         return templateMap[templateType]
     }
 
-    /** Format phone number to international format */
     private formatPhoneNumber(phone: string): string {
         let cleaned = phone.replace(/\D/g, '')
         if (cleaned.length === 10) {
@@ -52,7 +58,6 @@ export class GupshupService {
         return cleaned
     }
 
-    /** Send a template message via Gupshup API */
     async sendTemplateMessage(
         destination: string,
         templateId: string,
@@ -62,34 +67,34 @@ export class GupshupService {
             return {
                 messageId: '',
                 status: 'failed',
-                error: 'Gupshup is not configured. Missing API key, app name, or source number.'
+                error: 'Gupshup is not configured'
             }
         }
 
         const sourceNumber = this.getSourceNumber()
         if (!sourceNumber) {
-            return {
-                messageId: '',
-                status: 'failed',
-                error: 'No source number configured'
-            }
+            return { messageId: '', status: 'failed', error: 'No source number configured' }
         }
 
-        const formattedPhone = this.formatPhoneNumber(destination)
-
+        const templatePayload = JSON.stringify({ id: templateId, params })
         const body = new URLSearchParams({
             channel: 'whatsapp',
             source: sourceNumber,
-            destination: formattedPhone,
+            destination: this.formatPhoneNumber(destination),
             'src.name': env.GUPSHUP_APP_NAME!,
-            template: JSON.stringify({
-                id: templateId,
-                params: params,
-            }),
+            template: templatePayload,
+        })
+
+        console.log('[GupshupService] Request payload:', {
+            url: this.templateApiUrl,
+            source: sourceNumber,
+            destination: this.formatPhoneNumber(destination),
+            appName: env.GUPSHUP_APP_NAME,
+            template: templatePayload,
         })
 
         try {
-            const response = await fetch(this.apiUrl, {
+            const response = await fetch(this.templateApiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -100,21 +105,19 @@ export class GupshupService {
 
             const data = await response.json()
 
-            if (!response.ok) {
+            console.log('[GupshupService] API Response:', {
+                status: response.status,
+                data,
+            })
+
+            if (!response.ok || data.status === 'error') {
                 console.error('[GupshupService] API error:', data)
-                return {
-                    messageId: '',
-                    status: 'failed',
-                    error: data.message || 'API request failed'
-                }
+                return { messageId: '', status: 'failed', error: data.message || 'API request failed' }
             }
 
-            return {
-                messageId: data.messageId || '',
-                status: 'submitted',
-            }
+            return { messageId: data.messageId || '', status: 'submitted' }
         } catch (error) {
-            console.error('[GupshupService] Failed to send message:', error)
+            console.error('[GupshupService] Failed to send:', error)
             return {
                 messageId: '',
                 status: 'failed',
@@ -124,45 +127,43 @@ export class GupshupService {
     }
 
     /**
-     * Send a vehicle status update to a customer
+     * Send vehicle status update
      * 
-     * Template: "Your vehicle *{{1}}* is {{2}} at *{{3}}*.
-     *           Note: {{4}}
-     *           Thank you for choosing us."
+     * Template params:
+     * {{1}} = Status text (RECEIVED YOUR VEHICLE, etc)
+     * {{2}} = Vehicle number
+     * {{3}} = Garage name
+     * {{4}} = Note
      */
     async sendVehicleStatusUpdate(
         customerPhone: string,
-        params: VehicleStatusUpdateParams
+        params: VehicleStatusParams
     ): Promise<SendMessageResponse> {
         const templateId = this.getTemplateId('vehicle_status_update')
         if (!templateId) {
-            return {
-                messageId: '',
-                status: 'failed',
-                error: 'No template configured for vehicle status update'
-            }
+            return { messageId: '', status: 'failed', error: 'No template configured' }
         }
 
+        const statusText = STATUS_DISPLAY_TEXT[params.jobStatus] || params.jobStatus.toUpperCase()
+
         const paramArray = [
-            params.vehicleName,
-            params.status,
-            params.garageName,
-            params.note
+            statusText,           // {{1}} - Status display text
+            params.vehicleNumber, // {{2}} - Vehicle number
+            params.garageName,    // {{3}} - Garage name
+            params.note           // {{4}} - Note
         ]
 
         return this.sendTemplateMessage(customerPhone, templateId, paramArray)
     }
 
-    /** Send a test message to verify configuration */
     async sendTestMessage(testPhone: string): Promise<SendMessageResponse> {
         return this.sendVehicleStatusUpdate(testPhone, {
-            vehicleName: 'Test Vehicle KA01AB1234',
-            status: 'ready for pickup',
+            jobStatus: 'received',
+            vehicleNumber: 'KA01AB1234',
             garageName: 'WrenchCloud Test Garage',
             note: 'This is a test message'
         })
     }
 }
 
-// Singleton instance
 export const gupshupService = new GupshupService()

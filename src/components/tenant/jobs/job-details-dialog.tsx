@@ -28,6 +28,7 @@ import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import { type TodoItem, type TodoStatus } from "./job-todos";
+import { SendWhatsAppButton } from "./send-whatsapp-button";
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -282,6 +283,15 @@ export function JobDetailsDialog({
                 <span className="font-mono">{job.vehicle.regNo}</span>
               </div>
             </div>
+            {!isMechanicMode && (
+              <SendWhatsAppButton
+                jobId={job.id}
+                jobStatus={job.status}
+                vehicleNumber={job.vehicle.regNo}
+                customerPhone={job.customer.phone ?? ""}
+                garageName={tenantDetails.name}
+              />
+            )}
             {onGenerateJobPdf && (
               <Button
                 variant="ghost"

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
-import { gupshupService } from '@/lib/integrations/gupshup.service'
+import { gupshupService, STATUS_DISPLAY_TEXT } from '@/lib/integrations/gupshup.service'
 
 interface SendMessageBody {
     jobId?: string
+    jobStatus: string
     customerPhone: string
-    vehicleName: string
-    status: string
+    vehicleNumber: string
     garageName: string
     note?: string
 }
@@ -46,22 +46,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const body = await request.json() as SendMessageBody
-    const { jobId, customerPhone, vehicleName, status, garageName, note } = body
+    const { jobId, jobStatus, customerPhone, vehicleNumber, garageName, note } = body
 
     // Validate required fields
     if (!customerPhone) {
         return NextResponse.json({ error: 'Customer phone number is required' }, { status: 400 })
     }
 
-    if (!vehicleName || !status || !garageName) {
-        return NextResponse.json({ error: 'Vehicle name, status, and garage name are required' }, { status: 400 })
+    if (!jobStatus || !vehicleNumber || !garageName) {
+        return NextResponse.json({ error: 'Job status, vehicle number, and garage name are required' }, { status: 400 })
     }
 
-    const params = { vehicleName, status, garageName, note: note || '' }
-    const result = await gupshupService.sendVehicleStatusUpdate(customerPhone, params)
+    // Auto-generate note for non-received statuses if not provided
+    const finalNote = note || (jobStatus === 'received'
+        ? ''
+        : `Status: ${STATUS_DISPLAY_TEXT[jobStatus] || jobStatus}`)
 
-    // Log notification (non-blocking)
-    logNotification(supabase, tenantId, jobId, result, params, customerPhone)
+    const result = await gupshupService.sendVehicleStatusUpdate(customerPhone, {
+        jobStatus,
+        vehicleNumber,
+        garageName,
+        note: finalNote
+    })
+
+    // Log to analytics schema
+    logToAnalytics(supabase, {
+        tenantId,
+        jobId,
+        customerPhone,
+        jobStatus,
+        vehicleNumber,
+        messageId: result.messageId,
+        deliveryStatus: result.status === 'submitted' ? 'sent' : 'failed',
+        error: result.error
+    })
 
     if (result.status === 'failed') {
         return NextResponse.json({ error: result.error || 'Failed to send message' }, { status: 500 })
@@ -70,29 +88,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true, messageId: result.messageId })
 }
 
-/** Log notification to database (fire-and-forget) */
-async function logNotification(
-    supabase: Awaited<ReturnType<typeof createClient>>,
-    tenantId: string,
-    jobId: string | undefined,
-    result: { messageId?: string; status: string },
-    params: { vehicleName: string; status: string; garageName: string; note: string },
+interface AnalyticsLog {
+    tenantId: string
+    jobId?: string
     customerPhone: string
+    jobStatus: string
+    vehicleNumber: string
+    messageId: string
+    deliveryStatus: string
+    error?: string
+}
+
+/** Log WhatsApp message to analytics (fire-and-forget) */
+async function logToAnalytics(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    data: AnalyticsLog
 ): Promise<void> {
     try {
         await supabase
-            .schema('tenant')
-            .from('notifications')
+            .schema('analytics')
+            .from('whatsapp_messages')
             .insert({
-                tenant_id: tenantId,
-                jobcard_id: jobId || null,
-                channel: 'whatsapp',
-                template: 'vehicle_status_update',
-                payload: { messageId: result.messageId, params, customerPhone },
-                status: result.status === 'submitted' ? 'sent' : 'failed',
+                tenant_id: data.tenantId,
+                job_id: data.jobId || null,
+                customer_phone: data.customerPhone,
+                job_status: data.jobStatus,
+                vehicle_number: data.vehicleNumber,
+                message_id: data.messageId,
+                delivery_status: data.deliveryStatus,
+                error_message: data.error || null,
                 sent_at: new Date().toISOString(),
             })
     } catch (err) {
-        console.error('[GupshupAPI] Failed to log notification:', err)
+        console.error('[GupshupAPI] Failed to log to analytics:', err)
     }
 }
