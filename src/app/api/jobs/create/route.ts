@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
-import { CreateJobUseCase } from '@/modules/job/application/create-job.use-case'
+import { CreateJobUseCase, OnJobCreatedCallback } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
+import { CreateEstimateUseCase } from '@/modules/estimate/application/create-estimate.use-case'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
@@ -28,6 +29,30 @@ const createJobSchema = z.object({
   todos: z.array(todoItemSchema).max(50, 'Too many tasks').optional(),
 })
 
+/**
+ * Creates a callback that automatically creates an estimate when a job is created
+ */
+function createEstimateCallback(estimateRepository: SupabaseEstimateRepository): OnJobCreatedCallback {
+  return async (job, tenantId, createdBy) => {
+    const createEstimate = new CreateEstimateUseCase(estimateRepository)
+    await createEstimate.execute(
+      {
+        customerId: job.customerId,
+        vehicleId: job.vehicleId,
+        jobcardId: job.id,
+        description: job.description || 'Service estimate',
+        laborTotal: 0,
+        partsTotal: 0,
+        taxAmount: 0,
+        discountAmount: 0,
+        currency: 'INR',
+      },
+      tenantId,
+      createdBy
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -43,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBody = await request.json()
-    
+
     // Validate input
     const parseResult = createJobSchema.safeParse(rawBody)
     if (!parseResult.success) {
@@ -53,16 +78,16 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = parseResult.data
-    
+
     // Use user ID from auth session
     const createdBy = user.id
-    
-    // Create the job
+
+    // Create the job with automatic estimate creation
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
-    const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
+    const createJobUseCase = new CreateJobUseCase(jobRepository, createEstimateCallback(estimateRepository))
     const job = await createJobUseCase.execute(body, tenantId, createdBy)
-    
+
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
     console.error('Error creating job:', {

@@ -53,8 +53,27 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
   async findAll(): Promise<CustomerWithVehicles[]> {
     const tenantId = this.getContextTenantId()
 
-    // Fetch customers
-    const { data: customers, error } = await this.supabase
+    const customers = await this.fetchCustomers(tenantId)
+    if (!customers.length) return []
+
+    const customerIds = customers.map(c => c.id)
+    const [vehiclesByCustomer, jobcardsByCustomer] = await Promise.all([
+      this.fetchVehiclesGroupedByCustomer(tenantId, customerIds),
+      this.fetchJobcardsGroupedByCustomer(tenantId, customerIds),
+    ])
+
+    return customers.map(row => ({
+      ...this.toDomain(row),
+      vehicles: vehiclesByCustomer[row.id] || [],
+      jobcards: jobcardsByCustomer[row.id] || [],
+    }))
+  }
+
+  /**
+   * Fetches all customers for a tenant
+   */
+  private async fetchCustomers(tenantId: string): Promise<any[]> {
+    const { data, error } = await this.supabase
       .schema('tenant')
       .from('customers')
       .select('*')
@@ -62,19 +81,34 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       .order('name', { ascending: true })
 
     if (error) throw error
-    if (!customers?.length) return []
+    return data || []
+  }
 
-    // Fetch vehicles separately (now in tenant schema)
-    const customerIds = customers.map(c => c.id)
-    const { data: vehicles } = await this.supabase
+  /**
+   * Fetches vehicles grouped by customer ID
+   */
+  private async fetchVehiclesGroupedByCustomer(
+    tenantId: string,
+    customerIds: string[]
+  ): Promise<Record<string, any[]>> {
+    const { data } = await this.supabase
       .schema('tenant')
       .from('vehicles')
       .select('*')
       .eq('tenant_id', tenantId)
       .in('customer_id', customerIds)
 
-    // Fetch jobcards for job count stats
-    const { data: jobcards } = await this.supabase
+    return this.groupById(data || [], 'customer_id')
+  }
+
+  /**
+   * Fetches jobcards grouped by customer ID
+   */
+  private async fetchJobcardsGroupedByCustomer(
+    tenantId: string,
+    customerIds: string[]
+  ): Promise<Record<string, any[]>> {
+    const { data } = await this.supabase
       .schema('tenant')
       .from('jobcards')
       .select('id, customer_id, created_at')
@@ -82,25 +116,19 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       .in('customer_id', customerIds)
       .order('created_at', { ascending: false })
 
-    // Group vehicles by customer_id
-    const vehiclesByCustomer = (vehicles || []).reduce((acc: Record<string, any[]>, v) => {
-      if (!acc[v.customer_id]) acc[v.customer_id] = []
-      acc[v.customer_id].push(v)
+    return this.groupById(data || [], 'customer_id')
+  }
+
+  /**
+   * Groups an array of items by a specified key
+   */
+  private groupById<T extends Record<string, any>>(items: T[], key: string): Record<string, T[]> {
+    return items.reduce((acc: Record<string, T[]>, item) => {
+      const groupKey = item[key]
+      if (!acc[groupKey]) acc[groupKey] = []
+      acc[groupKey].push(item)
       return acc
     }, {})
-
-    // Group jobcards by customer_id
-    const jobcardsByCustomer = (jobcards || []).reduce((acc: Record<string, any[]>, j) => {
-      if (!acc[j.customer_id]) acc[j.customer_id] = []
-      acc[j.customer_id].push(j)
-      return acc
-    }, {})
-
-    return customers.map(row => ({
-      ...this.toDomain(row),
-      vehicles: vehiclesByCustomer[row.id] || [],
-      jobcards: jobcardsByCustomer[row.id] || [],
-    }))
   }
 
 

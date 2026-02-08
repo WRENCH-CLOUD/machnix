@@ -45,13 +45,13 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
   private async fetchVehicles(vehicleIds: string[]): Promise<Map<string, any>> {
     const uniqueIds = [...new Set(vehicleIds.filter(Boolean))]
     if (uniqueIds.length === 0) return new Map()
-    
+
     const { data } = await this.supabase
       .schema('tenant')
       .from('vehicles')
       .select('*')
       .in('id', uniqueIds)
-    
+
     const vehicleMap = new Map<string, any>()
     for (const v of data || []) {
       vehicleMap.set(v.id, v)
@@ -112,7 +112,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id))
-    
+
     return data.map(row => ({
       ...this.toDomain(row),
       customer: row.customer,
@@ -141,7 +141,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id))
-    
+
     return data.map(row => ({
       ...this.toDomain(row),
       customer: row.customer,
@@ -174,7 +174,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicle separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles([data.vehicle_id])
-    
+
     return {
       ...this.toDomain(data),
       customer: data.customer,
@@ -248,40 +248,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       throw new Error('Job not found')
     }
 
-    const mergedDetailsBase = job.details !== undefined ? job.details : existing.details
-    const mergedDetails: any = {
-      ...mergedDetailsBase,
-    }
-
-    const description = job.description !== undefined ? job.description : existing.description
-    const notes = job.notes !== undefined ? job.notes : existing.notes
-    const startedAt = job.startedAt !== undefined ? job.startedAt : existing.startedAt
-    const completedAt = job.completedAt !== undefined ? job.completedAt : existing.completedAt
-
-    if (description) {
-      mergedDetails.description = description
-    }
-
-    if (notes) {
-      mergedDetails.notes = notes
-    }
-
-    if (startedAt) {
-      mergedDetails.startedAt = startedAt.toISOString()
-    }
-
-    if (completedAt) {
-      mergedDetails.completedAt = completedAt.toISOString()
-    }
-
-    const updates: any = {
-      status: job.status !== undefined ? job.status : existing.status,
-      assigned_mechanic_id: job.assignedMechanicId !== undefined
-        ? job.assignedMechanicId
-        : existing.assignedMechanicId,
-      created_by: existing.createdBy,
-      details: mergedDetails,
-    }
+    const updates = this.buildUpdatePayload(job, existing)
 
     const { data, error } = await this.supabase
       .schema('tenant')
@@ -294,6 +261,47 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     if (error) throw error
     return this.toDomain(data)
+  }
+
+  /**
+   * Builds the database update payload by merging new values with existing job
+   */
+  private buildUpdatePayload(job: Partial<JobCard>, existing: JobCardWithRelations): any {
+    return {
+      status: job.status ?? existing.status,
+      assigned_mechanic_id: job.assignedMechanicId ?? existing.assignedMechanicId,
+      created_by: existing.createdBy,
+      details: this.mergeJobDetails(job, existing),
+    }
+  }
+
+  /**
+   * Merges job details from update with existing details
+   */
+  private mergeJobDetails(job: Partial<JobCard>, existing: JobCardWithRelations): Record<string, any> {
+    const mergedDetails: Record<string, any> = {
+      ...(job.details ?? existing.details),
+    }
+
+    const description = job.description ?? existing.description
+    const notes = job.notes ?? existing.notes
+    const startedAt = job.startedAt ?? existing.startedAt
+    const completedAt = job.completedAt ?? existing.completedAt
+
+    if (description) {
+      mergedDetails.description = description
+    }
+    if (notes) {
+      mergedDetails.notes = notes
+    }
+    if (startedAt) {
+      mergedDetails.startedAt = startedAt.toISOString()
+    }
+    if (completedAt) {
+      mergedDetails.completedAt = completedAt.toISOString()
+    }
+
+    return mergedDetails
   }
 
   async updateStatus(id: string, status: JobStatus): Promise<JobCard> {

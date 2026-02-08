@@ -1,7 +1,5 @@
 import { JobRepository } from '../domain/job.repository'
 import { JobCard, JobStatus } from '../domain/job.entity'
-import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
-import { CreateEstimateUseCase } from '@/modules/estimate/application/create-estimate.use-case'
 import { generateFormattedId } from '@/shared/utils/generators'
 
 export interface CreateJobDTO {
@@ -24,28 +22,60 @@ export interface CreateJobDTO {
 }
 
 /**
+ * Callback invoked after job creation for side effects (e.g., estimate creation)
+ */
+export type OnJobCreatedCallback = (job: JobCard, tenantId: string, createdBy?: string) => Promise<void>
+
+/**
  * Create Job Use Case
- * Creates a new job in the system
+ * Creates a new job in the system (SRP: only handles job creation)
  */
 export class CreateJobUseCase {
   constructor(
     private readonly repository: JobRepository,
-    private readonly estimateRepository?: EstimateRepository
+    private readonly onJobCreated?: OnJobCreatedCallback
   ) { }
 
   async execute(dto: CreateJobDTO, tenantId: string, createdBy?: string): Promise<JobCard> {
-    // Validation
+    this.validate(dto)
+
+    const job = await this.repository.create({
+      tenantId,
+      jobNumber: generateFormattedId('JOB'),
+      customerId: dto.customerId,
+      vehicleId: dto.vehicleId,
+      status: 'received' as JobStatus,
+      description: dto.description,
+      notes: dto.notes,
+      assignedMechanicId: dto.assignedMechanicId,
+      details: this.buildJobDetails(dto),
+      createdBy,
+    })
+
+    if (this.onJobCreated) {
+      await this.onJobCreated(job, tenantId, createdBy)
+    }
+
+    return job
+  }
+
+  /**
+   * Validates the job creation DTO
+   */
+  private validate(dto: CreateJobDTO): void {
     if (!dto.customerId || dto.customerId.trim().length === 0) {
       throw new Error('Customer ID is required')
     }
     if (!dto.vehicleId || dto.vehicleId.trim().length === 0) {
       throw new Error('Vehicle ID is required')
     }
+  }
 
-    // Generate job number (format: JOB-YYYYMMDD-XXXX)
-    const jobNumber = generateFormattedId('JOB')
-
-    const details = {
+  /**
+   * Builds the job details object from the DTO
+   */
+  private buildJobDetails(dto: CreateJobDTO): Record<string, any> {
+    return {
       ...(dto.details || {}),
       complaints: dto.description,
       description: dto.description,
@@ -54,41 +84,6 @@ export class CreateJobUseCase {
       estimatedCompletion: dto.estimatedCompletion,
       todos: dto.todos || [],
     }
-
-    const job = await this.repository.create({
-      tenantId,
-      jobNumber,
-      customerId: dto.customerId,
-      vehicleId: dto.vehicleId,
-      status: 'received' as JobStatus,
-      description: dto.description,
-      notes: dto.notes,
-      assignedMechanicId: dto.assignedMechanicId,
-      details,
-      createdBy,
-    })
-
-    // Guardrail: ensure every job starts with an estimate
-    if (this.estimateRepository) {
-      const createEstimate = new CreateEstimateUseCase(this.estimateRepository)
-      await createEstimate.execute(
-        {
-          customerId: dto.customerId,
-          vehicleId: dto.vehicleId,
-          jobcardId: job.id,
-          description: dto.description || 'Service estimate',
-          laborTotal: 0,
-          partsTotal: 0,
-          taxAmount: 0,
-          discountAmount: 0,
-          currency: 'INR',
-        },
-        tenantId,
-        createdBy,
-      )
-    }
-
-    return job
   }
 }
 
