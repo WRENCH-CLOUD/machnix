@@ -2,9 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantRepository } from './tenant.repository'
-
 import { TenantSettings } from '../domain/tenant-settings.entity'
-import { GupshupSettings } from '../domain/gupshup-settings.entity'
 
 export class AdminSupabaseTenantRepository implements TenantRepository {
   constructor(private readonly supabase: SupabaseClient) { }
@@ -14,15 +12,6 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
   }
 
   async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
-    // Not implemented for admin
-  }
-
-  // Gupshup settings - stub implementations for admin (not used)
-  async getGupshupSettings(tenantId: string): Promise<GupshupSettings | null> {
-    return null
-  }
-
-  async upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void> {
     // Not implemented for admin
   }
 

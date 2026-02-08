@@ -1,20 +1,15 @@
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
-import { GupshupSettings } from '../domain/gupshup-settings.entity'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>
   findBySlug(slug: string): Promise<Tenant | null>
   findAll(): Promise<Tenant[]>
 
-  // Settings methods
+  // Settings methods (includes whatsapp_enabled)
   getSettings(tenantId: string): Promise<TenantSettings | null>
   updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void>
-
-  // Gupshup settings methods
-  getGupshupSettings(tenantId: string): Promise<GupshupSettings | null>
-  upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void>
 
   // Onboarding methods
   markOnboarded(tenantId: string): Promise<void>
@@ -32,4 +27,3 @@ export interface TenantRepository {
   update(id: string, updates: Partial<Tenant>): Promise<Tenant>
   delete(id: string): Promise<void>
 }
-

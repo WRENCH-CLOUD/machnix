@@ -65,15 +65,11 @@ export async function POST(
     const repository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const invoiceRepository = new SupabaseInvoiceRepository(supabase, tenantId)
-    const customerRepository = new SupabaseCustomerRepository(supabase, tenantId) // Works because it extends BaseSupabaseRepository which takes context
-    const tenantRepository = new SupabaseTenantRepository(supabase) // Doesn't take tenantId context in constructor
 
     const useCase = new UpdateJobStatusUseCase(
       repository,
       estimateRepository,
-      invoiceRepository,
-      customerRepository,
-      tenantRepository
+      invoiceRepository
     )
 
     const cmd: jobStatusCommand = {

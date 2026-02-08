@@ -1,9 +1,13 @@
 import { env } from '@/lib/env'
-import {
-    WhatsAppTemplateType,
-    WhatsAppTemplateParams,
-    VehicleStatusUpdateParams
-} from '@/modules/whatsapp/domain/whatsapp-templates.types'
+
+export type WhatsAppTemplateType = 'vehicle_status_update'
+
+export interface VehicleStatusUpdateParams {
+    vehicleName: string
+    status: string
+    garageName: string
+    note: string
+}
 
 interface SendMessageResponse {
     messageId: string
@@ -21,23 +25,17 @@ interface SendMessageResponse {
 export class GupshupService {
     private readonly apiUrl = 'https://api.gupshup.io/wa/api/v1/msg'
 
-    /**
-     * Check if Gupshup is configured at the platform level
-     */
+    /** Check if Gupshup is configured at the platform level */
     isConfigured(): boolean {
         return env.hasGupshupConfig
     }
 
-    /**
-     * Get the centralized WrenchCloud source number
-     */
+    /** Get the centralized WrenchCloud source number */
     getSourceNumber(): string | undefined {
         return env.GUPSHUP_SOURCE_NUMBER
     }
 
-    /**
-     * Get the template ID for a given template type
-     */
+    /** Get the template ID for a given template type */
     private getTemplateId(templateType: WhatsAppTemplateType): string | undefined {
         const templateMap: Record<WhatsAppTemplateType, string | undefined> = {
             vehicle_status_update: env.GUPSHUP_TEMPLATE_VEHICLE_STATUS,
@@ -45,25 +43,16 @@ export class GupshupService {
         return templateMap[templateType]
     }
 
-    /**
-     * Format phone number to international format
-     */
+    /** Format phone number to international format */
     private formatPhoneNumber(phone: string): string {
-        // Remove all non-digit characters
         let cleaned = phone.replace(/\D/g, '')
-
-        // If it's an Indian number without country code, add 91
         if (cleaned.length === 10) {
             cleaned = '91' + cleaned
         }
-
         return cleaned
     }
 
-    /**
-     * Send a template message via Gupshup API
-     * Uses the centralized WrenchCloud source number
-     */
+    /** Send a template message via Gupshup API */
     async sendTemplateMessage(
         destination: string,
         templateId: string,
@@ -154,20 +143,17 @@ export class GupshupService {
             }
         }
 
-        // Convert params object to ordered array for Gupshup
         const paramArray = [
-            params.vehicleName,  // {{1}}
-            params.status,       // {{2}}
-            params.garageName,   // {{3}}
-            params.note          // {{4}}
+            params.vehicleName,
+            params.status,
+            params.garageName,
+            params.note
         ]
 
         return this.sendTemplateMessage(customerPhone, templateId, paramArray)
     }
 
-    /**
-     * Send a test message to verify configuration
-     */
+    /** Send a test message to verify configuration */
     async sendTestMessage(testPhone: string): Promise<SendMessageResponse> {
         return this.sendVehicleStatusUpdate(testPhone, {
             vehicleName: 'Test Vehicle KA01AB1234',

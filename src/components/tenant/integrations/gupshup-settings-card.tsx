@@ -1,76 +1,69 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { MessageCircle, Check, AlertCircle, Loader2, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { toast } from "sonner";
+import { useState, useEffect } from "react"
+import { MessageCircle, Check, AlertCircle, Loader2, Info } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 
 interface GupshupSettingsCardProps {
-    className?: string;
+    className?: string
+}
+
+interface SettingsResponse {
+    whatsappEnabled: boolean
+    platformConfigured: boolean
+    sourceNumber: string | null
 }
 
 export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [platformConfigured, setPlatformConfigured] = useState(false);
-    const [sourceNumber, setSourceNumber] = useState<string | null>(null);
-    const [isActive, setIsActive] = useState(false);
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [platformConfigured, setPlatformConfigured] = useState(false)
+    const [sourceNumber, setSourceNumber] = useState<string | null>(null)
+    const [whatsappEnabled, setWhatsappEnabled] = useState(false)
 
     useEffect(() => {
-        fetchSettings();
-    }, []);
+        fetchSettings()
+    }, [])
 
-    const fetchSettings = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch("/api/tenant/gupshup");
-            const data = await res.json();
+    async function fetchSettings(): Promise<void> {
+        setLoading(true)
+        const res = await fetch("/api/tenant/gupshup")
 
-            setPlatformConfigured(data.platformConfigured);
-            setSourceNumber(data.sourceNumber || null);
-
-            if (data.settings) {
-                setIsActive(data.settings.isActive || false);
-            }
-        } catch (error) {
-            console.error("Failed to fetch Gupshup settings:", error);
-            toast.error("Failed to load WhatsApp settings");
-        } finally {
-            setLoading(false);
+        if (!res.ok) {
+            toast.error("Failed to load WhatsApp settings")
+            setLoading(false)
+            return
         }
-    };
 
-    const handleSave = async () => {
-        try {
-            setSaving(true);
-            const res = await fetch("/api/tenant/gupshup", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive }),
-            });
+        const data = await res.json() as SettingsResponse
+        setPlatformConfigured(data.platformConfigured)
+        setSourceNumber(data.sourceNumber)
+        setWhatsappEnabled(data.whatsappEnabled)
+        setLoading(false)
+    }
 
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.error || "Failed to save settings");
-            }
+    async function handleSave(): Promise<void> {
+        setSaving(true)
+        const res = await fetch("/api/tenant/gupshup", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ whatsappEnabled }),
+        })
 
-            toast.success("WhatsApp settings saved successfully");
-            await fetchSettings();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to save settings");
-        } finally {
-            setSaving(false);
+        if (!res.ok) {
+            const error = await res.json()
+            toast.error(error.error || "Failed to save settings")
+        } else {
+            toast.success("WhatsApp settings saved")
+            await fetchSettings()
         }
-    };
+        setSaving(false)
+    }
 
     if (loading) {
         return (
@@ -79,7 +72,7 @@ export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </CardContent>
             </Card>
-        );
+        )
     }
 
     if (!platformConfigured) {
@@ -95,13 +88,12 @@ export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
                     <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                         <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                         <p className="text-sm text-muted-foreground">
-                            WhatsApp integration is not configured at the platform level.
-                            Please contact support to enable this feature.
+                            WhatsApp integration is not configured. Contact support to enable.
                         </p>
                     </div>
                 </CardContent>
             </Card>
-        );
+        )
     }
 
     return (
@@ -116,21 +108,17 @@ export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Platform Number Info */}
                 <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
                     <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                         <p className="text-sm font-medium">WrenchCloud WhatsApp</p>
                         <p className="text-sm text-muted-foreground">
-                            Messages will be sent from the official WrenchCloud number
-                            {sourceNumber && (
-                                <span className="font-mono ml-1">+{sourceNumber}</span>
-                            )}
+                            Messages sent from official WrenchCloud number
+                            {sourceNumber && <span className="font-mono ml-1">+{sourceNumber}</span>}
                         </p>
                     </div>
                 </div>
 
-                {/* Enable Toggle */}
                 <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                         <Label>Enable WhatsApp Notifications</Label>
@@ -138,13 +126,9 @@ export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
                             Allow sending status updates to customers via WhatsApp
                         </p>
                     </div>
-                    <Switch
-                        checked={isActive}
-                        onCheckedChange={setIsActive}
-                    />
+                    <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
                 </div>
 
-                {/* Save Button */}
                 <Button onClick={handleSave} disabled={saving} className="w-full">
                     {saving ? (
                         <>
@@ -159,16 +143,15 @@ export function GupshupSettingsCard({ className }: GupshupSettingsCardProps) {
                     )}
                 </Button>
 
-                {/* Usage Info */}
-                {isActive && (
+                {whatsappEnabled && (
                     <div className="pt-4 border-t border-border">
                         <p className="text-sm text-muted-foreground">
-                            Once enabled, you&apos;ll see a &quot;Send WhatsApp&quot; button on job
-                            details to manually notify customers about their vehicle status.
+                            When enabled, you&apos;ll see a &quot;Send WhatsApp&quot; button on job details
+                            to manually notify customers about their vehicle status.
                         </p>
                     </div>
                 )}
             </CardContent>
         </Card>
-    );
+    )
 }

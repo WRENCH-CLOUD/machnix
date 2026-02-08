@@ -3,7 +3,6 @@ import { TenantRepository } from "./tenant.repository";
 import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { TenantSettings } from "../domain/tenant-settings.entity";
-import { GupshupSettings, TriggerMode } from "../domain/gupshup-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export class SupabaseTenantRepository implements TenantRepository {
@@ -309,49 +308,6 @@ export class SupabaseTenantRepository implements TenantRepository {
       .from("tenants")
       .delete()
       .eq("id", id);
-    if (error) throw error;
-  }
-
-  // ============================================
-  // Gupshup Settings Methods
-  // ============================================
-
-  private toGupshupSettingsDomain(row: any): GupshupSettings {
-    return {
-      id: row.id,
-      tenantId: row.tenant_id,
-      sourceNumber: row.source_number,
-      isActive: row.is_active,
-      triggerMode: row.trigger_mode as TriggerMode,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-    };
-  }
-
-  async getGupshupSettings(tenantId: string): Promise<GupshupSettings | null> {
-    const { data, error } = await this.supabase
-      .schema("tenant")
-      .from("gupshup_settings")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data ? this.toGupshupSettingsDomain(data) : null;
-  }
-
-  async upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void> {
-    const dbSettings: any = { tenant_id: tenantId };
-
-    if (settings.sourceNumber !== undefined) dbSettings.source_number = settings.sourceNumber;
-    if (settings.isActive !== undefined) dbSettings.is_active = settings.isActive;
-    if (settings.triggerMode !== undefined) dbSettings.trigger_mode = settings.triggerMode;
-
-    const { error } = await this.supabase
-      .schema("tenant")
-      .from("gupshup_settings")
-      .upsert(dbSettings, { onConflict: 'tenant_id' });
-
     if (error) throw error;
   }
 }

@@ -12,6 +12,7 @@ import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-rea
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 import { useTenantSettings, useInvalidateQueries } from "@/hooks/queries"
 import { api } from "@/lib/supabase/client"
+import { GupshupSettingsCard } from "@/components/tenant/integrations/gupshup-settings-card"
 
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
@@ -30,10 +31,10 @@ export default function TenantSettingsPage() {
   const { tenantId } = useAuth()
   const { invalidateTenantSettings } = useInvalidateQueries()
   const [saving, setSaving] = useState(false)
-  
+
   // Use React Query for fetching tenant settings
   const { data: tenantSettings, isLoading } = useTenantSettings()
-  
+
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
     name: "",
@@ -137,7 +138,7 @@ export default function TenantSettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
@@ -146,7 +147,7 @@ export default function TenantSettingsPage() {
                 placeholder="City"
               />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="state">State</Label>
               <Input
                 id="state"
@@ -155,7 +156,7 @@ export default function TenantSettingsPage() {
                 placeholder="State"
               />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="pincode">Pincode</Label>
               <Input
                 id="pincode"
@@ -241,16 +242,25 @@ export default function TenantSettingsPage() {
         </Button>
       </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <div className="space-y-6">
-             {/* Change Password Section */}
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Account Security</h2>
-              <p className="text-muted-foreground mb-4">
-                Update your password to keep your account secure
-              </p>
-              <ChangePasswordForm />
-            </div>
+          {/* Change Password Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Account Security</h2>
+            <p className="text-muted-foreground mb-4">
+              Update your password to keep your account secure
+            </p>
+            <ChangePasswordForm />
+          </div>
+
+          {/* Integrations Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Integrations</h2>
+            <p className="text-muted-foreground mb-4">
+              Configure third-party integrations
+            </p>
+            <GupshupSettingsCard />
+          </div>
         </div>
       </div>
     </div>
