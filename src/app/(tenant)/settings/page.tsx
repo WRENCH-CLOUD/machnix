@@ -225,7 +225,7 @@ export default function TenantSettingsPage() {
       </Card>
 
       {/* Save Button */}
-      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
+      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2">
         <Button onClick={handleSave} disabled={saving} size="lg">
           {saving ? (
             <>
