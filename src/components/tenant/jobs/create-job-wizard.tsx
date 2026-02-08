@@ -563,6 +563,8 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 rows={4}
                 value={jobDetails.description}
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
+                className="break-all overflow-wrap-anywhere resize-none"
+                style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
               />
             </div>
 
@@ -635,7 +637,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     {jobDetails.priority} Priority
                   </Badge>
                 </div>
-                <p className="text-sm italic">"{jobDetails.description || 'No description provided'}"</p>
+                <p className="text-sm italic break-words whitespace-pre-wrap">"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
             {todos.length > 0 && (

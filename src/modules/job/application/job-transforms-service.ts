@@ -76,7 +76,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
   const vehicleColor = vehicle.color ?? vehicle.colour ?? null
 
   // Transform to UI format
-  const uiJob: any = {
+  const uiJob: UIJob = {
     id: dbJob.id,
     jobNumber: dbJob.jobNumber || 'N/A',
     customer: {
@@ -87,10 +87,10 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
       address: dbJob.customer?.address || null,
     },
     vehicle: {
-      id: vehicle?.id || '',
+      id: vehicle.id || '',
       make: vehicleMake,
       model: vehicleModel,
-      year: vehicle?.year || null,
+      year: vehicle.year || null,
       regNo: vehicleReg,
       color: vehicleColor,
     },
@@ -107,8 +107,15 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     todos: extractTodos(dbJob.details),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
+    // Keep legacy snake_case fields for compatibility if needed, otherwise remove them
     created_at: dbJob.createdAt,
     updated_at: dbJob.updatedAt,
+    dviItems: [],
+    parts: [],
+    activities: [],
+    laborTotal: 0,
+    partsTotal: 0,
+    tax: 0
   }
 
   // Try to load estimate data for accurate totals (server-side only)
@@ -153,11 +160,14 @@ function extractComplaints(details: any): string {
 /**
  * Extract todos from job details JSONB field
  */
-function extractTodos(details: any): { id: string; text: string; completed: boolean; createdAt: string; completedAt?: string }[] {
+function extractTodos(details: any): { id: string; text: string; completed: boolean; status: "changed" | "repaired" | "no_change" | null; createdAt: string; completedAt?: string }[] {
   if (!details || typeof details !== 'object') return []
 
   if (Array.isArray(details.todos)) {
-    return details.todos
+    return details.todos.map((todo: any) => ({
+      ...todo,
+      status: todo.status || null
+    }))
   }
 
   return []

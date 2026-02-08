@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -18,10 +18,15 @@ import {
   useUpdateJobTodos,
   useUpdateJobNotes,
   useVehicleJobHistory,
+  useUpdateInvoice,
   transformTenantSettingsForJobDetails,
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
 import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Maximum number of tasks allowed per job
+const MAX_TASKS = 30;
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -48,6 +53,10 @@ export function JobDetailsContainer({
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // GST and discount state for invoice generation
+  const [isGstBilled, setIsGstBilled] = useState(true);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   // Determine mechanic mode based on user role
   const isMechanicMode = currentUser?.role === "mechanic";
@@ -80,6 +89,59 @@ export function JobDetailsContainer({
   const updateStatusMutation = useUpdateJobStatus(job.id);
   const updateTodosMutation = useUpdateJobTodos(job.id);
   const updateNotesMutation = useUpdateJobNotes(job.id);
+  const updateInvoiceMutation = useUpdateInvoice(job.id);
+
+  // Debounce ref for rate-limiting invoice updates (500ms)
+  const updateInvoiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced function to update invoice GST/discount
+  const debouncedUpdateInvoice = useCallback(
+    (newIsGstBilled: boolean, newDiscountPercentage: number) => {
+      if (!invoice) return;
+
+      // Clear previous timeout
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+
+      // Set new timeout
+      updateInvoiceTimeoutRef.current = setTimeout(() => {
+        updateInvoiceMutation.mutate({
+          invoiceId: invoice.id,
+          isGstBilled: newIsGstBilled,
+          discountPercentage: newDiscountPercentage,
+        });
+      }, 500);
+    },
+    [invoice, updateInvoiceMutation]
+  );
+
+  // GST toggle handler - updates local state immediately, debounces API call
+  const handleGstToggle = useCallback(
+    (value: boolean) => {
+      setIsGstBilled(value);
+      debouncedUpdateInvoice(value, discountPercentage);
+    },
+    [discountPercentage, debouncedUpdateInvoice]
+  );
+
+  // Discount change handler - updates local state immediately, debounces API call
+  const handleDiscountChange = useCallback(
+    (value: number) => {
+      setDiscountPercentage(value);
+      debouncedUpdateInvoice(isGstBilled, value);
+    },
+    [isGstBilled, debouncedUpdateInvoice]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper to normalize todos (add default status for legacy todos)
   const normalizeTodos = (todos: any[]): TodoItem[] => {
@@ -92,12 +154,77 @@ export function JobDetailsContainer({
   // Local state for todos and notes (optimistic updates)
   const [localTodos, setLocalTodos] = useState<TodoItem[]>(normalizeTodos(job.todos || []));
   const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
+  
+  // Pending updates ref to track if there are unsaved changes
+  const pendingTodosRef = useRef<TodoItem[] | null>(null);
+  const isSavingTodosRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const MAX_RETRY_COUNT = 3;
 
   // Sync local state when job changes
   useEffect(() => {
     setLocalTodos(normalizeTodos(job.todos || []));
     setLocalNotes(job.complaints || "");
   }, [job.id]);
+
+  // Function to persist todos to backend
+  const persistTodos = useCallback(async (todos: TodoItem[], isRetry: boolean = false) => {
+    if (isSavingTodosRef.current) {
+      // If already saving, queue these todos for next save
+      pendingTodosRef.current = todos;
+      return;
+    }
+
+    try {
+      isSavingTodosRef.current = true;
+      await updateTodosMutation.mutateAsync(todos);
+      // Reset retry count on success
+      retryCountRef.current = 0;
+    } catch (error) {
+      console.error("Error persisting todos:", error);
+      toast.error("Failed to save task changes");
+      throw error;
+    } finally {
+      isSavingTodosRef.current = false;
+      
+      // Check if there are pending updates after finishing
+      if (pendingTodosRef.current) {
+        // Prevent infinite retry loops by limiting retry attempts
+        // Only increment retry count if this was already a retry
+        const currentRetryCount = isRetry ? retryCountRef.current : 0;
+        
+        if (currentRetryCount >= MAX_RETRY_COUNT) {
+          console.error("Max retry count reached for queued todos");
+          toast.error("Unable to save task changes after multiple attempts. Please refresh and try again.");
+          pendingTodosRef.current = null;
+          retryCountRef.current = 0;
+          return;
+        }
+        
+        const nextTodos = pendingTodosRef.current;
+        pendingTodosRef.current = null;
+        if (isRetry) {
+          retryCountRef.current += 1;
+        }
+        
+        // Recursively save pending todos (async, don't await)
+        // Mark this as a retry if the parent was a retry
+        persistTodos(nextTodos, isRetry || currentRetryCount > 0).catch(err => {
+          console.error("Error persisting queued todos:", err);
+          toast.error("Failed to save queued task changes");
+        });
+      }
+    }
+  }, [updateTodosMutation]);
+
+  // Debounced version of persistTodos (500ms delay)
+  // IMPORTANT: Debounced operations accept eventual consistency trade-off
+  // - UI updates immediately (optimistic)
+  // - Backend sync happens after 500ms delay
+  // - Errors shown via toast, but NO automatic rollback to prevent jarring UX
+  // - If network fails, UI may show stale data until page refresh
+  // - This is acceptable for low-risk operations (toggle/text/status updates)
+  const debouncedPersistTodos = useDebounce(persistTodos, 500);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
@@ -148,7 +275,30 @@ export function JobDetailsContainer({
     refetchInvoice();
   };
 
-  const handleMarkPaid = () => {
+  const handleMarkPaid = async () => {
+    // If already paid, direct completion (bypass payment modal)
+    if (invoice?.status === "paid") {
+      // Guardrail: Ensure all todos have a status
+      const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
+      if (todosWithUnassignedStatus.length > 0) {
+        toast.warning(
+          `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
+          { duration: 5000 }
+        );
+        return;
+      }
+
+      try {
+        await updateStatusMutation.mutateAsync("completed");
+        toast.success("Job completed successfully");
+        onJobUpdate?.();
+      } catch (error) {
+        console.error("Error completing job:", error);
+        toast.error("Failed to complete job");
+      }
+      return;
+    }
+
     setShowPaymentModal(true);
   };
 
@@ -194,6 +344,8 @@ export function JobDetailsContainer({
     notes: localNotes,
     todos: localTodos,
     serviceHistory: serviceHistoryData,
+    isGstBilled,
+    discountPercentage,
   });
 
   const handleGenerateInvoice = async () => {
@@ -203,15 +355,20 @@ export function JobDetailsContainer({
     }
 
     try {
-      await generateInvoiceMutation.mutateAsync({ estimateId: estimate.id });
+      await generateInvoiceMutation.mutateAsync({
+        estimateId: estimate.id,
+        isGstBilled,
+        discountPercentage,
+      });
       toast.success("Invoice generated");
     } catch (error) {
       console.error("Error generating invoice:", error);
     }
   };
 
-  // Todo handlers
+  // Todo handlers with debouncing and task limit
   const handleAddTodo = async (text: string) => {
+    // Note: Task limit is now enforced in JobTodos component
     const newTodo: TodoItem = {
       id: generateTodoId(),
       text,
@@ -221,9 +378,12 @@ export function JobDetailsContainer({
     };
     const previousTodos = localTodos;
     const updatedTodos = [...localTodos, newTodo];
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
+      // Immediate save for add operations (no debounce)
       await updateTodosMutation.mutateAsync(updatedTodos);
     } catch (error) {
       console.error("Error adding todo:", error);
@@ -243,23 +403,25 @@ export function JobDetailsContainer({
         }
         : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error toggling todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
+    // Use debounced save for toggle operations
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // This is acceptable for toggle/status updates as they're low-risk
+    debouncedPersistTodos(updatedTodos);
   };
 
   const handleRemoveTodo = async (todoId: string) => {
     const previousTodos = localTodos;
     const updatedTodos = localTodos.filter((t) => t.id !== todoId);
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
     try {
+      // Immediate save for delete operations (no debounce)
       await updateTodosMutation.mutateAsync(updatedTodos);
     } catch (error) {
       console.error("Error removing todo:", error);
@@ -273,15 +435,14 @@ export function JobDetailsContainer({
     const updatedTodos = localTodos.map((t) =>
       t.id === todoId ? { ...t, text } : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
+    // Use debounced save for text updates (reduces API calls during typing)
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // User can manually fix if needed by refreshing or re-editing
+    debouncedPersistTodos(updatedTodos);
   };
 
   const handleUpdateTodoStatus = async (todoId: string, status: TodoStatus) => {
@@ -289,15 +450,14 @@ export function JobDetailsContainer({
     const updatedTodos = localTodos.map((t) =>
       t.id === todoId ? { ...t, status } : t
     );
+    
+    // Optimistic update
     setLocalTodos(updatedTodos);
 
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo status:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task status");
-    }
+    // Use debounced save for status updates
+    // Note: Errors are shown via toast in persistTodos, but no rollback
+    // This is acceptable for status updates as they're low-risk
+    debouncedPersistTodos(updatedTodos);
   };
 
   // Notes handler
@@ -353,7 +513,7 @@ export function JobDetailsContainer({
       // 1. Record Payment
       await recordPaymentMutation.mutateAsync({
         invoiceId: invoice.id,
-        amount: invoice.totalAmount || invoice.total_amount || 0,
+        amount: invoice.totalAmount || 0,
         method,
       });
 
@@ -403,10 +563,15 @@ export function JobDetailsContainer({
       onRemoveTodo={handleRemoveTodo}
       onUpdateTodo={handleUpdateTodo}
       onUpdateTodoStatus={handleUpdateTodoStatus}
+      maxTodos={MAX_TASKS}
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}
       onMechanicChange={handleMechanicChange}
+      isGstBilled={isGstBilled}
+      onGstToggle={handleGstToggle}
+      discountPercentage={discountPercentage}
+      onDiscountChange={handleDiscountChange}
     />
   );
 }

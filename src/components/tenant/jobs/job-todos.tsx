@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Re-export shared types for backwards compatibility
 export type { TodoStatus, TodoItem } from "@/modules/job/domain/todo.types";
@@ -21,6 +22,7 @@ interface JobTodosProps {
   onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   disabled?: boolean;
   className?: string;
+  maxTodos?: number;
 }
 
 export function JobTodos({
@@ -32,6 +34,7 @@ export function JobTodos({
   onUpdateTodoStatus,
   disabled = false,
   className,
+  maxTodos = 30,
 }: JobTodosProps) {
   const [newTodoText, setNewTodoText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,6 +50,13 @@ export function JobTodos({
   const handleAddTodo = () => {
     const text = newTodoText.trim();
     if (!text) return;
+    
+    // Check task limit
+    if (todos.length >= maxTodos) {
+      toast.error(`Cannot add more than ${maxTodos} tasks per job`);
+      return;
+    }
+    
     onAddTodo(text);
     setNewTodoText("");
   };
@@ -96,6 +106,7 @@ export function JobTodos({
 
   const completedCount = todos.filter((t) => t.completed).length;
   const totalCount = todos.length;
+  const isAtLimit = totalCount >= maxTodos;
 
   return (
     <Card className={cn(className)}>
@@ -108,6 +119,7 @@ export function JobTodos({
           {totalCount > 0 && (
             <span className="text-xs font-normal text-muted-foreground">
               {completedCount}/{totalCount} done
+              {isAtLimit && " (max)"}
             </span>
           )}
         </CardTitle>
@@ -115,7 +127,7 @@ export function JobTodos({
       <CardContent className="space-y-3">
         {/* Todo Items */}
         {todos.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2 wrap-break-word">
             {todos.map((todo) => (
               <div
                 key={todo.id}
@@ -134,28 +146,28 @@ export function JobTodos({
                     className="shrink-0"
                   />
 
-                  {editingId === todo.id ? (
-                    <Input
-                      ref={editInputRef}
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      onBlur={saveEdit}
-                      onKeyDown={handleEditKeyDown}
-                      className="h-7 text-sm flex-1"
-                    />
-                  ) : (
-                    <span
-                      onClick={() => startEdit(todo)}
-                      className={cn(
-                        "flex-1 text-sm cursor-pointer transition-colors",
-                        todo.completed
-                          ? "line-through text-muted-foreground"
-                          : "text-foreground hover:text-primary"
-                      )}
-                    >
-                      {todo.text}
-                    </span>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    {editingId === todo.id ? (
+                      <Input
+                        ref={editInputRef}
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={handleEditKeyDown}
+                        className="h-7 text-sm"
+                      />
+                    ) : (
+                      <span
+                        className={cn(
+                          "text-sm warp-break-words whitespace-pre-wrap cursor-pointer",
+                          todo.completed && "line-through text-muted-foreground"
+                        )}
+                        onClick={() => startEdit(todo)}
+                      >
+                        {todo.text}
+                      </span>
+                    )}
+                  </div>
 
                   {!disabled && !todo.completed && (
                     <Button
@@ -173,45 +185,26 @@ export function JobTodos({
                 {/* Status Buttons */}
                 {onUpdateTodoStatus && (
                   <div className="flex gap-1 mt-2 ml-7">
-                    <Button
-                      variant={todo.status === "changed" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "changed" && "bg-blue-600 hover:bg-blue-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "changed" ? null : "changed")}
-                      disabled={disabled}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      Changed
-                    </Button>
-                    <Button
-                      variant={todo.status === "repaired" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "repaired" && "bg-green-600 hover:bg-green-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "repaired" ? null : "repaired")}
-                      disabled={disabled}
-                    >
-                      <Wrench className="h-3 w-3" />
-                      Repaired
-                    </Button>
-                    <Button
-                      variant={todo.status === "no_change" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "h-6 px-2 text-xs gap-1",
-                        todo.status === "no_change" && "bg-gray-600 hover:bg-gray-700"
-                      )}
-                      onClick={() => onUpdateTodoStatus(todo.id, todo.status === "no_change" ? null : "no_change")}
-                      disabled={disabled}
-                    >
-                      <MinusCircle className="h-3 w-3" />
-                      No Change
-                    </Button>
+                    {[
+                      { status: "changed" as const, icon: RefreshCw, label: "Changed", color: "bg-blue-600 hover:bg-blue-700" },
+                      { status: "repaired" as const, icon: Wrench, label: "Repaired", color: "bg-green-600 hover:bg-green-700" },
+                      { status: "no_change" as const, icon: MinusCircle, label: "No Change", color: "bg-gray-600 hover:bg-gray-700" },
+                    ].map(({ status, icon: Icon, label, color }) => (
+                      <Button
+                        key={status}
+                        variant={todo.status === status ? "default" : "outline"}
+                        size="sm"
+                        className={cn(
+                          "h-6 px-2 text-xs gap-1",
+                          todo.status === status && color
+                        )}
+                        onClick={() => onUpdateTodoStatus(todo.id, todo.status === status ? null : status)}
+                        disabled={disabled}
+                      >
+                        <Icon className="h-3 w-3" />
+                        {label}
+                      </Button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -227,16 +220,17 @@ export function JobTodos({
         {!disabled && (
           <div className="flex gap-2 pt-2">
             <Input
-              placeholder="Add a task..."
+              placeholder={isAtLimit ? `Task limit reached (${maxTodos})` : "Add a task..."}
               value={newTodoText}
               onChange={(e) => setNewTodoText(e.target.value)}
               onKeyDown={handleKeyDown}
               className="h-9 text-sm"
+              disabled={isAtLimit}
             />
             <Button
               size="sm"
               onClick={handleAddTodo}
-              disabled={!newTodoText.trim()}
+              disabled={!newTodoText.trim() || isAtLimit}
               className="h-9 px-3"
               aria-label="Add task"
             >
@@ -258,6 +252,7 @@ interface InlineTodosProps {
   onChange: (todos: TodoItem[]) => void;
   disabled?: boolean;
   className?: string;
+  maxTodos?: number;
 }
 
 export function InlineTodos({
@@ -265,8 +260,15 @@ export function InlineTodos({
   onChange,
   disabled = false,
   className,
+  maxTodos = 30,
 }: InlineTodosProps) {
   const handleAddTodo = (text: string) => {
+    // Check task limit
+    if (todos.length >= maxTodos) {
+      toast.error(`Cannot add more than ${maxTodos} tasks per job`);
+      return;
+    }
+    
     const newTodo: TodoItem = {
       id: `todo-${Date.now()}`,
       text,
@@ -308,6 +310,7 @@ export function InlineTodos({
       onUpdateTodo={handleUpdateTodo}
       disabled={disabled}
       className={className}
+      maxTodos={maxTodos}
     />
   );
 }
