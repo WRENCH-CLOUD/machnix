@@ -17,7 +17,7 @@ export default function InventoryTracking() {
              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-[8px] font-mono">OF</div>
              <div className="flex flex-col">
                <span className="font-medium">Oil Filter (Standard)</span>
-               <span className="text-[10px] text-muted-foreground">SKU: FL-820S</span>
+               <span className="text-[10px] text-muted-foreground">Stock Keeping Unit: FL-820S</span>
              </div>
            </div>
            <div className="text-right flex flex-col items-end">
@@ -31,7 +31,7 @@ export default function InventoryTracking() {
              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-[8px] font-mono">BP</div>
              <div className="flex flex-col">
                <span className="font-medium">Brake Pads (Rear)</span>
-               <span className="text-[10px] text-muted-foreground">SKU: BP-R102</span>
+               <span className="text-[10px] text-muted-foreground">Stock Keeping Unit: BP-R102</span>
              </div>
            </div>
            <div className="text-right flex flex-col items-end">

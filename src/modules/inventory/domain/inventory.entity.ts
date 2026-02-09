@@ -6,9 +6,8 @@ export type ReferenceType = 'jobcard' | 'invoice' | 'purchase_order' | 'manual'
 export interface InventoryItem {
   id: string
   tenantId: string
-  sku?: string
+  stock_keeping_unit?: string
   name: string
-  description?: string
   unitCost: number
   sellPrice: number
   stockOnHand: number
@@ -36,9 +35,8 @@ export interface InventoryTransaction {
 
 // Input types
 export interface CreateItemInput {
-  sku?: string
+  stock_keeping_unit?: string
   name: string
-  description?: string
   unitCost: number
   sellPrice: number
   stockOnHand: number
@@ -47,9 +45,8 @@ export interface CreateItemInput {
 }
 
 export interface UpdateItemInput {
-  sku?: string
+  stock_keeping_unit?: string
   name?: string
-  description?: string
   unitCost?: number
   sellPrice?: number
   stockOnHand?: number

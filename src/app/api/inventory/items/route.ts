@@ -6,9 +6,8 @@ import { GetItemsUseCase } from '@/modules/inventory/application/get-items.use-c
 import { CreateItemUseCase } from '@/modules/inventory/application/create-item.use-case'
 
 const createSchema = z.object({
-  sku: z.string().optional(),
+  stock_keeping_unit: z.string().optional(),
   name: z.string().min(1),
-  description: z.string().optional(),
   unitCost: z.number().min(0),
   sellPrice: z.number().min(0),
   stockOnHand: z.number().int().min(0),

@@ -7,9 +7,8 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     return {
       id: row.id,
       tenantId: row.tenant_id,
-      sku: row.sku,
+      stock_keeping_unit: row.stock_keeping_unit,
       name: row.name,
-      description: row.description,
       unitCost: Number(row.unit_cost),
       sellPrice: Number(row.sell_price),
       stockOnHand: Number(row.stock_on_hand),
@@ -25,9 +24,8 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
   protected toDatabase(entity: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>): any {
     return {
       tenant_id: entity.tenantId,
-      sku: entity.sku,
+      stock_keeping_unit: entity.stock_keeping_unit,
       name: entity.name,
-      description: entity.description,
       unit_cost: entity.unitCost,
       sell_price: entity.sellPrice,
       stock_on_hand: entity.stockOnHand,
@@ -68,13 +66,13 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     return data ? this.toDomain(data) : null
   }
 
-  async findBySku(sku: string): Promise<InventoryItem | null> {
+  async findBystock_keeping_unit(stock_keeping_unit: string): Promise<InventoryItem | null> {
     const tenantId = this.getContextTenantId()
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('inventory_items')
       .select('*')
-      .eq('sku', sku)
+      .eq('stock_keeping_unit', stock_keeping_unit)
       .eq('tenant_id', tenantId)
       .maybeSingle()
 
@@ -86,9 +84,8 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     const tenantId = this.getContextTenantId()
     const dbInput = {
       tenant_id: tenantId,
-      sku: input.sku,
+      stock_keeping_unit: input.stock_keeping_unit,
       name: input.name,
-      description: input.description,
       unit_cost: input.unitCost,
       sell_price: input.sellPrice,
       stock_on_hand: input.stockOnHand,
@@ -110,9 +107,8 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
   async update(id: string, input: UpdateItemInput): Promise<InventoryItem> {
     const tenantId = this.getContextTenantId()
     const updates: any = {}
-    if (input.sku !== undefined) updates.sku = input.sku
+    if (input.stock_keeping_unit !== undefined) updates.stock_keeping_unit = input.stock_keeping_unit
     if (input.name !== undefined) updates.name = input.name
-    if (input.description !== undefined) updates.description = input.description
     if (input.unitCost !== undefined) updates.unit_cost = input.unitCost
     if (input.sellPrice !== undefined) updates.sell_price = input.sellPrice
     if (input.stockOnHand !== undefined) updates.stock_on_hand = input.stockOnHand

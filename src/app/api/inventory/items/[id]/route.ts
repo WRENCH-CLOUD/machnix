@@ -6,9 +6,8 @@ import { UpdateItemUseCase } from '@/modules/inventory/application/update-item.u
 import { DeleteItemUseCase } from '@/modules/inventory/application/delete-item.use-case'
 
 const updateSchema = z.object({
-  sku: z.string().optional(),
+  stock_keeping_unit: z.string().optional(),
   name: z.string().optional(),
-  description: z.string().optional(),
   unitCost: z.number().min(0).optional(),
   sellPrice: z.number().min(0).optional(),
   stockOnHand: z.number().int().min(0).optional(),
@@ -83,7 +82,7 @@ export async function PATCH(
     if (error.message === 'Item not found') {
         return NextResponse.json({ error: 'Item not found' }, { status: 404 })
     }
-    if (error.message?.includes('SKU already in use')) {
+    if (error.message?.includes('stock_keeping_unit already in use')) {
         return NextResponse.json({ error: error.message }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

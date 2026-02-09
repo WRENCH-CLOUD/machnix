@@ -20,12 +20,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
-  sku: z.string().optional(),
+  stock_keeping_unit: z.string().optional(),
   name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
   unitCost: z.coerce.number().min(0, "Must be positive"),
   sellPrice: z.coerce.number().min(0, "Must be positive"),
   stockOnHand: z.coerce.number().int().min(0, "Must be positive integer"),
@@ -52,9 +50,8 @@ export function ItemFormModal({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      sku: "",
+      stock_keeping_unit: "",
       name: "",
-      description: "",
       unitCost: 0,
       sellPrice: 0,
       stockOnHand: 0,
@@ -66,9 +63,8 @@ export function ItemFormModal({
     if (open) {
         if (initialData) {
         form.reset({
-            sku: initialData.sku || "",
+            stock_keeping_unit: initialData.stock_keeping_unit || "",
             name: initialData.name,
-            description: initialData.description || "",
             unitCost: initialData.unitCost,
             sellPrice: initialData.sellPrice,
             stockOnHand: initialData.stockOnHand,
@@ -76,9 +72,8 @@ export function ItemFormModal({
         });
         } else {
             form.reset({
-                sku: "",
+                stock_keeping_unit: "",
                 name: "",
-                description: "",
                 unitCost: 0,
                 sellPrice: 0,
                 stockOnHand: 0,
@@ -131,10 +126,10 @@ export function ItemFormModal({
                 />
                 <FormField
                 control={form.control}
-                name="sku"
+                name="stock_keeping_unit"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>SKU</FormLabel>
+                    <FormLabel>Stock Keeping Unit</FormLabel>
                     <FormControl>
                         <Input placeholder="OF-123" {...field} />
                     </FormControl>
@@ -190,19 +185,6 @@ export function ItemFormModal({
                     <FormLabel>Reorder Level</FormLabel>
                     <FormControl>
                         <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem className="col-span-2">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                        <Textarea placeholder="Item description..." {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

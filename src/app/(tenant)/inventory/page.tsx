@@ -116,7 +116,7 @@ export default function InventoryPage() {
   const filteredItems = items.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.sku?.toLowerCase().includes(search.toLowerCase())
+      item.stock_keeping_unit?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -154,7 +154,7 @@ export default function InventoryPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Item</TableHead>
-              <TableHead>SKU</TableHead>
+              <TableHead>Stock Keeping Unit</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead className="text-right">Price</TableHead>
@@ -177,15 +177,7 @@ export default function InventoryPage() {
             ) : (
               filteredItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="font-medium">{item.name}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {item.description}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>{item.sku || "-"}</TableCell>
+                  <TableCell>{item.stock_keeping_unit || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {item.stockOnHand <= item.reorderLevel && (
