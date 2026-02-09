@@ -177,6 +177,9 @@ export class UpdateJobStatusUseCase {
     }
 
     return { success: true }
+  }
+
+  /**
    * Handle automated WhatsApp notifications logic
    */
   private async handleWhatsAppNotification(

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Sparkles,
   CreditCard,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -69,6 +70,12 @@ const navItems = [
     label: "Vehicles",
     icon: Car,
     description: "Vehicle inventory"
+  },
+  {
+    id: "inventory",
+    label: "Inventory",
+    icon: Package,
+    description: "Parts & Items"
   },
   {
     id: "team",
