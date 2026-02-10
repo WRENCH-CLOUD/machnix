@@ -177,6 +177,7 @@ export default function InventoryPage() {
             ) : (
               filteredItems.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell>{item.name}</TableCell>
                   <TableCell>{item.stock_keeping_unit || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
