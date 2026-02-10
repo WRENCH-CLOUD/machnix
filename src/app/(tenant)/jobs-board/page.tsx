@@ -277,7 +277,7 @@ export default function JobsPage() {
     }
   }
 
-  const handleMechanicChange = async (jobId: string, mechanicId: string) => {
+  const handleMechanicChange = async (jobId: string, mechanicId: string) => {// FIXME: this is a rough implementation to get the mechanic change working, need to refactor 
     try {
       const response = await api.post(`/api/jobs/${jobId}/assign-mechanic`, { mechanicId })
       if (!response.ok) {

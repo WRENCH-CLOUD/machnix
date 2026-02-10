@@ -14,7 +14,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CheckCircle2, Loader2 } from "lucide-react"
-import { ClientOnly } from "@/components/common/client-only"
 
 interface CallbackFormProps {
   trigger?: React.ReactNode

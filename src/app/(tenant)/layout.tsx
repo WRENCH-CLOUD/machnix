@@ -10,8 +10,6 @@ import Loader from "@/components/ui/loading"
 import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { OnboardingModal } from "@/components/tenant/starter/onboarding-modal"
-
 
 // Inner layout component that uses sidebar context
 function TenantLayoutContent({

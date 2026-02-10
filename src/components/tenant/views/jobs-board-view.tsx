@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -181,7 +181,6 @@ function SortableJobCard({
 export function JobBoardView({
   jobs,
   loading,
-  isMechanicMode = false,
   onJobClick,
   onStatusChange,
 }: JobBoardProps) {

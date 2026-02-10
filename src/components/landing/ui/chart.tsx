@@ -116,12 +116,12 @@ const ChartTooltipContent = React.forwardRef<
   (
     {
       active,
-      payload,
+      payload,//FIME
       className,
       indicator = 'dot',
       hideLabel = false,
       hideIndicator = false,
-      label,
+      label,//FIME
       labelFormatter,
       labelClassName,
       formatter,
