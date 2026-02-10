@@ -10,18 +10,18 @@ export class UpdateItemUseCase {
     const item = await this.inventoryRepository.findById(id)
     if (!item) throw new Error('Item not found')
 
-    const normalizedSku = typeof input.stock_keeping_unit === 'string'
-      ? input.stock_keeping_unit.trim()
-      : input.stock_keeping_unit
+    const normalizedSku = typeof input.stockKeepingUnit === 'string'
+      ? input.stockKeepingUnit.trim()
+      : input.stockKeepingUnit
 
     const effectiveSku = normalizedSku === '' ? undefined : normalizedSku
 
     if (effectiveSku !== undefined) {
-      const existing = await this.inventoryRepository.findBystock_keeping_unit(effectiveSku)
-      if (existing && existing.id !== id) throw new Error('stock_keeping_unit already in use')
+      const existing = await this.inventoryRepository.findByStockKeepingUnit(effectiveSku)
+      if (existing && existing.id !== id) throw new Error('stockKeepingUnit already in use')
     }
 
-    input.stock_keeping_unit = effectiveSku as any
+    input.stockKeepingUnit = effectiveSku as any
     return this.inventoryRepository.update(id, input)
   }
 }

@@ -7,7 +7,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     return {
       id: row.id,
       tenantId: row.tenant_id,
-      stock_keeping_unit: row.stock_keeping_unit,
+      stockKeepingUnit: row.stock_keeping_unit,
       name: row.name,
       unitCost: Number(row.unit_cost),
       sellPrice: Number(row.sell_price),
@@ -24,7 +24,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
   protected toDatabase(entity: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>): any {
     return {
       tenant_id: entity.tenantId,
-      stock_keeping_unit: entity.stock_keeping_unit,
+      stock_keeping_unit: entity.stockKeepingUnit,
       name: entity.name,
       unit_cost: entity.unitCost,
       sell_price: entity.sellPrice,
@@ -66,13 +66,13 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     return data ? this.toDomain(data) : null
   }
 
-  async findBystock_keeping_unit(stock_keeping_unit: string): Promise<InventoryItem | null> {
+  async findByStockKeepingUnit(stockKeepingUnit: string): Promise<InventoryItem | null> {
     const tenantId = this.getContextTenantId()
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('inventory_items')
       .select('*')
-      .eq('stock_keeping_unit', stock_keeping_unit)
+      .eq('stock_keeping_unit', stockKeepingUnit)
       .eq('tenant_id', tenantId)
       .maybeSingle()
 
@@ -84,7 +84,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     const tenantId = this.getContextTenantId()
     const dbInput = {
       tenant_id: tenantId,
-      stock_keeping_unit: input.stock_keeping_unit,
+      stock_keeping_unit: input.stockKeepingUnit,
       name: input.name,
       unit_cost: input.unitCost,
       sell_price: input.sellPrice,
@@ -107,7 +107,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
   async update(id: string, input: UpdateItemInput): Promise<InventoryItem> {
     const tenantId = this.getContextTenantId()
     const updates: any = {}
-    if (input.stock_keeping_unit !== undefined) updates.stock_keeping_unit = input.stock_keeping_unit
+    if (input.stockKeepingUnit !== undefined) updates.stock_keeping_unit = input.stockKeepingUnit
     if (input.name !== undefined) updates.name = input.name
     if (input.unitCost !== undefined) updates.unit_cost = input.unitCost
     if (input.sellPrice !== undefined) updates.sell_price = input.sellPrice
