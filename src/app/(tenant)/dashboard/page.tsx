@@ -1,6 +1,6 @@
 "use client"
 
-import { TenantDashboard, type DashboardStats } from "@/components/tenant/views/tenant-dashboard-view"
+import { TenantDashboard } from "@/components/tenant/views/tenant-dashboard-view"
 import { useTenantDashboard } from "@/hooks"
 import Loader from "@/components/ui/loading"
 

@@ -1,4 +1,3 @@
-import { SupabaseClient } from '@supabase/supabase-js'
 import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
 import { MechanicRepository } from '../domain/mechanic.repository'
 import { Mechanic, CreateMechanicInput, UpdateMechanicInput } from '../domain/mechanic.entity'

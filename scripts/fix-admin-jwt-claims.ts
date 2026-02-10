@@ -56,7 +56,7 @@ async function fixAdminJwtClaims() {
       console.log(`Processing: ${admin.email} (${admin.name})`)
 
       // Set JWT claims
-      const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
         admin.auth_user_id,
         {
           app_metadata: {

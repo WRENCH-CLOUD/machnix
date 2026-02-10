@@ -437,7 +437,6 @@ export const usePrintableFunctions = ({
 
     const customerName = job.customer?.name ?? "N/A";
     const customerPhone = job.customer?.phone ?? "N/A";
-    const customerEmail = job.customer?.email ?? "N/A";
 
     const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
       } ${job.vehicle?.model ?? ""}`.trim();

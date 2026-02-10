@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { CustomersView, CustomerWithStats, CustomerFormData } from "@/components/tenant/customers/customers-view";
 import { useCustomers, useInvalidateQueries } from "@/hooks";
