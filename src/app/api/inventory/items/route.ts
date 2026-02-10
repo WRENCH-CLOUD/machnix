@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const useCase = new CreateItemUseCase(repository)
     const item = await useCase.execute(result.data)
 
-    return NextResponse.json(item)
+    return NextResponse.json(item, { status: 201 })
   } catch (error: any) {
     console.error('Error creating inventory item:', error)
     if (error.message?.includes('already exists')) {
