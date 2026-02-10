@@ -20,7 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 import { ItemFormModal } from "@/components/inventory/ItemFormModal";
 import { StockAdjustmentModal } from "@/components/inventory/StockAdjustmentModal";
