@@ -25,7 +25,7 @@ import * as dotenv from 'dotenv'
 import * as path from 'path'
 import * as fs from 'fs'
 import { setTenantUserClaims, getUserJwtClaims } from '../lib/auth/set-jwt-claims'
-import { JWT_ROLES, isValidRole } from '../lib/auth/jwt-claims'
+import { JWT_ROLES } from "../lib/auth/set-jwt-claims"
 
 // Load .env.local file
 const envPath = path.join(process.cwd(), '.env.local')

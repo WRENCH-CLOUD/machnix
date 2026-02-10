@@ -1,7 +1,6 @@
 import { env } from '@/lib/env'
 import {
     WhatsAppTemplateType,
-    WhatsAppTemplateParams,
     VehicleStatusUpdateParams
 } from '@/modules/whatsapp/domain/whatsapp-templates.types'
 

@@ -252,7 +252,6 @@ export function useEstimateByJob(
   jobId: string | undefined,
   jobData?: { jobNumber: string; customerId: string; vehicleId: string }
 ) {
-  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: queryKeys.estimates.byJob(jobId || ""),

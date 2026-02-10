@@ -61,7 +61,7 @@ export function JobDetailsContainer({
   const { data: tenantSettings } = useTenantSettings();
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
-  const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(
+  const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(//FIXME: used to get estimate items, but should refactor to have a separate query for estimate items to avoid refetching entire estimate when items change
     job.id,
     {
       jobNumber: job.jobNumber,

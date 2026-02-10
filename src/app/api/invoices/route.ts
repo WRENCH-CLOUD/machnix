@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { GetAllInvoicesUseCase } from '@/modules/invoice/application/get-all-invoices.use-case'
 import { createClient } from '@/lib/supabase/server'
