@@ -6,7 +6,7 @@ import { UpdateItemUseCase } from '@/modules/inventory/application/update-item.u
 import { DeleteItemUseCase } from '@/modules/inventory/application/delete-item.use-case'
 
 const updateSchema = z.object({
-  stock_keeping_unit: z.string().optional(),
+  stockKeepingUnit: z.string().optional(),
   name: z.string().optional(),
   unitCost: z.number().min(0).optional(),
   sellPrice: z.number().min(0).optional(),

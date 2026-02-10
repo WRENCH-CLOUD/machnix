@@ -11,7 +11,7 @@ export type PaymentMode = 'cash' | 'razorpay' | 'card' | 'upi' | 'bank_transfer'
 /**
  * Payment Status Types
  */
-export type PaymentStatus = 'initiated' | 'success' | 'failed'
+export type PaymentStatus = 'initiated' | 'completed' | 'failed'
 
 /**
  * Invoice Entity

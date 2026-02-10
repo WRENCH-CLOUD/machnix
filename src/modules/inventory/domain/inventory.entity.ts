@@ -28,7 +28,6 @@ export interface InventoryTransaction {
   unitCost?: number
   referenceType?: ReferenceType
   referenceId?: string
-  notes?: string
   createdBy?: string
   createdAt: Date
 }
@@ -61,6 +60,5 @@ export interface CreateTransactionInput {
   unitCost?: number
   referenceType?: ReferenceType
   referenceId?: string
-  notes?: string
   createdBy?: string
 }

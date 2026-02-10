@@ -27,12 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-
 const formSchema = z.object({
   quantity: z.coerce.number().int().positive("Must be positive"),
   type: z.enum(["in", "out"]),
-  notes: z.string().optional(),
 });
 
 interface StockAdjustmentModalProps {
@@ -55,7 +52,6 @@ export function StockAdjustmentModal({
     defaultValues: {
       quantity: 1,
       type: "in",
-      notes: "",
     },
   });
 
@@ -113,19 +109,6 @@ export function StockAdjustmentModal({
                   <FormLabel>Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" min="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reason / Notes</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="e.g. Stock correction, Damaged" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

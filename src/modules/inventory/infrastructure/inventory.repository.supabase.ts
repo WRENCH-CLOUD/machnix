@@ -149,7 +149,29 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     const item = await this.findById(itemId)
     if (!item) throw new Error('Item not found')
 
-    const newStock = type === 'in' ? item.stockOnHand + quantity : item.stockOnHand - quantity
+    console.log('[adjustStock] Before adjustment:', {
+      itemId,
+      currentStock: item.stockOnHand,
+      quantity,
+      type
+    })
+
+    // Explicitly calculate new stock based on type
+    let newStock: number
+    if (type === 'in') {
+      newStock = item.stockOnHand + quantity
+    } else if (type === 'out') {
+      newStock = item.stockOnHand - quantity
+    } else {
+      throw new Error(`Invalid adjustment type: ${type}`)
+    }
+
+    console.log('[adjustStock] Calculated newStock:', newStock)
+
+    // Prevent negative stock
+    if (newStock < 0) {
+      throw new Error('Insufficient stock')
+    }
 
     // Simple update - race condition possible but acceptable for MVP
     await this.update(itemId, { stockOnHand: newStock })
@@ -167,7 +189,6 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
       unitCost: row.unit_cost ? Number(row.unit_cost) : undefined,
       referenceType: row.reference_type,
       referenceId: row.reference_id,
-      notes: row.notes,
       createdBy: row.created_by,
       createdAt: new Date(row.created_at),
     }
@@ -212,7 +233,6 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
       unit_cost: input.unitCost,
       reference_type: input.referenceType,
       reference_id: input.referenceId,
-      notes: input.notes,
       created_by: input.createdBy,
     }
 

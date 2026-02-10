@@ -416,7 +416,6 @@ CREATE TABLE IF NOT EXISTS tenant.inventory_transactions (
   unit_cost numeric(10,2),
   reference_type text,
   reference_id uuid,
-  notes text,
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -501,7 +500,6 @@ CREATE TABLE IF NOT EXISTS tenant.dvi_items (
   checkpoint_id uuid NOT NULL,
   checkpoint_name text,
   status text DEFAULT 'pending',
-  notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

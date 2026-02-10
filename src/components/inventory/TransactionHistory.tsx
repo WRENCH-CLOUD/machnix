@@ -46,11 +46,8 @@ export function TransactionHistory({ itemId }: TransactionHistoryProps) {
   }
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Transaction History</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="mt-2">
+      <div>
         {loading ? (
           <div className="text-center py-4">Loading history...</div>
         ) : transactions.length === 0 ? (
@@ -63,7 +60,6 @@ export function TransactionHistory({ itemId }: TransactionHistoryProps) {
                 <TableHead>Type</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Reference</TableHead>
-                <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,15 +86,12 @@ export function TransactionHistory({ itemId }: TransactionHistoryProps) {
                       "-"
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
-                    {tx.notes || "-"}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

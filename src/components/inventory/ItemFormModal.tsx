@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const formSchema = z.object({
-  stock_keeping_unit: z.string().optional(),
+  stockKeepingUnit: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   unitCost: z.coerce.number().min(0, "Must be positive"),
   sellPrice: z.coerce.number().min(0, "Must be positive"),
@@ -50,7 +50,7 @@ export function ItemFormModal({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      stock_keeping_unit: "",
+      stockKeepingUnit: "",
       name: "",
       unitCost: 0,
       sellPrice: 0,
@@ -63,7 +63,7 @@ export function ItemFormModal({
     if (open) {
         if (initialData) {
         form.reset({
-            stock_keeping_unit: initialData.stock_keeping_unit || "",
+            stockKeepingUnit: initialData.stockKeepingUnit || "",
             name: initialData.name,
             unitCost: initialData.unitCost,
             sellPrice: initialData.sellPrice,
@@ -72,7 +72,7 @@ export function ItemFormModal({
         });
         } else {
             form.reset({
-                stock_keeping_unit: "",
+                stockKeepingUnit: "",
                 name: "",
                 unitCost: 0,
                 sellPrice: 0,
@@ -126,7 +126,7 @@ export function ItemFormModal({
                 />
                 <FormField
                 control={form.control}
-                name="stock_keeping_unit"
+                name="stockKeepingUnit"
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Stock Keeping Unit</FormLabel>

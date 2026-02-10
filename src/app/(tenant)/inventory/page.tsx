@@ -24,7 +24,7 @@ import { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 import { ItemFormModal } from "@/components/inventory/ItemFormModal";
 import { StockAdjustmentModal } from "@/components/inventory/StockAdjustmentModal";
 import { TransactionHistory } from "@/components/inventory/TransactionHistory";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -270,6 +270,12 @@ export default function InventoryPage() {
         {viewingHistoryItem && (
             <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
                 <DialogContent className="sm:max-w-[700px]">
+                    <DialogHeader>
+                        <DialogTitle>Transaction History</DialogTitle>
+                        <DialogDescription>
+                            Viewing transaction history for {viewingHistoryItem.name}
+                        </DialogDescription>
+                    </DialogHeader>
                     <TransactionHistory itemId={viewingHistoryItem.id} />
                 </DialogContent>
             </Dialog>

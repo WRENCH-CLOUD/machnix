@@ -167,7 +167,7 @@ export function JobParts({
                 {/* Header */}
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
                   <div className="col-span-3">Item</div>
-                  <div className="col-span-2">Part No.</div>
+                  <div className="col-span-2">Part Identity.</div>
                   <div className="col-span-1">Qty</div>
                   <div className="col-span-2">Unit Price</div>
                   <div className="col-span-2">Labor</div>
@@ -342,7 +342,7 @@ export function JobParts({
               {/* Header */}
               <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
                 <div className="col-span-3">Item</div>
-                <div className="col-span-2">Part No.</div>
+                <div className="col-span-2">Part Identity.</div>
                 <div className="col-span-1">Qty</div>
                 <div className="col-span-2">Unit Price</div>
                 <div className="col-span-2">Labor</div>

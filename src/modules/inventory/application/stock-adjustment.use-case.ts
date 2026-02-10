@@ -10,7 +10,6 @@ export class StockAdjustmentUseCase {
     itemId: string
     quantity: number
     type: 'in' | 'out'
-    notes?: string
     createdBy: string
   }): Promise<InventoryTransaction> {
     const item = await this.inventoryRepository.findById(input.itemId)
@@ -26,7 +25,6 @@ export class StockAdjustmentUseCase {
       quantity: input.quantity,
       unitCost: item.unitCost, // Using current unit cost
       referenceType: 'manual',
-      notes: input.notes,
       createdBy: input.createdBy
     })
   }

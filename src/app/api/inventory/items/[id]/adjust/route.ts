@@ -6,8 +6,7 @@ import { StockAdjustmentUseCase } from '@/modules/inventory/application/stock-ad
 
 const adjustSchema = z.object({
   quantity: z.number().int().positive(),
-  type: z.enum(['in', 'out']),
-  notes: z.string().optional()
+  type: z.enum(['in', 'out'])
 })
 
 export async function POST(
@@ -42,7 +41,6 @@ export async function POST(
       itemId: id,
       quantity: result.data.quantity,
       type: result.data.type,
-      notes: result.data.notes,
       createdBy: user.id
     })
 
