@@ -4,7 +4,7 @@ export interface InventoryRepository {
   // Items CRUD
   findAll(): Promise<InventoryItem[]>
   findById(id: string): Promise<InventoryItem | null>
-  findBystock_keeping_unit(stock_keeping_unit: string): Promise<InventoryItem | null>
+  findByStockKeepingUnit(stockKeepingUnit: string): Promise<InventoryItem | null>
   create(input: CreateItemInput): Promise<InventoryItem>
   update(id: string, input: UpdateItemInput): Promise<InventoryItem>
   softDelete(id: string, deletedBy: string): Promise<void>
