@@ -95,7 +95,7 @@ export async function POST(request: Request) {
 
     const transaction = await useCase.execute(input)
 
-    return NextResponse.json(transaction)
+    return NextResponse.json(transaction, { status: 201 })
   } catch (error: any) {
     console.error('Error recording transaction:', error)
     if (error.message === 'Item not found') {
