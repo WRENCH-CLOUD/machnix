@@ -6,6 +6,7 @@ import type { TenantWithStats } from "@/modules/tenant";
 import type { CustomerOverview } from "@/modules/customer/domain/customer.entity";
 import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity";
 import type { TodoItem } from "@/modules/job/domain/todo.types";
+import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 
 // ============================================
 // Utility Functions
@@ -68,6 +69,10 @@ export const queryKeys = {
   transactions: {
     all: ["transactions"] as const,
     list: () => [...queryKeys.transactions.all, "list"] as const,
+  },
+  inventory: {
+    all: ["inventory"] as const,
+    list: () => [...queryKeys.inventory.all, "list"] as const,
   },
 } as const;
 
@@ -333,6 +338,7 @@ export function useAddEstimateItem(jobId: string) {
     }: {
       estimateId: string;
       item: {
+        partId?: string; // Inventory Item ID
         name: string;
         partNumber?: string;
         quantity: number;
@@ -341,6 +347,7 @@ export function useAddEstimateItem(jobId: string) {
       };
     }) => {
       const res = await api.post(`/api/estimates/${estimateId}/items`, {
+        part_id: item.partId,
         custom_name: item.name,
         custom_part_number: item.partNumber,
         qty: item.quantity,
@@ -628,6 +635,21 @@ export function useTransactions() {
         throw new Error("Failed to fetch transactions");
       }
       return res.json();
+    },
+  });
+}
+
+// ============================================
+// Inventory Query
+// ============================================
+
+export function useInventoryItems() {
+  return useQuery({
+    queryKey: queryKeys.inventory.list(),
+    queryFn: async () => {
+      const res = await api.get("/api/inventory/items");
+      if (!res.ok) throw new Error("Failed to fetch inventory items");
+      return res.json() as Promise<InventoryItem[]>;
     },
   });
 }

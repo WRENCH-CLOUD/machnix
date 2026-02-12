@@ -5,6 +5,7 @@ export class AddEstimateItemUseCase {
 
   async execute(input: {
     estimateId: string
+    partId?: string
     customName: string
     customPartNumber?: string
     description?: string
@@ -13,6 +14,7 @@ export class AddEstimateItemUseCase {
     laborCost?: number
   }) {
     return this.repository.addItem(input.estimateId, {
+      partId: input.partId,
       customName: input.customName,
       customPartNumber: input.customPartNumber,
       description: input.description,

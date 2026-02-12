@@ -38,6 +38,7 @@ export async function POST(
 
     const item = await useCase.execute({
       estimateId,
+      partId: raw.part_id,
       customName: raw.custom_name,
       customPartNumber: raw.custom_part_number,
       description: raw.description,

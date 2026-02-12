@@ -61,6 +61,11 @@ interface JobDetailsDialogProps {
   discountPercentage?: number;
   onDiscountChange?: (value: number) => void;
 
+  // Inventory props
+  inventoryItems?: any[];
+  loadingInventory?: boolean;
+  inventoryError?: any;
+
   // Payment Modal props
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
@@ -129,6 +134,9 @@ export function JobDetailsDialog({
   onGstToggle,
   discountPercentage = 0,
   onDiscountChange,
+  inventoryItems,
+  loadingInventory,
+  inventoryError,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -382,6 +390,9 @@ export function JobDetailsDialog({
                   onRemoveItem={onRemoveEstimateItem}
                   onUpdateItem={onUpdateEstimateItem}
                   onGenerateEstimatePdf={onGenerateEstimatePdf}
+                  inventoryItems={inventoryItems}
+                  loadingInventory={loadingInventory}
+                  inventoryError={inventoryError}
                 />
               </TabsContent>
 

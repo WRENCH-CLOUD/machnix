@@ -20,6 +20,7 @@ import {
   useVehicleJobHistory,
   useUpdateInvoice,
   transformTenantSettingsForJobDetails,
+  useInventoryItems,
 } from "@/hooks/queries";
 import { usePrintableFunctions } from "./printable-function";
 import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
@@ -60,6 +61,8 @@ export function JobDetailsContainer({
   // React Query hooks for data fetching
   const { data: tenantSettings } = useTenantSettings();
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
+
+  const { data: inventoryItems, isLoading: loadingInventory, error: inventoryError } = useInventoryItems();
 
   const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(//FIXME: used to get estimate items, but should refactor to have a separate query for estimate items to avoid refetching entire estimate when items change
     job.id,
@@ -167,6 +170,7 @@ export function JobDetailsContainer({
 
   // Handlers
   const handleAddEstimateItem = async (part: {
+    inventoryItemId?: string;
     name: string;
     partNumber?: string;
     quantity: number;
@@ -178,7 +182,10 @@ export function JobDetailsContainer({
     try {
       await addItemMutation.mutateAsync({
         estimateId: estimate.id,
-        item: part,
+        item: {
+          ...part,
+          partId: part.inventoryItemId,
+        },
       });
       toast.success("Item added to estimate");
     } catch (error) {
@@ -506,6 +513,10 @@ export function JobDetailsContainer({
       onGstToggle={handleGstToggle}
       discountPercentage={discountPercentage}
       onDiscountChange={handleDiscountChange}
+      // Inventory props
+      inventoryItems={inventoryItems}
+      loadingInventory={loadingInventory}
+      inventoryError={inventoryError}
     />
   );
 }
