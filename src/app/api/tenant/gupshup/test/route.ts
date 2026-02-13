@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { gupshupService } from '@/lib/integrations/gupshup.service'
+import { apiGuardAdmin } from '@/lib/auth/api-guard'
 
 /**
  * POST /api/tenant/gupshup/test
  * Send a test WhatsApp message to verify configuration
+ * SECURITY: Restricted to tenant owners/admins only
  */
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const guard = await apiGuardAdmin(request, 'test-gupshup')
+        if (!guard.ok) return guard.response
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata?.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-        }
+        const { tenantId } = guard
 
         if (!gupshupService.isConfigured()) {
             return NextResponse.json(

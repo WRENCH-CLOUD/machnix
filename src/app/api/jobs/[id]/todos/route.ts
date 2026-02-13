@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
 
 interface TodoItem {
   id: string
@@ -19,29 +18,13 @@ export async function PATCH(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!id || !uuidRegex.test(id)) {
-      return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
-    }
+    const idError = validateRouteId(id, 'job')
+    if (idError) return idError
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.WRITE, rateLimitAction: 'update-job-todos' })
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Rate limit by user
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'update-job-todos')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
     const body = await request.json()
     const { todos } = body as { todos: TodoItem[] }
 
@@ -168,29 +151,12 @@ export async function GET(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!id || !uuidRegex.test(id)) {
-      return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
-    }
+    const idError = validateRouteId(id, 'job')
+    if (idError) return idError
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Rate limit by user (read operations)
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.READ, 'get-job-todos')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.READ, rateLimitAction: 'get-job-todos' })
+    if (!guard.ok) return guard.response
+    const { supabase } = guard
 
     const { data: job, error } = await supabase
       .schema('tenant')

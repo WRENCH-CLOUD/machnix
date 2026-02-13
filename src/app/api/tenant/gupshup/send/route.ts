@@ -1,29 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { gupshupService } from '@/lib/integrations/gupshup.service'
 import { VehicleStatusUpdateParams } from '@/modules/whatsapp/domain/whatsapp-templates.types'
+import { apiGuard, RATE_LIMITS, TENANT_MANAGER_ROLES } from '@/lib/auth/api-guard'
 
 /**
  * POST /api/tenant/gupshup/send
  * Send a vehicle status update WhatsApp message
  * 
  * This is triggered manually by the tenant when they want to notify a customer.
+ * SECURITY: Restricted to managers+ (not mechanics/employees)
  */
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const guard = await apiGuard(request, {
+            requiredRoles: TENANT_MANAGER_ROLES,
+            rateLimit: RATE_LIMITS.WRITE,
+            rateLimitAction: 'send-whatsapp',
+        })
+        if (!guard.ok) return guard.response
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata?.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-        }
+        const { tenantId, supabase } = guard
 
         if (!gupshupService.isConfigured()) {
             return NextResponse.json(

@@ -1,27 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { CreateEstimateUseCase } from "@/modules/estimate/application/create-estimate.use-case";
-import { createClient } from "@/lib/supabase/server";
+import { apiGuardWrite } from '@/lib/auth/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
+    const guard = await apiGuardWrite(request, 'create-estimate');
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId, user } = guard;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new CreateEstimateUseCase(repository);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 
 /**
  * POST /api/callbacks/gupshup
@@ -7,10 +8,27 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
  * 
  * Gupshup sends delivery events here when message status changes:
  * - enqueued, failed, sent, delivered, read
+ * 
+ * SECURITY: This is a public webhook endpoint.
+ * - Rate limited to prevent abuse
+ * - Validates expected payload structure before processing
+ * - Only updates existing records (no creation of new data)
  */
 export async function POST(request: NextRequest) {
     try {
+        // Rate limit webhook calls to prevent abuse
+        const rateLimitResult = checkRateLimit(request, RATE_LIMITS.STANDARD, 'gupshup-webhook')
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult)
+        }
+
         const body = await request.json()
+
+        // Validate payload structure to reject garbage requests
+        if (!body || typeof body !== 'object' || !body.type) {
+            console.warn('[GupshupWebhook] Invalid payload structure:', typeof body)
+            return new NextResponse(null, { status: 200 })
+        }
 
         console.log('[GupshupWebhook] Received:', JSON.stringify(body, null, 2))
 

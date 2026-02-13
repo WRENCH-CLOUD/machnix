@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
-import { createClient } from '@/lib/supabase/server'
 import { gupshupService } from '@/lib/integrations/gupshup.service'
+import { apiGuardRead, apiGuardAdmin } from '@/lib/auth/api-guard'
 
 /**
  * GET /api/tenant/gupshup
  * Get Gupshup settings for the current tenant
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const guard = await apiGuardRead(request)
+        if (!guard.ok) return guard.response
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata?.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-        }
+        const { tenantId, supabase } = guard
 
         const repository = new SupabaseTenantRepository(supabase)
         const settings = await repository.getGupshupSettings(tenantId)
@@ -48,24 +41,11 @@ export async function GET() {
  */
 export async function PUT(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        // SECURITY: Only tenant owners/admins can update Gupshup settings
+        const guard = await apiGuardAdmin(request, 'update-gupshup')
+        if (!guard.ok) return guard.response
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata?.tenant_id
-        const role = user.app_metadata?.role
-
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-        }
-
-        // Only admins can update Gupshup settings
-        if (!['tenant_owner', 'tenant_admin', 'admin'].includes(role)) {
-            return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-        }
+        const { tenantId, supabase } = guard
 
         const body = await request.json()
         const { isActive } = body

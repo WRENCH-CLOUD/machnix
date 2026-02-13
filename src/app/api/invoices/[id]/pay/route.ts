@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { RecordPaymentUseCase } from '@/modules/invoice/application/record-payment.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
 
 export async function POST(
   request: NextRequest,
@@ -11,29 +10,12 @@ export async function POST(
   try {
     const { id } = await context.params
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!id || !uuidRegex.test(id)) {
-      return NextResponse.json({ error: 'Invalid invoice ID format' }, { status: 400 })
-    }
+    const idError = validateRouteId(id, 'invoice')
+    if (idError) return idError
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Rate limit payment operations strictly
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.PAYMENT, 'record-payment')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.PAYMENT, rateLimitAction: 'record-payment' })
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 

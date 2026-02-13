@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
-import { createClient } from "@/lib/supabase/server";
+import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function POST(
   request: NextRequest,
@@ -13,23 +13,12 @@ export async function POST(
     const resolvedParams = await (context.params as any);
     const { id: estimateId } = resolvedParams as { id: string };
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const idError = validateRouteId(estimateId, 'estimate');
+    if (idError) return idError;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
+    const guard = await apiGuardWrite(request, 'add-estimate-item');
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId } = guard;
 
     const raw = await request.json();
 
