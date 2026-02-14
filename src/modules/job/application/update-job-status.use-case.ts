@@ -164,7 +164,7 @@ export class UpdateJobStatusUseCase {
 
       // Check if active and mode is auto or both
       if (!settings?.isActive) return
-      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return
+      // if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return
 
       // Determine event type
       let event: 'job_ready' | 'job_delivered' | undefined
@@ -182,7 +182,7 @@ export class UpdateJobStatusUseCase {
       if (!customer?.phone) return
 
       // Send notification
-      await gupshupService.sendEventNotification(
+      await gupshupService.sendEventNotification( //TODO: this should be implement as the function does not exsist
         settings,
         event,
         customer.phone,

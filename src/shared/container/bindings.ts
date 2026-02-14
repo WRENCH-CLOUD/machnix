@@ -28,10 +28,10 @@ import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehi
 
 import { CreateTenantWithOwnerUseCase } from '@/modules/tenant/application/create-tenant-with-owner-usecase'
 
-import type { EventRepository } from '@/modules/event/domain/event.repository'
-import { SupabaseEventRepository } from '@/modules/event/infrastructure/event.repository.supabase'
-import type { PlatformNotificationRepository, TenantNotificationRepository } from '@/modules/event/domain/notification.repository'
-import { SupabasePlatformNotificationRepository, SupabaseTenantNotificationRepository } from '@/modules/event/infrastructure/notification.repository.supabase'
+// import type { EventRepository } from '@/modules/event/domain/event.repository'
+// import { SupabaseEventRepository } from '@/modules/event/infrastructure/event.repository.supabase'
+// import type { PlatformNotificationRepository, TenantNotificationRepository } from '@/modules/event/domain/notification.repository'
+// import { SupabasePlatformNotificationRepository, SupabaseTenantNotificationRepository } from '@/modules/event/infrastructure/notification.repository.supabase'
 
 export const REPOSITORY_TOKENS = {
   auth: 'AuthRepository',
@@ -43,9 +43,9 @@ export const REPOSITORY_TOKENS = {
   job: 'JobRepository',
   user: 'UserRepository',
   vehicle: 'VehicleRepository',
-  event: 'EventRepository',
-  platformNotification: 'PlatformNotificationRepository',
-  tenantNotification: 'TenantNotificationRepository',
+  // event: 'EventRepository',
+  // platformNotification: 'PlatformNotificationRepository',
+  // tenantNotification: 'TenantNotificationRepository',
 } as const
 
 container.registerSingleton<AuthRepository>(REPOSITORY_TOKENS.auth, SupabaseAuthRepository)

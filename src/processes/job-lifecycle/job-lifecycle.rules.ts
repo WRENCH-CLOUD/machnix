@@ -43,11 +43,15 @@ export class JobLifecycleRules {
   /**
    * Throws if the job is in a terminal (locked) state.
    */
-  static ensureNotTerminal(status: JobStatus): void {
-    if (status === 'completed') {
+  static ensureNotTerminal(currentStatus: JobStatus, newStatus: JobStatus): void {
+    // Allow self-transitions for idempotency
+    if (currentStatus === newStatus) {
+      return
+    }
+    if (currentStatus === 'completed') {
       throw new Error('Cannot modify a completed job')
     }
-    if (status === 'cancelled') {
+    if (currentStatus === 'cancelled') {
       throw new Error('Cannot modify a cancelled job')
     }
   }

@@ -35,7 +35,7 @@ import {
 // UUID VALIDATION
 // ============================================================================
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i; //this is UUID v4 specific regex
 
 /**
  * Validate a string is a valid UUID v4 format
@@ -190,7 +190,12 @@ export async function apiGuard(
 
   // 5. Rate limiting
   if (rateLimit !== false) {
-    const config = rateLimit || RATE_LIMITS.STANDARD
+    // Detect HTTP method and use appropriate default
+    const method = request.method.toUpperCase()
+    const isReadMethod = method === 'GET' || method === 'HEAD'
+    const defaultRateLimit = isReadMethod ? RATE_LIMITS.READ : RATE_LIMITS.WRITE
+    
+    const config = rateLimit || defaultRateLimit
     const action = rateLimitAction || request.nextUrl.pathname
     const rateLimitResult = checkUserRateLimit(user.id, config, action)
 

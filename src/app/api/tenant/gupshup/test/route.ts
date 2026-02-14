@@ -12,8 +12,6 @@ export async function POST(request: NextRequest) {
         const guard = await apiGuardAdmin(request, 'test-gupshup')
         if (!guard.ok) return guard.response
 
-        const { tenantId } = guard
-
         if (!gupshupService.isConfigured()) {
             return NextResponse.json(
                 { error: 'Gupshup is not configured at platform level' },

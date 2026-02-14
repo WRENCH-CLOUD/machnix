@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { RecordPaymentUseCase } from '@/modules/invoice/application/record-payment.use-case'
-import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
+import { apiGuard, validateRouteId, RATE_LIMITS, apiGuardWrite } from '@/lib/auth/api-guard'
 
 export async function POST(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function POST(
     const idError = validateRouteId(id, 'invoice')
     if (idError) return idError
 
-    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.PAYMENT, rateLimitAction: 'record-payment' })
+    const guard = await apiGuardWrite(request, 'record-payment')
     if (!guard.ok) return guard.response
     const { supabase, tenantId } = guard
 
