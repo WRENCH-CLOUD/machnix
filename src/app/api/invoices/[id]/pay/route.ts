@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { RecordPaymentUseCase } from '@/modules/invoice/application/record-payment.use-case'
-import { apiGuard, validateRouteId, RATE_LIMITS, apiGuardWrite } from '@/lib/auth/api-guard'
+import { validateRouteId, apiGuardWrite } from '@/lib/auth/api-guard'
 
 export async function POST(
   request: NextRequest,
