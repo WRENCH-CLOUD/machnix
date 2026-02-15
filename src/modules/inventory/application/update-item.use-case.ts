@@ -18,10 +18,13 @@ export class UpdateItemUseCase {
 
     if (effectiveSku !== undefined) {
       const existing = await this.inventoryRepository.findByStockKeepingUnit(effectiveSku)
-      if (existing && existing.id !== id) throw new Error('stockKeepingUnit already in use')
+      if (existing && existing.id !== id) throw new Error('stock_keeping_unit already in use')
     }
 
-    input.stockKeepingUnit = effectiveSku as any
-    return this.inventoryRepository.update(id, input)
+    const updateInput: UpdateItemInput = {
+      ...input,
+      stockKeepingUnit: effectiveSku
+    }
+    return this.inventoryRepository.update(id, updateInput)
   }
 }
