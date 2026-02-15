@@ -11,10 +11,8 @@ const transactionSchema = z.object({
   quantity: z.number().int().positive(),
   unitCost: z.number().min(0).optional(),
   referenceType: z.enum(['jobcard', 'invoice', 'purchase_order', 'manual']).optional(),
-  referenceId: z.string().uuid().optional(),
-  notes: z.string().optional()
+  referenceId: z.string().uuid().optional()
 })
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
