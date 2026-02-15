@@ -151,7 +151,7 @@ export function CreateTenantDialog({
                   <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="starter">Starter - Basic features</SelectItem>
+                  <SelectItem value="basic">Basic - Basic features</SelectItem>
                   <SelectItem value="pro">Pro - Advanced features</SelectItem>
                   <SelectItem value="enterprise">Enterprise - Full access</SelectItem>
                 </SelectContent>

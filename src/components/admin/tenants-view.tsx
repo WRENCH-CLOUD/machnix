@@ -55,7 +55,7 @@ export function TenantsView({
   }
 
   const subscriptionColors: Record<string, string> = {
-    starter: "bg-slate-500/10 text-slate-400",
+    basic: "bg-slate-500/10 text-slate-400",
     pro: "bg-primary/10 text-primary",
     enterprise: "bg-purple-500/10 text-purple-500",
   }

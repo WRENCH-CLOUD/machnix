@@ -8,7 +8,7 @@ ALTER TABLE tenant.tenants
   ADD COLUMN IF NOT EXISTS status tenant.tenant_status DEFAULT 'active' NOT NULL;
 
 -- Add subscription column with enum type  
-CREATE TYPE tenant.subscription_tier AS ENUM ('starter', 'pro', 'enterprise');
+CREATE TYPE tenant.subscription_tier AS ENUM ('basic', 'pro', 'enterprise');
 
 ALTER TABLE tenant.tenants 
   ADD COLUMN IF NOT EXISTS subscription tenant.subscription_tier DEFAULT 'pro' NOT NULL;

@@ -177,6 +177,9 @@ export class UpdateJobStatusUseCase {
     }
 
     return { success: true }
+  }
+
+  /**
    * Handle automated WhatsApp notifications logic
    */
   private async handleWhatsAppNotification(
@@ -189,7 +192,7 @@ export class UpdateJobStatusUseCase {
 
       // Check if active and mode is auto or both
       if (!settings?.isActive) return
-      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return
+      //if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return
 
       // Determine event type
       let event: 'job_ready' | 'job_delivered' | undefined

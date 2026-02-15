@@ -11,7 +11,7 @@ interface CreateTenantWithOwnerInput {
   adminName: string
   adminEmail: string
   adminPhone?: string
-  subscription: 'starter' | 'pro' | 'enterprise'
+  subscription: 'basic' | 'pro' | 'enterprise'
   notes?: string
 }
 
