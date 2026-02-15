@@ -99,7 +99,13 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Error recording transaction:', error)
     if (error.message === 'Item not found') {
-        return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+    }
+    if (error.message === 'Quantity must be positive') {
+      return NextResponse.json({ error: 'Quantity must be positive' }, { status: 400 })
+    }
+    if (error.message === 'Insufficient stock') {
+      return NextResponse.json({ error: 'Insufficient stock' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
