@@ -126,7 +126,6 @@ CREATE TABLE IF NOT EXISTS tenant.customers (
   phone text,
   email text,
   address text,
-  notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
