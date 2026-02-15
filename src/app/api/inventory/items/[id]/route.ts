@@ -82,7 +82,7 @@ export async function PATCH(
     if (error.message === 'Item not found') {
         return NextResponse.json({ error: 'Item not found' }, { status: 404 })
     }
-    if (error.message?.includes('stock_keeping_unit already in use')) {
+    if (error.message?.includes('stockKeepingUnit already in use')) {
         return NextResponse.json({ error: error.message }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
