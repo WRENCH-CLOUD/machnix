@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { gupshupService } from '@/lib/integrations/gupshup.service'
 import { VehicleStatusUpdateParams } from '@/modules/whatsapp/domain/whatsapp-templates.types'
+import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
 
 /**
  * POST /api/tenant/gupshup/send
@@ -23,6 +24,20 @@ export async function POST(request: NextRequest) {
         const tenantId = user.app_metadata?.tenant_id
         if (!tenantId) {
             return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
+        }
+
+        // --- SUBSCRIPTION GATE: WhatsApp requires Pro or higher ---
+        const tier = normalizeTier(user.app_metadata?.subscription_tier)
+        if (tier === 'basic') {
+            return NextResponse.json(
+                {
+                    error: 'WhatsApp messaging requires a Pro or Enterprise plan.',
+                    code: 'FEATURE_LOCKED',
+                    required_tier: 'pro',
+                    current_tier: tier,
+                },
+                { status: 403 }
+            )
         }
 
         if (!gupshupService.isConfigured()) {

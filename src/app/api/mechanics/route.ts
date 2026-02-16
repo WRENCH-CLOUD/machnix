@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/mechanic.repository.supabase'
 import { GetMechanicsUseCase } from '@/modules/mechanic/application/get-mechanics.use-case'
 import { CreateMechanicUseCase } from '@/modules/mechanic/application/create-mechanic.use-case'
+import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
 
 /**
  * GET /api/mechanics
@@ -57,6 +58,15 @@ export async function POST(request: NextRequest) {
     const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
+
+    // Check subscription access (Team module is Pro+)
+    const tier = normalizeTier(user.app_metadata.subscription_tier)
+    if (!isModuleAccessible(tier, 'team')) {
+        return NextResponse.json({ 
+            error: 'Upgrade required to add mechanics',
+            required_tier: 'pro'
+        }, { status: 403 })
     }
 
     const body = await request.json()

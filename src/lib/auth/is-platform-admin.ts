@@ -16,11 +16,13 @@ export async function ensurePlatformAdmin(): Promise<EnsurePlatformAdminResult> 
   const { data, error } = await supabase.auth.getUser();
 
   if (error) {
+    console.error('[ensurePlatformAdmin] Auth error:', error.message);
     return { ok: false, status: 500, message: error.message };
   }
 
   const user = data.user;
   if (!user) {
+    console.error('[ensurePlatformAdmin] No user found');
     return { ok: false, status: 401, message: "Unauthorized" };
   }
 
@@ -29,7 +31,10 @@ export async function ensurePlatformAdmin(): Promise<EnsurePlatformAdminResult> 
   const userMeta: any = user.user_metadata ?? {};
   const role = appMeta.role ?? userMeta.role;
 
+  console.log('[ensurePlatformAdmin] User:', user.email, 'Role:', role, 'AppMeta:', appMeta, 'UserMeta:', userMeta);
+
   if (role !== "platform_admin") {
+    console.error('[ensurePlatformAdmin] Forbidden - Role:', role, 'User:', user.email);
     return { ok: false, status: 403, message: "Forbidden" };
   }
 

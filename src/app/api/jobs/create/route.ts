@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
-import { CreateJobUseCase } from '@/modules/job/application/create-job.use-case'
+import { CreateJobUseCase, JobLimitError } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { normalizeTier } from '@/config/plan-features'
 
 // Todo item schema for validation
 const todoItemSchema = z.object({
@@ -56,15 +57,51 @@ export async function POST(request: NextRequest) {
     
     // Use user ID from auth session
     const createdBy = user.id
+
+    // =============================================
+    // FETCH TENANT CONTEXT FOR SUBSCRIPTION LIMITS
+    // =============================================
+    const tier = normalizeTier(user.app_metadata.subscription_tier || user.user_metadata.subscription_tier)
+
+    // Get current month job count
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+
+    const { count: currentMonthJobCount } = await supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .gte('created_at', startOfMonth.toISOString())
+
+    const tenantContext = {
+      tier,
+      currentMonthJobCount: currentMonthJobCount || 0,
+    }
     
-    // Create the job
+    // Create the job (with subscription limit check)
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
-    const job = await createJobUseCase.execute(body, tenantId, createdBy)
+    const job = await createJobUseCase.execute(body, tenantId, createdBy, tenantContext)
     
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
+    // Handle subscription limit errors with specific status
+    if (error instanceof JobLimitError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'LIMIT_REACHED',
+          tier: error.tier,
+          currentCount: error.currentCount,
+          maxLimit: error.maxLimit,
+        },
+        { status: 429 }
+      )
+    }
+
     console.error('Error creating job:', {
       message: error.message,
       code: error.code,

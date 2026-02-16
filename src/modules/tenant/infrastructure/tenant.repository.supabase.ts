@@ -3,8 +3,9 @@ import { TenantRepository } from "./tenant.repository";
 import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { TenantSettings } from "../domain/tenant-settings.entity";
-import { GupshupSettings, TriggerMode } from "../domain/gupshup-settings.entity";
+import { GupshupSettings } from "../domain/gupshup-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeTier } from "@/config/plan-features";
 
 export class SupabaseTenantRepository implements TenantRepository {
   private supabase: SupabaseClient;
@@ -23,7 +24,10 @@ export class SupabaseTenantRepository implements TenantRepository {
       name: row.name,
       slug: row.slug || '',
       status: row.status,
-      subscription: row.subscription,
+      subscription: normalizeTier(row.subscription),
+      subscriptionStatus: row.subscription_status || 'trial',
+      billingCycleAnchor: row.billing_cycle_anchor ? new Date(row.billing_cycle_anchor) : undefined,
+      usageCounters: row.usage_counters || { job_count: 0, staff_count: 0, whatsapp_count: 0 },
       isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
     };
@@ -322,7 +326,7 @@ export class SupabaseTenantRepository implements TenantRepository {
       tenantId: row.tenant_id,
       sourceNumber: row.source_number,
       isActive: row.is_active,
-      triggerMode: row.trigger_mode as TriggerMode,
+      triggerMode: (row.trigger_mode || 'manual') as 'manual',
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };

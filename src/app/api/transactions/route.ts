@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
+
 /**
  * GET /api/transactions
  * List all payment transactions for the current tenant with related data
@@ -17,6 +19,15 @@ export async function GET(request: NextRequest) {
         const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
         if (!tenantId) {
             return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+        }
+
+        // Check subscription access
+        const tier = normalizeTier(user.app_metadata.subscription_tier)
+        if (!isModuleAccessible(tier, 'transactions')) {
+            return NextResponse.json({ 
+                error: 'Upgrade required to access transactions',
+                required_tier: 'pro'
+            }, { status: 403 })
         }
 
         // Fetch transactions with related invoice, customer, vehicle, jobcard data

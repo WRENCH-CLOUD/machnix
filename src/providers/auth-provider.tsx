@@ -3,12 +3,14 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, setTenantContext, clearTenantContext, getSafeSession } from "@/lib/supabase/client";
+import { type SubscriptionTier, normalizeTier } from "@/config/plan-features";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   tenantId: string | null;
   userRole: string | null;
+  subscriptionTier: SubscriptionTier;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -18,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function extractClaims(session: Session | null) {
   if (!session?.user) {
-    return { role: null, tenantId: null };
+    return { role: null, tenantId: null, subscriptionTier: 'basic' as SubscriptionTier };
   }
 
   const appMeta = session.user.app_metadata;
@@ -27,6 +29,7 @@ function extractClaims(session: Session | null) {
   return {
     role: appMeta?.role ?? userMeta?.role ?? null,
     tenantId: appMeta?.tenant_id ?? userMeta?.tenant_id ?? null,
+    subscriptionTier: normalizeTier(appMeta?.subscription_tier ?? userMeta?.subscription_tier),
   };
 }
 
@@ -35,15 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('basic');
   const [loading, setLoading] = useState(true);
 
   const applySession = useCallback((session: Session | null) => {
     setSession(session);
     setUser(session?.user ?? null);
 
-    const { role, tenantId } = extractClaims(session);
+    const { role, tenantId, subscriptionTier } = extractClaims(session);
     setUserRole(role);
     setTenantId(tenantId);
+    setSubscriptionTier(subscriptionTier);
 
     if (session && tenantId) {
       setTenantContext(tenantId);
@@ -67,11 +72,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (clientSession) {
           if (mounted) applySession(clientSession);
 
-          // 2. Always check /api/auth/me for impersonation override
+          // 2. Always check /api/auth/me for impersonation override and subscription tier
           // This is important for platform admins who may be impersonating a tenant
           const res = await fetch("/api/auth/me");
           if (res.ok && mounted) {
             const { user: serverUser } = await res.json();
+            // Always sync subscription tier from server
+            if (serverUser?.subscriptionTier) {
+              setSubscriptionTier(normalizeTier(serverUser.subscriptionTier));
+            }
             if (serverUser?.isImpersonating && serverUser.tenantId) {
               setTenantId(serverUser.tenantId);
               setTenantContext(serverUser.tenantId);
@@ -93,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(serverUser as any);
             setTenantId(serverUser.tenantId);
             setUserRole(serverUser.role);
+            setSubscriptionTier(normalizeTier(serverUser.subscriptionTier));
             if (serverUser.tenantId) setTenantContext(serverUser.tenantId);
           }
         }
@@ -175,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         tenantId,
         userRole,
+        subscriptionTier,
         loading,
         signIn,
         signOut,

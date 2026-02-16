@@ -158,9 +158,9 @@ export function TenantsView({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={subscriptionColors[tenant.subscription || "pro"]}>
-                        {(tenant.subscription || "pro").charAt(0).toUpperCase() +
-                          (tenant.subscription || "pro").slice(1)}
+                      <Badge className={subscriptionColors[tenant.subscription || "basic"] || subscriptionColors.basic}>
+                        {(tenant.subscription === 'basic' || !tenant.subscription) ? 'Basic' :
+                          tenant.subscription.charAt(0).toUpperCase() + tenant.subscription.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell>

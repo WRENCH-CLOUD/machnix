@@ -26,6 +26,7 @@ export async function POST(req: Request) {
   }
 
   const meta = data.session.user.app_metadata;
+  const userMeta = data.session.user.user_metadata;
 
   // Return only user info; tokens stay server-side in HttpOnly cookies.
   // Client will reload page to pick up the session.
@@ -33,8 +34,9 @@ export async function POST(req: Request) {
     user: {
       id: data.session.user.id,
       email: data.session.user.email,
-      role: meta?.role ?? null,
-      tenantId: meta?.tenant_id ?? null,
+      role: meta?.role ?? userMeta?.role ?? null,
+      tenantId: meta?.tenant_id ?? userMeta?.tenant_id ?? null,
+      subscriptionTier: meta?.subscription_tier ?? userMeta?.subscription_tier ?? null,
     },
   });
 }

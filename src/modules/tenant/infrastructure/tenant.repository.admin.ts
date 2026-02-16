@@ -5,6 +5,7 @@ import { TenantRepository } from './tenant.repository'
 
 import { TenantSettings } from '../domain/tenant-settings.entity'
 import { GupshupSettings } from '../domain/gupshup-settings.entity'
+import { normalizeTier } from '@/config/plan-features'
 
 export class AdminSupabaseTenantRepository implements TenantRepository {
   constructor(private readonly supabase: SupabaseClient) { }
@@ -46,7 +47,9 @@ export class AdminSupabaseTenantRepository implements TenantRepository {
       name: row.name,
       slug: row.slug || '',
       status: row.status,
-      subscription: row.subscription,
+      subscription: normalizeTier(row.subscription),
+      subscriptionStatus: row.subscription_status || 'trial',
+      usageCounters: row.usage_counters || { job_count: 0, staff_count: 0, whatsapp_count: 0 },
       isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
     }

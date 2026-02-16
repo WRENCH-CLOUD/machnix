@@ -23,6 +23,7 @@ export default function AdminLayoutWrapper({
 
   // --- UI STATE HELPERS ---
   const getActiveView = () => {
+    if (pathname.includes("/analytics")) return "analytics";
     if (pathname.includes("/tenants")) return "tenants";
     if (pathname.includes("/leads")) return "leads";
     if (pathname.includes("/mechanics")) return "mechanics";
@@ -33,6 +34,7 @@ export default function AdminLayoutWrapper({
   const viewTitles: Record<string, string> = {
     overview: "Overview",
     tenants: "Tenants",
+    analytics: "Revenue & Usage Analytics",
     leads: "Leads",
     mechanics: "Mechanics",
     settings: "Settings",
@@ -46,6 +48,7 @@ export default function AdminLayoutWrapper({
         const routes: Record<string, string> = {
           overview: "/admin",
           tenants: "/tenants",
+          analytics: "/admin/analytics",
           leads: "/admin/leads",
           mechanics: "/mechanics",
           settings: "/settings",
