@@ -27,7 +27,6 @@ export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trial'
  * 
  * @example
  * normalizeTier(undefined)  // => 'basic'
- * normalizeTier('basic')  // => 'basic'  (DB enum value)
  * normalizeTier('basic')    // => 'basic'
  * normalizeTier('pro')      // => 'pro'
  * normalizeTier('garbage')  // => 'basic'
@@ -71,7 +70,7 @@ export const ALL_MODULES = [
   'all-jobs',
   'customers',
   'vehicles',
-  'team',           // Mechanic Management
+  'mechanics',           // Mechanic Management
   'transactions',   // Payment history
   'reports',        // Analytics & Reports
   'settings',       // Always accessible
@@ -104,7 +103,7 @@ export const TIER_MODULES: Record<SubscriptionTier, readonly ModuleId[]> = {
     'all-jobs',
     'customers',
     'vehicles',
-    'team',
+    'mechanics',
     'transactions',
     'reports',
     'inventory',
@@ -116,7 +115,7 @@ export const TIER_MODULES: Record<SubscriptionTier, readonly ModuleId[]> = {
     'all-jobs',
     'customers',
     'vehicles',
-    'team',
+    'mechanics',
     'transactions',
     'reports',
     'inventory',
@@ -130,12 +129,10 @@ export const TIER_MODULES: Record<SubscriptionTier, readonly ModuleId[]> = {
  * Used by middleware and page-level guards.
  */
 export const ROUTE_MODULE_MAP: Record<string, ModuleId> = {
-  '/mechanics': 'team',
-  '/team': 'team',
+  '/mechanics': 'mechanics',
   '/transactions': 'transactions',
   '/reports': 'reports',
   '/inventory': 'inventory',
-  // These are always accessible (basic tier)
   '/dashboard': 'dashboard',
   '/jobs-board': 'jobs-board',
   '/all-jobs': 'all-jobs',
@@ -149,9 +146,10 @@ export const ROUTE_MODULE_MAP: Record<string, ModuleId> = {
 // ============================================================================
 
 export interface PlanLimits {
-  jobsPerMonth: number     // -1 = unlimited
-  staffCount: number       // -1 = unlimited
-  whatsappMessages: number // -1 = unlimited, 0 = not available
+  jobsPerMonth: number    
+  staffCount: number      
+  whatsappMessages: number
+  inventory: number       
 }
 
 export const TIER_LIMITS: Record<SubscriptionTier, PlanLimits> = {
@@ -159,16 +157,19 @@ export const TIER_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     jobsPerMonth: 50,
     staffCount: 2,
     whatsappMessages: 0,
+    inventory: 0,
   },
   pro: {
-    jobsPerMonth: 500,
+    jobsPerMonth: 200,
     staffCount: 10,
-    whatsappMessages: -1,
+    whatsappMessages: 100,
+    inventory: 200,
   },
   enterprise: {
     jobsPerMonth: -1, // Unlimited (pay-as-you-go)
     staffCount: -1,
     whatsappMessages: -1,
+    inventory: -1,
   },
 }
 

@@ -441,9 +441,9 @@ export default function AdminAnalyticsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Revenue & Usage Analytics</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Revenue Analytics</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
                         Platform-wide metrics across all tenants
                     </p>
@@ -455,7 +455,7 @@ export default function AdminAnalyticsPage() {
                     <RefreshCcw className="w-4 h-4" />
                     Refresh
                 </button>
-            </div>
+            </div> */}
 
             {/* ============================================= */}
             {/* A. CORE METRICS (The Money View)              */}
@@ -498,7 +498,7 @@ export default function AdminAnalyticsPage() {
             {/* ============================================= */}
             {/* B. TENANT BENCHMARKS                          */}
             {/* ============================================= */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <MetricCard
                     label="Total Jobs Processed"
                     value={formatNumber(tenant_benchmarks.total_jobs_processed)}
@@ -523,7 +523,7 @@ export default function AdminAnalyticsPage() {
                     )}
                     icon={Activity}
                 />
-            </div>
+            </div> */}
 
             {/* ============================================= */}
             {/* C. TENANT USAGE LEADERBOARD                   */}

@@ -34,7 +34,7 @@ export default function AdminLayoutWrapper({
   const viewTitles: Record<string, string> = {
     overview: "Overview",
     tenants: "Tenants",
-    analytics: "Revenue & Usage Analytics",
+    analytics: "Revenue",
     leads: "Leads",
     mechanics: "Mechanics",
     settings: "Settings",
