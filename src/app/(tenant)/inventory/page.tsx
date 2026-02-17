@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, History, ArrowRightLeft } from "lucide-react";
+import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, History, ArrowRightLeft, Package, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,16 +20,49 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 import { ItemFormModal } from "@/components/inventory/ItemFormModal";
 import { StockAdjustmentModal } from "@/components/inventory/StockAdjustmentModal";
 import { TransactionHistory } from "@/components/inventory/TransactionHistory";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
+interface AllocationWithRelations {
+  id: string;
+  itemId: string;
+  itemName: string;
+  jobcardId: string;
+  jobNumber: string;
+  quantityReserved: number;
+  quantityConsumed: number;
+  status: 'reserved' | 'consumed' | 'released';
+  reservedAt: string;
+  consumedAt?: string;
+  releasedAt?: string;
+}
+
+interface TransactionWithItem {
+  id: string;
+  itemId: string;
+  itemName?: string;
+  transactionType: string;
+  quantity: number;
+  referenceType?: string;
+  referenceId?: string;
+  createdAt: string;
+}
+
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // New state for allocations and transactions
+  const [reservedAllocations, setReservedAllocations] = useState<AllocationWithRelations[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<TransactionWithItem[]>([]);
+  const [allocationsLoading, setAllocationsLoading] = useState(true);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -52,8 +85,40 @@ export default function InventoryPage() {
     }
   };
 
+  const fetchAllocations = async () => {
+    setAllocationsLoading(true);
+    try {
+      const res = await fetch("/api/inventory/allocations?with_relations=true&status=reserved&limit=20");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setReservedAllocations(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch allocations", error);
+    } finally {
+      setAllocationsLoading(false);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    setTransactionsLoading(true);
+    try {
+      const res = await fetch("/api/inventory/transactions?limit=20");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRecentTransactions(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch transactions", error);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchAllocations();
+    fetchTransactions();
   }, []);
 
   const handleCreate = async (data: any) => {
@@ -105,11 +170,46 @@ export default function InventoryPage() {
     });
     if (res.ok) {
       fetchItems();
+      fetchTransactions(); // Refresh transactions after adjustment
       setAdjustingItem(null);
     } else {
          const error = await res.json();
          alert(error.error || "Failed to adjust stock");
     }
+  };
+
+  const refreshAll = () => {
+    fetchItems();
+    fetchAllocations();
+    fetchTransactions();
+  };
+
+  const getTransactionBadgeVariant = (type: string) => {
+    switch (type) {
+      case 'purchase':
+      case 'adjustment_in':
+      case 'return':
+        return 'default';
+      case 'sale':
+      case 'usage':
+      case 'adjustment_out':
+        return 'destructive';
+      case 'reserve':
+        return 'secondary';
+      case 'unreserve':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const filteredItems = items.filter(
@@ -154,7 +254,9 @@ export default function InventoryPage() {
             <TableRow>
               <TableHead>Item</TableHead>
               <TableHead>Stock Keeping Unit</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
+              <TableHead className="text-right">On Hand</TableHead>
+              <TableHead className="text-right">Reserved</TableHead>
+              <TableHead className="text-right">Available</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -163,18 +265,20 @@ export default function InventoryPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24">
+                <TableCell colSpan={8} className="text-center h-24">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                   No items found.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredItems.map((item) => (
+              filteredItems.map((item) => {
+                const available = item.stockOnHand - (item.stockReserved || 0);
+                return (
                 <TableRow key={item.id}>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.stockKeepingUnit || "-"}</TableCell>
@@ -193,6 +297,18 @@ export default function InventoryPage() {
                         {item.stockOnHand}
                       </span>
                     </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {(item.stockReserved || 0) > 0 ? (
+                      <span className="text-orange-600 font-medium">{item.stockReserved}</span>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className={available <= 0 ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                      {available}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     {new Intl.NumberFormat("en-IN", {
@@ -235,10 +351,140 @@ export default function InventoryPage() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
+              )})
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Reserved Stock and Recent Transactions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Reserved Stock Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Reserved Stock
+                </CardTitle>
+                <CardDescription>Parts currently reserved for jobs</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={fetchAllocations}>
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Job</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead>Reserved</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allocationsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-20">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : reservedAllocations.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-20 text-muted-foreground">
+                        No reserved stock
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    reservedAllocations.map((allocation) => (
+                      <TableRow key={allocation.id}>
+                        <TableCell className="font-medium">{allocation.itemName}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{allocation.jobNumber}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-orange-600">
+                          {allocation.quantityReserved}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(allocation.reservedAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Transactions Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Latest inventory operations</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={fetchTransactions}>
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactionsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-20">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : recentTransactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-20 text-muted-foreground">
+                        No recent activity
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    recentTransactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="font-medium">{tx.itemName || 'Unknown'}</TableCell>
+                        <TableCell>
+                          <Badge variant={getTransactionBadgeVariant(tx.transactionType)}>
+                            {tx.transactionType.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {['purchase', 'adjustment_in', 'return', 'unreserve'].includes(tx.transactionType) ? '+' : '-'}
+                          {tx.quantity}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(tx.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <ItemFormModal

@@ -108,6 +108,35 @@ export class InventoryAllocationService {
   }
 
   /**
+   * Consume ALL reserved allocations for a job card
+   * Called when job is completed - all quoted parts are assumed used
+   */
+  async consumeAllForJob(jobcardId: string, createdBy?: string): Promise<{ 
+    consumedAllocations: InventoryAllocation[]
+    totalQuantityConsumed: number 
+  }> {
+    const reservedAllocations = await this.allocationRepository.findReservedByJobcard(jobcardId)
+    const consumedAllocations: InventoryAllocation[] = []
+    let totalQuantityConsumed = 0
+
+    for (const allocation of reservedAllocations) {
+      try {
+        const result = await this.consumeStockUseCase.execute({
+          allocationId: allocation.id,
+          createdBy,
+        })
+        consumedAllocations.push(result.allocation)
+        totalQuantityConsumed += result.quantityConsumed
+      } catch (error) {
+        console.error(`[consumeAllForJob] Failed to consume allocation ${allocation.id}:`, error)
+        // Continue with other allocations even if one fails
+      }
+    }
+
+    return { consumedAllocations, totalQuantityConsumed }
+  }
+
+  /**
    * Release all reservations for a job card
    * Called when job is cancelled
    */

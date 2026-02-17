@@ -34,11 +34,25 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
 import { useInventoryItems } from "@/hooks/queries";
-// Using strict types instead of any where possible
-import type { Database } from "@/lib/supabase/types";
 
-type EstimateItem = Database["tenant"]["Tables"]["estimate_items"]["Row"];
-type EstimateWithRelations = any; // Defining loosely to avoid importing full type chain for dumb component, or import if available
+/** Minimal estimate item type - only fields actually used by this component */
+interface EstimateItemMinimal {
+  id: string;
+  custom_name: string | null;
+  custom_part_number?: string | null;
+  qty: number;
+  unit_price: number;
+  labor_cost?: number | null;
+}
+
+type EstimateWithRelations = {
+  id?: string;
+  parts_total?: number;
+  labor_total?: number;
+  subtotal?: number;
+  tax_amount?: number;
+  total_amount?: number;
+} | null;
 
 export interface Part {
   id: string; // Temporary ID for UI list
@@ -51,8 +65,8 @@ export interface Part {
 }
 
 interface JobPartsProps {
-  estimate: EstimateWithRelations | null;
-  estimateItems: EstimateItem[];
+  estimate: EstimateWithRelations;
+  estimateItems: EstimateItemMinimal[];
   jobStatus: JobStatus;
   onAddItem: (part: Part) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
@@ -65,6 +79,10 @@ interface JobPartsProps {
   inventoryItems?: any[];
   loadingInventory?: boolean;
   inventoryError?: any;
+  /** Optional optimized search function from inventory snapshot (uses client-side cache) */
+  searchInventory?: (query: string, limit?: number) => any[];
+  /** Optional refresh function to sync inventory with server */
+  onRefreshInventory?: () => void;
 }
 
 export function JobParts({
@@ -78,6 +96,8 @@ export function JobParts({
   inventoryItems,
   loadingInventory = false,
   inventoryError,
+  searchInventory,
+  onRefreshInventory,
 }: JobPartsProps) {
   // Inventory query moved to parent
 
@@ -180,7 +200,7 @@ export function JobParts({
     removePart(part.id);
   };
 
-  const startEditItem = (item: EstimateItem) => {
+  const startEditItem = (item: EstimateItemMinimal) => {
     setEditingItemId(item.id);
     setEditValues({
       qty: item.qty,
@@ -500,20 +520,24 @@ export function JobParts({
                           <Command shouldFilter={false}>
                             <CommandList>
                               {(() => {
-                                const filteredInventory = inventoryItems?.filter(
-                                  (item) => {
-                                    if (!part.name) return true;
-                                    const search = part.name.toLowerCase();
-                                    return (
-                                      item.name
-                                        .toLowerCase()
-                                        .includes(search) ||
-                                      item.stockKeepingUnit
-                                        ?.toLowerCase()
-                                        .includes(search)
-                                    );
-                                  }
-                                );
+                                // Use optimized search function if available (from inventory snapshot)
+                                // Falls back to client-side filter if not
+                                const filteredInventory = searchInventory 
+                                  ? searchInventory(part.name || "", 50)
+                                  : inventoryItems?.filter(
+                                      (item) => {
+                                        if (!part.name) return true;
+                                        const search = part.name.toLowerCase();
+                                        return (
+                                          item.name
+                                            .toLowerCase()
+                                            .includes(search) ||
+                                          item.stockKeepingUnit
+                                            ?.toLowerCase()
+                                            .includes(search)
+                                        );
+                                      }
+                                    ).slice(0, 50);
 
                                 if (filteredInventory?.length === 0) {
                                   return (
@@ -526,12 +550,10 @@ export function JobParts({
                                 return (
                                   <CommandGroup heading="Inventory">
                                     {filteredInventory
-                                      ?.slice(0, 50)
-                                      .map((item) => (
+                                      ?.map((item) => (
                                         <CommandItem
                                           key={item.id}
-                                          value={`${item.name} ${item.stockKeepingUnit || ""
-                                            }`}
+                                          value={`${item.name} ${item.stockKeepingUnit || ""}`}
                                           onSelect={() => {
                                             updatePartFromInventory(
                                               part.id,

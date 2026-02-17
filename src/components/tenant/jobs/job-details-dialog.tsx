@@ -28,6 +28,43 @@ import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import { type TodoItem, type TodoStatus } from "./job-todos";
+import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+
+// Using compatible types that match what child components expect
+interface EstimatePartial {
+  id?: string;
+  parts_total?: number;
+  labor_total?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  estimate_items?: unknown[];
+}
+
+/** Minimal estimate item - only fields actually used */
+interface EstimateItemPartial {
+  id: string;
+  custom_name: string | null;
+  custom_part_number?: string | null;
+  qty: number;
+  unit_price: number;
+  labor_cost?: number | null;
+}
+
+interface InvoicePartial {
+  id?: string;
+  status?: string;
+  totalAmount?: number;
+  total_amount?: number;
+  is_gst_billed?: boolean;
+  isGstBilled?: boolean;
+  discount_percentage?: number;
+  discountPercentage?: number;
+  tax_amount?: number;
+  paid_amount?: number;
+  parts_total?: number;
+  labor_total?: number;
+  discount_amount?: number;
+}
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -41,15 +78,15 @@ interface JobDetailsDialogProps {
   isRefreshing?: boolean;
 
   // Estimate props
-  estimate: any;
-  estimateItems: any[];
+  estimate: EstimatePartial | null | undefined;
+  estimateItems: EstimateItemPartial[];
   onAddEstimateItem: (part: Part) => Promise<void>;
   onRemoveEstimateItem: (itemId: string) => Promise<void>;
   onUpdateEstimateItem?: (itemId: string, updates: { qty?: number; unitPrice?: number; laborCost?: number }) => Promise<void>;
   onGenerateEstimatePdf: () => void;
 
   // Invoice props
-  invoice: any;
+  invoice: InvoicePartial | null | undefined;
   loadingInvoice: boolean;
   onRetryInvoice: () => void;
   onMarkPaid: () => void;
@@ -62,9 +99,13 @@ interface JobDetailsDialogProps {
   onDiscountChange?: (value: number) => void;
 
   // Inventory props
-  inventoryItems?: any[];
+  inventoryItems?: InventorySnapshotItem[];
   loadingInventory?: boolean;
-  inventoryError?: any;
+  inventoryError?: Error | null;
+  /** Optimized search function from inventory snapshot */
+  searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
+  /** Function to refresh inventory from server */
+  onRefreshInventory?: () => void;
 
   // Payment Modal props
   showPaymentModal: boolean;
@@ -79,13 +120,16 @@ interface JobDetailsDialogProps {
   };
   onGenerateJobPdf?: () => void;
 
-  // Todo props
+  // Todo props (legacy system)
   todos?: TodoItem[];
   onAddTodo?: (text: string) => void;
   onToggleTodo?: (todoId: string) => void;
   onRemoveTodo?: (todoId: string) => void;
   onUpdateTodo?: (todoId: string, text: string) => void;
   onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
+
+  // New task system feature flag
+  useNewTaskSystem?: boolean;
 
   // Notes props
   notes?: string;
@@ -126,6 +170,7 @@ export function JobDetailsDialog({
   onRemoveTodo,
   onUpdateTodo,
   onUpdateTodoStatus,
+  useNewTaskSystem = false,
   notes,
   onUpdateNotes,
   onViewJob,
@@ -137,6 +182,8 @@ export function JobDetailsDialog({
   inventoryItems,
   loadingInventory,
   inventoryError,
+  searchInventory,
+  onRefreshInventory,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -378,12 +425,14 @@ export function JobDetailsDialog({
                   onMechanicChange={onMechanicChange}
                   isEditable={job.status !== "completed" && job.status !== "cancelled"}
                   estimate={estimate}
+                  useNewTaskSystem={useNewTaskSystem}
+                  searchInventory={searchInventory}
                 />
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">
                 <JobParts
-                  estimate={estimate}
+                  estimate={estimate ?? null}
                   estimateItems={estimateItems}
                   jobStatus={currentStatus}
                   onAddItem={onAddEstimateItem}
@@ -393,6 +442,8 @@ export function JobDetailsDialog({
                   inventoryItems={inventoryItems}
                   loadingInventory={loadingInventory}
                   inventoryError={inventoryError}
+                  searchInventory={searchInventory}
+                  onRefreshInventory={onRefreshInventory}
                 />
               </TabsContent>
 

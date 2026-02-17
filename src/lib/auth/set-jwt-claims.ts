@@ -38,6 +38,9 @@ import {
   isTenantRole,
 } from './jwt-claims'
 
+// Re-export for convenience
+export { JWT_ROLES, type JwtRole }
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================

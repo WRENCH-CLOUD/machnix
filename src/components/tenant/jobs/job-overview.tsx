@@ -11,10 +11,25 @@ import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
 import { JobTodos } from "./job-todos";
+import { JobTasks } from "./job-tasks";
 import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
+
+import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
+
+/** Minimal inventory item shape for search function */
+type InventorySearchItem = {
+  id: string;
+  name: string;
+  sellPrice?: number;
+  unitCost?: number;
+  stockOnHand?: number;
+  stockReserved?: number;
+  stockAvailable?: number;
+  stockKeepingUnit?: string;
+};
 
 interface JobOverviewProps {
   job: UIJob;
@@ -36,7 +51,11 @@ interface JobOverviewProps {
     labor_total?: number;
     tax_amount?: number;
     total_amount?: number;
-  };
+  } | null;
+  // Feature flag for new task system (default: false for backwards compat)
+  useNewTaskSystem?: boolean;
+  // For new task system: inventory search function (accepts both full items and snapshot items)
+  searchInventory?: (query: string, limit?: number) => InventorySearchItem[];
 }
 
 export function JobOverview({
@@ -53,6 +72,8 @@ export function JobOverview({
   isEditable = true,
   onMechanicChange,
   estimate,
+  useNewTaskSystem = false,
+  searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
@@ -235,18 +256,27 @@ export function JobOverview({
           </CardContent>
         </Card>
 
-        {/* Task List - Primary */}
-        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
-          <JobTodos
-            todos={todos}
-            onAddTodo={onAddTodo}
-            onToggleTodo={onToggleTodo}
-            onRemoveTodo={onRemoveTodo}
-            onUpdateTodo={onUpdateTodo}
-            onUpdateTodoStatus={onUpdateTodoStatus}
+        {/* Task List - New Task System or Legacy Todos */}
+        {useNewTaskSystem ? (
+          <JobTasks
+            jobId={job.id}
             disabled={!isEditable}
+            searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
             className="md:col-span-2"
           />
+        ) : (
+          onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
+            <JobTodos
+              todos={todos}
+              onAddTodo={onAddTodo}
+              onToggleTodo={onToggleTodo}
+              onRemoveTodo={onRemoveTodo}
+              onUpdateTodo={onUpdateTodo}
+              onUpdateTodoStatus={onUpdateTodoStatus}
+              disabled={!isEditable}
+              className="md:col-span-2"
+            />
+          )
         )}
 
         {/* Complaints / Notes */}
@@ -343,7 +373,7 @@ export function JobOverview({
           <CardContent>
             <div className="space-y-4">
               {enrichedJob.activities && enrichedJob.activities.length > 0 ? (
-                enrichedJob.activities.map((activity: any, index: number) => (
+                enrichedJob.activities.map((activity: { id: string; description: string; timestamp: string; user: string }, index: number) => (
                   <div key={activity.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="w-2 h-2 rounded-full bg-primary" />

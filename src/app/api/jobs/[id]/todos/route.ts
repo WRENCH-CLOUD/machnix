@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-
-interface TodoItem {
-  id: string
-  text: string
-  completed: boolean
-  status: "changed" | "repaired" | "no_change" | null
-  createdAt: string
-  completedAt?: string
-}
+import { createInventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
+import { TodoItem } from '@/modules/job/domain/todo.types'
 
 export async function PATCH(
   request: NextRequest,
@@ -112,14 +105,49 @@ export async function PATCH(
       )
     }
 
-    // Merge todos into existing details JSONB
+    // Handle inventory consumption for todos that change to "changed" status
     const currentDetails = existingJob.details || {}
+    const oldTodos: TodoItem[] = currentDetails.todos || []
+    const oldTodoMap = new Map(oldTodos.map(t => [t.id, t]))
+    const consumptionResults: { todoId: string; success: boolean; error?: string }[] = []
+
+    // Find todos that have changed to "changed" status and have a partId
+    for (const newTodo of todos as TodoItem[]) {
+      const oldTodo = oldTodoMap.get(newTodo.id)
+      
+      // Check if this todo:
+      // 1. Has a partId (linked to inventory)
+      // 2. Status changed to "changed" (wasn't "changed" before)
+      if (
+        newTodo.partId &&
+        newTodo.status === 'changed' &&
+        (!oldTodo || oldTodo.status !== 'changed')
+      ) {
+        try {
+          const allocationService = createInventoryAllocationService(supabase, tenantId)
+          // Use consumeForTodo which looks up allocation by partId + jobcardId
+          await allocationService.consumeForTodo(
+            id, // jobcardId
+            newTodo.partId,
+            newTodo.quantityRequired,
+            user.id
+          )
+          consumptionResults.push({ todoId: newTodo.id, success: true })
+          console.log(`[todos/PATCH] Consumed stock for todo ${newTodo.id}, partId ${newTodo.partId}`)
+        } catch (consumeError: any) {
+          console.error(`[todos/PATCH] Failed to consume stock for todo ${newTodo.id}:`, consumeError)
+          consumptionResults.push({ todoId: newTodo.id, success: false, error: consumeError.message })
+          // Don't fail the whole request - log the error and continue
+        }
+      }
+    }
+
+    // Merge todos into existing details JSONB
     const updatedDetails = {
       ...currentDetails,
       todos,
     }
 
-    
     // Update the job with new details
     const { data, error } = await supabase
       .schema('tenant')
@@ -150,6 +178,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       todos: data.details?.todos || [],
+      inventoryConsumptions: consumptionResults.length > 0 ? consumptionResults : undefined,
     })
   } catch (error) {
     console.error('Error in PATCH /api/jobs/[id]/todos:', error)

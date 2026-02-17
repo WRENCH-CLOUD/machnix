@@ -11,6 +11,9 @@ export interface InventoryRepository {
 
   // Stock Operations
   adjustStock(itemId: string, quantity: number, type: 'in' | 'out'): Promise<void>
+  reserveStock(itemId: string, quantity: number): Promise<void>
+  unreserveStock(itemId: string, quantity: number): Promise<void>
+  consumeReservedStock(itemId: string, quantity: number): Promise<void>
 
   // Transactions
   findTransactionsByItem(itemId: string): Promise<InventoryTransaction[]>

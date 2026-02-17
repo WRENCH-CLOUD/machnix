@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
+import { createInventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 export async function POST(
   request: NextRequest,
@@ -68,12 +69,15 @@ export async function POST(
     const customerRepository = new SupabaseCustomerRepository(supabase, tenantId) // Works because it extends BaseSupabaseRepository which takes context
     const tenantRepository = new SupabaseTenantRepository(supabase) // Doesn't take tenantId context in constructor
 
+    const allocationService = createInventoryAllocationService(supabase, tenantId)
+
     const useCase = new UpdateJobStatusUseCase(
       repository,
       estimateRepository,
       invoiceRepository,
       customerRepository,
-      tenantRepository
+      tenantRepository,
+      allocationService
     )
 
     const cmd: jobStatusCommand = {

@@ -20,8 +20,9 @@ import {
   useVehicleJobHistory,
   useUpdateInvoice,
   transformTenantSettingsForJobDetails,
-  useInventoryItems,
+  StockError,
 } from "@/hooks/queries";
+import { useInventorySnapshot } from "@/hooks/use-inventory-snapshot";
 import { usePrintableFunctions } from "./printable-function";
 import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
 
@@ -37,6 +38,8 @@ interface JobDetailsContainerProps {
     gstin: string;
   };
   onViewJob?: (jobId: string) => void;
+  /** Enable new task system (database-backed tasks with inventory integration) */
+  useNewTaskSystem?: boolean;
 }
 
 export function JobDetailsContainer({
@@ -47,6 +50,7 @@ export function JobDetailsContainer({
   currentUser,
   tenantDetails: tenantDetailsProp,
   onViewJob,
+  useNewTaskSystem = false,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -62,7 +66,14 @@ export function JobDetailsContainer({
   const { data: tenantSettings } = useTenantSettings();
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
-  const { data: inventoryItems, isLoading: loadingInventory, error: inventoryError } = useInventoryItems();
+  // Inventory snapshot with delta sync (efficient caching across session)
+  const { 
+    items: inventoryItems, 
+    isLoading: loadingInventory, 
+    error: inventoryError,
+    searchItems,
+    refresh: refreshInventory,
+  } = useInventorySnapshot();
 
   const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(//FIXME: used to get estimate items, but should refactor to have a separate query for estimate items to avoid refetching entire estimate when items change
     job.id,
@@ -188,9 +199,17 @@ export function JobDetailsContainer({
         },
       });
       toast.success("Item added to estimate");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding item:", error);
-      toast.error("Failed to add item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} units available. Cannot add ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to add item");
+      }
     }
   };
 
@@ -211,9 +230,17 @@ export function JobDetailsContainer({
     try {
       await updateItemMutation.mutateAsync({ itemId, updates });
       toast.success("Item updated");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating item:", error);
-      toast.error("Failed to update item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} additional units available. Cannot increase to ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to update item");
+      }
     }
   };
 
@@ -498,13 +525,15 @@ export function JobDetailsContainer({
       onPaymentComplete={handlePaymentComplete}
       onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
-      // Todo props
+      // Todo props (legacy system)
       todos={localTodos}
       onAddTodo={handleAddTodo}
       onToggleTodo={handleToggleTodo}
       onRemoveTodo={handleRemoveTodo}
       onUpdateTodo={handleUpdateTodo}
       onUpdateTodoStatus={handleUpdateTodoStatus}
+      // New task system
+      useNewTaskSystem={useNewTaskSystem}
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}
@@ -513,10 +542,12 @@ export function JobDetailsContainer({
       onGstToggle={handleGstToggle}
       discountPercentage={discountPercentage}
       onDiscountChange={handleDiscountChange}
-      // Inventory props
+      // Inventory props (using delta-sync snapshot for efficient caching)
       inventoryItems={inventoryItems}
       loadingInventory={loadingInventory}
       inventoryError={inventoryError}
+      searchInventory={searchItems}
+      onRefreshInventory={refreshInventory}
     />
   );
 }

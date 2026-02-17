@@ -12,6 +12,11 @@ export interface TodoItem {
     status: TodoStatus;
     createdAt: string;
     completedAt?: string;
+    // Inventory allocation fields
+    partId?: string;              // Link to inventory item
+    estimateItemId?: string;      // Link to estimate item
+    quantityRequired?: number;    // How many parts needed
+    allocationId?: string;        // Link to allocation record
 }
 
 /**

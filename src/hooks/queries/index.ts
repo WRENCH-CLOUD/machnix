@@ -328,6 +328,27 @@ export function useInvoiceByJob(jobId: string | undefined) {
 // Estimate Item Mutations
 // ============================================
 
+export interface InsufficientStockErrorData {
+  code: 'INSUFFICIENT_STOCK';
+  requested: number;
+  available: number;
+  message: string;
+}
+
+export class StockError extends Error {
+  code: string;
+  requested: number;
+  available: number;
+
+  constructor(data: InsufficientStockErrorData) {
+    super(data.message);
+    this.name = 'StockError';
+    this.code = data.code;
+    this.requested = data.requested;
+    this.available = data.available;
+  }
+}
+
 export function useAddEstimateItem(jobId: string) {
   const queryClient = useQueryClient();
 
@@ -355,7 +376,18 @@ export function useAddEstimateItem(jobId: string) {
         labor_cost: item.laborCost,
       });
 
-      if (!res.ok) throw new Error("Failed to add item");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to add item' }));
+        if (errorData.code === 'INSUFFICIENT_STOCK') {
+          throw new StockError({
+            code: errorData.code,
+            requested: errorData.requested,
+            available: errorData.available,
+            message: errorData.error,
+          });
+        }
+        throw new Error(errorData.error || 'Failed to add item');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -392,10 +424,21 @@ export function useUpdateEstimateItem(jobId: string) {
     }) => {
       const res = await api.patch(`/api/estimates/items/${itemId}`, {
         qty: updates.qty,
-        unitPrice: updates.unitPrice,
-        laborCost: updates.laborCost,
+        unit_price: updates.unitPrice,
+        labor_cost: updates.laborCost,
       });
-      if (!res.ok) throw new Error("Failed to update item");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to update item' }));
+        if (errorData.code === 'INSUFFICIENT_STOCK') {
+          throw new StockError({
+            code: errorData.code,
+            requested: errorData.requested,
+            available: errorData.available,
+            message: errorData.error,
+          });
+        }
+        throw new Error(errorData.error || 'Failed to update item');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -643,6 +686,17 @@ export function useTransactions() {
 // Inventory Query
 // ============================================
 
+/**
+ * @deprecated Use `useInventorySnapshot` from '@/hooks/use-inventory-snapshot' instead.
+ * 
+ * The new hook provides:
+ * - Delta sync (only fetches changes, not full list)
+ * - O(1) item lookups by ID
+ * - Client-side search
+ * - Session-long caching
+ * 
+ * This legacy hook fetches all items on every mount and is less efficient.
+ */
 export function useInventoryItems() {
   return useQuery({
     queryKey: queryKeys.inventory.list(),
@@ -651,5 +705,8 @@ export function useInventoryItems() {
       if (!res.ok) throw new Error("Failed to fetch inventory items");
       return res.json() as Promise<InventoryItem[]>;
     },
+    // Increase stale time to reduce refetches while migrating
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+

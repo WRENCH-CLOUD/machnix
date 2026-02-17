@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     const itemId = searchParams.get('itemId')
     const referenceType = searchParams.get('referenceType')
     const referenceId = searchParams.get('referenceId')
+    const limit = searchParams.get('limit')
 
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -48,7 +49,10 @@ export async function GET(request: Request) {
         return NextResponse.json(transactions)
     }
 
-    return NextResponse.json([])
+    // Return recent transactions with item names
+    const recentLimit = limit ? parseInt(limit, 10) : 20
+    const transactions = await repository.findRecentTransactions(recentLimit)
+    return NextResponse.json(transactions)
 
   } catch (error: any) {
     console.error('Error fetching transactions:', error)
@@ -87,7 +91,6 @@ export async function POST(request: Request) {
         unitCost: result.data.unitCost,
         referenceType: result.data.referenceType as ReferenceType | undefined,
         referenceId: result.data.referenceId,
-        notes: result.data.notes,
         createdBy: user.id
     }
 

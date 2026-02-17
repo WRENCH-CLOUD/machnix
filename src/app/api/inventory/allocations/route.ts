@@ -12,6 +12,7 @@ function isValidAllocationStatus(status: string): status is AllocationStatus {
 /**
  * GET /api/inventory/allocations
  * List allocations, optionally filtered by jobcard_id or item_id
+ * Use ?with_relations=true to include item and job names
  */
 export async function GET(request: Request) {
   try {
@@ -31,9 +32,19 @@ export async function GET(request: Request) {
     const jobcardId = searchParams.get('jobcard_id')
     const itemId = searchParams.get('item_id')
     const status = searchParams.get('status')
+    const withRelations = searchParams.get('with_relations') === 'true'
+    const limit = searchParams.get('limit')
 
     const repository = new SupabaseAllocationRepository(supabase, tenantId)
     
+    // If with_relations is true, use the new method
+    if (withRelations) {
+      const statusFilter = status && isValidAllocationStatus(status) ? status : undefined
+      const limitNum = limit ? parseInt(limit, 10) : 50
+      const allocations = await repository.findWithRelations(statusFilter, limitNum)
+      return NextResponse.json(allocations)
+    }
+
     let allocations
     if (jobcardId) {
       allocations = await repository.findByJobcardId(jobcardId)
