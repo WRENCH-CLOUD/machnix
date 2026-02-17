@@ -6,6 +6,7 @@ export interface AllocationRepository {
   findByJobcardId(jobcardId: string): Promise<InventoryAllocation[]>
   findByItemId(itemId: string): Promise<InventoryAllocation[]>
   findByEstimateItemId(estimateItemId: string): Promise<InventoryAllocation | null>
+  findByTaskId(taskId: string): Promise<InventoryAllocation | null>
   findByStatus(status: AllocationStatus): Promise<InventoryAllocation[]>
   
   // Query methods

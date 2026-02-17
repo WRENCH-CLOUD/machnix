@@ -8,6 +8,7 @@ import {
 export interface ReleaseStockInput {
   allocationId?: string
   estimateItemId?: string
+  taskId?: string  // Release reservation for a task
   jobcardId?: string  // Release all reservations for a job
   createdBy?: string
 }
@@ -33,7 +34,7 @@ export class ReleaseStockUseCase {
   ) {}
 
   async execute(input: ReleaseStockInput): Promise<ReleaseStockResult> {
-    const { allocationId, estimateItemId, jobcardId, createdBy } = input
+    const { allocationId, estimateItemId, taskId, jobcardId, createdBy } = input
 
     const releasedAllocations: InventoryAllocation[] = []
     let totalQuantityReleased = 0
@@ -57,6 +58,17 @@ export class ReleaseStockUseCase {
         }
       }
     }
+    // Release by task ID
+    else if (taskId) {
+      const allocation = await this.allocationRepository.findByTaskId(taskId)
+      if (allocation && allocation.status === 'reserved') {
+        const result = await this.releaseAllocation(allocation.id, createdBy)
+        if (result) {
+          releasedAllocations.push(result)
+          totalQuantityReleased += result.quantityReserved
+        }
+      }
+    }
     // Release all for job
     else if (jobcardId) {
       const allocations = await this.allocationRepository.findReservedByJobcard(jobcardId)
@@ -70,7 +82,7 @@ export class ReleaseStockUseCase {
       }
     }
     else {
-      throw new Error('Must provide allocationId, estimateItemId, or jobcardId')
+      throw new Error('Must provide allocationId, estimateItemId, taskId, or jobcardId')
     }
 
     return {

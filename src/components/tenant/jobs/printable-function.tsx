@@ -1,5 +1,13 @@
 import { UIJob } from "@/modules/job/application/job-transforms-service";
 
+// Task type for printing - simplified from JobCardTask
+interface PrintableTask {
+  id: string;
+  taskName: string;
+  actionType: 'NO_CHANGE' | 'REPAIRED' | 'REPLACED';
+  taskStatus: string;
+}
+
 interface UsePrintableFunctionsProps {
   job: UIJob;
   estimateItems: any[];
@@ -7,7 +15,7 @@ interface UsePrintableFunctionsProps {
   tenantDetails: any;
   estimate: any;
   notes: string;
-  todos?: Array<{ id: string; text: string; completed: boolean; status?: string | null }>;
+  tasks?: PrintableTask[];
   serviceHistory?: {
     totalJobs: number;
     recentJob: {
@@ -50,7 +58,7 @@ export const usePrintableFunctions = ({
   tenantDetails,
   estimate,
   notes,
-  todos = [],
+  tasks = [],
   serviceHistory,
   isGstBilled,
   discountPercentage,
@@ -550,34 +558,35 @@ export const usePrintableFunctions = ({
             <tbody>
               ${(() => {
         const rows: string[] = [];
-        const totalRows = Math.max(9, Math.ceil(todos.length / 2));
+        const totalRows = Math.max(9, Math.ceil(tasks.length / 2));
         for (let i = 0; i < totalRows; i++) {
           const leftIdx = i;
           const rightIdx = i + totalRows;
-          const leftTodo = todos[leftIdx];
-          const rightTodo = todos[rightIdx];
+          const leftTask = tasks[leftIdx];
+          const rightTask = tasks[rightIdx];
 
-          const leftChanged = leftTodo?.status === 'changed';
-          const leftRepaired = leftTodo?.status === 'repaired';
-          const leftNoChange = leftTodo?.status === 'no_change';
-          const leftCompleted = leftTodo?.completed === true;
+          // Map task action types to display: REPLACED -> C (Changed), REPAIRED -> R, NO_CHANGE -> N
+          const leftChanged = leftTask?.actionType === 'REPLACED';
+          const leftRepaired = leftTask?.actionType === 'REPAIRED';
+          const leftNoChange = leftTask?.actionType === 'NO_CHANGE';
+          const leftCompleted = leftTask?.taskStatus === 'COMPLETED';
 
-          const rightChanged = rightTodo?.status === 'changed';
-          const rightRepaired = rightTodo?.status === 'repaired';
-          const rightNoChange = rightTodo?.status === 'no_change';
-          const rightCompleted = rightTodo?.completed === true;
+          const rightChanged = rightTask?.actionType === 'REPLACED';
+          const rightRepaired = rightTask?.actionType === 'REPAIRED';
+          const rightNoChange = rightTask?.actionType === 'NO_CHANGE';
+          const rightCompleted = rightTask?.taskStatus === 'COMPLETED';
 
           const leftStyle = leftCompleted ? 'text-decoration: line-through; color: #888;' : '';
           const rightStyle = rightCompleted ? 'text-decoration: line-through; color: #888;' : '';
 
           rows.push('<tr>' +
-            '<td class="task-cell" style="' + leftStyle + '">' + (leftTodo ? escapeHtml(leftTodo.text) : '') + '</td>' +
+            '<td class="task-cell" style="' + leftStyle + '">' + (leftTask ? escapeHtml(leftTask.taskName) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
             '<span class="status-option"><span class="checkbox ' + (leftChanged ? 'checked' : '') + '">' + (leftChanged ? '✓' : '') + '</span>C</span>' +
             '<span class="status-option"><span class="checkbox ' + (leftRepaired ? 'checked' : '') + '">' + (leftRepaired ? '✓' : '') + '</span>R</span>' +
             '<span class="status-option"><span class="checkbox ' + (leftNoChange ? 'checked' : '') + '">' + (leftNoChange ? '✓' : '') + '</span>N</span>' +
             '</div></td>' +
-            '<td class="task-cell" style="' + rightStyle + '">' + (rightTodo ? escapeHtml(rightTodo.text) : '') + '</td>' +
+            '<td class="task-cell" style="' + rightStyle + '">' + (rightTask ? escapeHtml(rightTask.taskName) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
             '<span class="status-option"><span class="checkbox ' + (rightChanged ? 'checked' : '') + '">' + (rightChanged ? '✓' : '') + '</span>C</span>' +
             '<span class="status-option"><span class="checkbox ' + (rightRepaired ? 'checked' : '') + '">' + (rightRepaired ? '✓' : '') + '</span>R</span>' +
@@ -586,6 +595,7 @@ export const usePrintableFunctions = ({
             '</tr>');
         }
         return rows.join('');
+      })()}
       })()}
             </tbody>
           </table>

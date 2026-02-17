@@ -14,6 +14,7 @@ export interface InventoryAllocation {
   itemId: string
   jobcardId: string
   estimateItemId?: string
+  taskId?: string  // Link to job_card_tasks
   quantityReserved: number
   quantityConsumed: number
   status: AllocationStatus
@@ -50,6 +51,7 @@ export interface InventoryAllocationRow {
   item_id: string
   jobcard_id: string
   estimate_item_id: string | null
+  task_id: string | null  // Link to job_card_tasks
   quantity_reserved: number
   quantity_consumed: number | null
   status: AllocationStatus
@@ -66,6 +68,7 @@ export interface AllocationDbInsert {
   item_id: string
   jobcard_id: string
   estimate_item_id?: string
+  task_id?: string  // Link to job_card_tasks
   quantity_reserved: number
   quantity_consumed: number
   status: AllocationStatus
@@ -87,6 +90,7 @@ export interface CreateAllocationInput {
   itemId: string
   jobcardId: string
   estimateItemId?: string
+  taskId?: string  // Link to job_card_tasks
   quantityReserved: number
   createdBy?: string
 }

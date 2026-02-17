@@ -5,7 +5,6 @@ import { api } from "@/lib/supabase/client";
 import type { TenantWithStats } from "@/modules/tenant";
 import type { CustomerOverview } from "@/modules/customer/domain/customer.entity";
 import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity";
-import type { TodoItem } from "@/modules/job/domain/todo.types";
 import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 
 // ============================================
@@ -43,7 +42,6 @@ export const queryKeys = {
     all: ["jobs"] as const,
     list: (tenantId: string) => [...queryKeys.jobs.all, "list", tenantId] as const,
     detail: (jobId: string) => [...queryKeys.jobs.all, "detail", jobId] as const,
-    todos: (jobId: string) => [...queryKeys.jobs.all, "todos", jobId] as const,
   },
   customers: {
     all: ["customers"] as const,
@@ -559,36 +557,6 @@ export function useUpdateJobStatus(jobId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
-    },
-  });
-}
-
-// ============================================
-// Job Todos Mutation
-// ============================================
-
-// Import TodoItem from shared types - re-export for backwards compatibility
-export type { TodoItem } from "@/modules/job/domain/todo.types";
-
-export function useUpdateJobTodos(jobId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (todos: TodoItem[]) => {
-      const res = await api.patch(`/api/jobs/${jobId}/todos`, { todos });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("Todo update failed:", res.status, errorData);
-        const message =
-          (errorData && (errorData.error || errorData.message || errorData.detail)) ||
-          `Failed to update todos (status ${res.status})`;
-        throw new Error(message);
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.todos(jobId) });
     },
   });
 }

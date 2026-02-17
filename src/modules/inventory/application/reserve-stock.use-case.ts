@@ -12,6 +12,7 @@ export interface ReserveStockInput {
   jobcardId: string
   quantity: number
   estimateItemId?: string
+  taskId?: string  // Link to job_card_tasks
   createdBy?: string
 }
 
@@ -36,7 +37,7 @@ export class ReserveStockUseCase {
   ) {}
 
   async execute(input: ReserveStockInput): Promise<ReserveStockResult> {
-    const { itemId, jobcardId, quantity, estimateItemId, createdBy } = input
+    const { itemId, jobcardId, quantity, estimateItemId, taskId, createdBy } = input
 
     // Validation
     if (quantity <= 0) {
@@ -64,12 +65,21 @@ export class ReserveStockUseCase {
       }
     }
 
+    // Check if allocation already exists for this task
+    if (taskId) {
+      const existingAllocation = await this.allocationRepository.findByTaskId(taskId)
+      if (existingAllocation && existingAllocation.status === 'reserved') {
+        throw new Error(`Stock already reserved for task ${taskId}`)
+      }
+    }
+
     // Create allocation record
     const allocationInput: CreateAllocationInput = {
       itemId,
       jobcardId,
       quantityReserved: quantity,
       estimateItemId,
+      taskId,
       createdBy,
     }
     

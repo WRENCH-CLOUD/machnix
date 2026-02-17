@@ -227,6 +227,45 @@ export class InventoryAllocationService {
   async getAllocationByEstimateItem(estimateItemId: string): Promise<InventoryAllocation | null> {
     return this.allocationRepository.findByEstimateItemId(estimateItemId)
   }
+
+  /**
+   * Get allocation by task ID
+   * Tasks are linked to allocations similarly to estimate items
+   */
+  async getAllocationByTask(taskId: string): Promise<InventoryAllocation | null> {
+    return this.allocationRepository.findByTaskId(taskId)
+  }
+
+  /**
+   * Reserve stock for a task
+   * Called when a task with actionType='REPLACED' is approved
+   */
+  async reserveForTask(
+    taskId: string,
+    itemId: string,
+    quantity: number,
+    jobcardId: string,
+    createdBy?: string
+  ): Promise<ReserveStockResult> {
+    return this.reserveStockUseCase.execute({
+      itemId,
+      jobcardId,
+      quantity,
+      taskId,
+      createdBy,
+    })
+  }
+
+  /**
+   * Release reservation for a specific task
+   * Called when a task is cancelled
+   */
+  async releaseForTask(taskId: string, createdBy?: string): Promise<ReleaseStockResult> {
+    return this.releaseStockUseCase.execute({
+      taskId,
+      createdBy,
+    })
+  }
 }
 
 /**

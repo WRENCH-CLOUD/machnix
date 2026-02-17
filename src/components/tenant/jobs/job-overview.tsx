@@ -10,9 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
-import { JobTodos } from "./job-todos";
 import { JobTasks } from "./job-tasks";
-import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
@@ -33,12 +31,6 @@ type InventorySearchItem = {
 
 interface JobOverviewProps {
   job: UIJob;
-  todos?: TodoItem[];
-  onAddTodo?: (text: string) => void;
-  onToggleTodo?: (todoId: string) => void;
-  onRemoveTodo?: (todoId: string) => void;
-  onUpdateTodo?: (todoId: string, text: string) => void;
-  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   notes?: string;
   onUpdateNotes?: (notes: string) => void;
   onViewJob?: (jobId: string) => void;
@@ -52,27 +44,18 @@ interface JobOverviewProps {
     tax_amount?: number;
     total_amount?: number;
   } | null;
-  // Feature flag for new task system (default: false for backwards compat)
-  useNewTaskSystem?: boolean;
-  // For new task system: inventory search function (accepts both full items and snapshot items)
+  // For task system: inventory search function (accepts both full items and snapshot items)
   searchInventory?: (query: string, limit?: number) => InventorySearchItem[];
 }
 
 export function JobOverview({
   job,
-  todos = [],
-  onAddTodo,
-  onToggleTodo,
-  onRemoveTodo,
-  onUpdateTodo,
-  onUpdateTodoStatus,
   notes,
   onUpdateNotes,
   onViewJob,
   isEditable = true,
   onMechanicChange,
   estimate,
-  useNewTaskSystem = false,
   searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
@@ -256,28 +239,13 @@ export function JobOverview({
           </CardContent>
         </Card>
 
-        {/* Task List - New Task System or Legacy Todos */}
-        {useNewTaskSystem ? (
-          <JobTasks
-            jobId={job.id}
-            disabled={!isEditable}
-            searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
-            className="md:col-span-2"
-          />
-        ) : (
-          onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
-            <JobTodos
-              todos={todos}
-              onAddTodo={onAddTodo}
-              onToggleTodo={onToggleTodo}
-              onRemoveTodo={onRemoveTodo}
-              onUpdateTodo={onUpdateTodo}
-              onUpdateTodoStatus={onUpdateTodoStatus}
-              disabled={!isEditable}
-              className="md:col-span-2"
-            />
-          )
-        )}
+        {/* Task List */}
+        <JobTasks
+          jobId={job.id}
+          disabled={!isEditable}
+          searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
+          className="md:col-span-2"
+        />
 
         {/* Complaints / Notes */}
         <Card>

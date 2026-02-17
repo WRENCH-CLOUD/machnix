@@ -140,7 +140,7 @@ export async function PATCH(
           const allocation = await allocationRepository.create({
             itemId: task.inventoryItemId,
             jobcardId: task.jobcardId,
-            estimateItemId: undefined, // Link to task instead
+            taskId: taskId, // Link allocation to task
             quantityReserved: task.qty,
             createdBy: user.id,
           })

@@ -27,7 +27,6 @@ import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
-import { type TodoItem, type TodoStatus } from "./job-todos";
 import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
 
 // Using compatible types that match what child components expect
@@ -120,17 +119,6 @@ interface JobDetailsDialogProps {
   };
   onGenerateJobPdf?: () => void;
 
-  // Todo props (legacy system)
-  todos?: TodoItem[];
-  onAddTodo?: (text: string) => void;
-  onToggleTodo?: (todoId: string) => void;
-  onRemoveTodo?: (todoId: string) => void;
-  onUpdateTodo?: (todoId: string, text: string) => void;
-  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
-
-  // New task system feature flag
-  useNewTaskSystem?: boolean;
-
   // Notes props
   notes?: string;
   onUpdateNotes?: (notes: string) => void;
@@ -164,13 +152,6 @@ export function JobDetailsDialog({
   onPaymentComplete,
   tenantDetails,
   onGenerateJobPdf,
-  todos = [],
-  onAddTodo,
-  onToggleTodo,
-  onRemoveTodo,
-  onUpdateTodo,
-  onUpdateTodoStatus,
-  useNewTaskSystem = false,
   notes,
   onUpdateNotes,
   onViewJob,
@@ -413,19 +394,12 @@ export function JobDetailsDialog({
               <TabsContent value="overview" className="m-0 h-full">
                 <JobOverview
                   job={job}
-                  todos={todos}
-                  onAddTodo={onAddTodo}
-                  onToggleTodo={onToggleTodo}
-                  onRemoveTodo={onRemoveTodo}
-                  onUpdateTodo={onUpdateTodo}
-                  onUpdateTodoStatus={onUpdateTodoStatus}
                   notes={notes}
                   onUpdateNotes={onUpdateNotes}
                   onViewJob={onViewJob}
                   onMechanicChange={onMechanicChange}
                   isEditable={job.status !== "completed" && job.status !== "cancelled"}
                   estimate={estimate}
-                  useNewTaskSystem={useNewTaskSystem}
                   searchInventory={searchInventory}
                 />
               </TabsContent>

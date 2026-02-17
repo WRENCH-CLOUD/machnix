@@ -18,6 +18,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       itemId: row.item_id,
       jobcardId: row.jobcard_id,
       estimateItemId: row.estimate_item_id ?? undefined,
+      taskId: row.task_id ?? undefined,
       quantityReserved: Number(row.quantity_reserved),
       quantityConsumed: Number(row.quantity_consumed || 0),
       status: row.status,
@@ -37,6 +38,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       item_id: entity.itemId,
       jobcard_id: entity.jobcardId,
       estimate_item_id: entity.estimateItemId ?? null,
+      task_id: entity.taskId ?? null,
       quantity_reserved: entity.quantityReserved,
       quantity_consumed: entity.quantityConsumed,
       status: entity.status,
@@ -105,6 +107,20 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
     return data ? this.toDomain(data) : null
   }
 
+  async findByTaskId(taskId: string): Promise<InventoryAllocation | null> {
+    const tenantId = this.getContextTenantId()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('inventory_allocations')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+
+    if (error) throw error
+    return data ? this.toDomain(data) : null
+  }
+
   async findByStatus(status: AllocationStatus): Promise<InventoryAllocation[]> {
     const tenantId = this.getContextTenantId()
     const { data, error } = await this.supabase
@@ -157,6 +173,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       item_id: input.itemId,
       jobcard_id: input.jobcardId,
       estimate_item_id: input.estimateItemId,
+      task_id: input.taskId,
       quantity_reserved: input.quantityReserved,
       quantity_consumed: 0,
       status: 'reserved',

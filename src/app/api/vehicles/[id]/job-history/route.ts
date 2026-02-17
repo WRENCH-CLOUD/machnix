@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-interface TodoItem {
+interface Task {
     id: string
-    text: string
-    status: 'changed' | 'repaired' | 'no_change' | null
-    completed: boolean
+    task_name: string
+    action_type: 'NO_CHANGE' | 'REPAIRED' | 'REPLACED'
+    task_status: string
 }
 
 interface JobHistoryResponse {
@@ -66,6 +66,26 @@ export async function GET(
 
         let recentJob: JobHistoryResponse['recentJob'] = null
 
+        // Helper function to get parts worked on from job_card_tasks
+        const getPartsWorkedOn = async (jobId: string): Promise<Array<{ name: string; status: 'changed' | 'repaired' }>> => {
+            const { data: tasks, error } = await supabase
+                .schema('tenant')
+                .from('job_card_tasks')
+                .select('id, task_name, action_type, task_status')
+                .eq('jobcard_id', jobId)
+                .is('deleted_at', null)
+                .in('action_type', ['REPLACED', 'REPAIRED'])
+
+            if (error || !tasks) {
+                return []
+            }
+
+            return (tasks as Task[]).map(task => ({
+                name: task.task_name,
+                status: task.action_type === 'REPLACED' ? 'changed' : 'repaired' as 'changed' | 'repaired'
+            }))
+        }
+
         // If we have a currentJobId, find the job created BEFORE this one
         if (currentJobId && uuidRegex.test(currentJobId)) {
             // First get the current job's created_at
@@ -81,7 +101,7 @@ export async function GET(
                 const { data: previousJobs, error: prevError } = await supabase
                     .schema('tenant')
                     .from('jobcards')
-                    .select('id, job_number, created_at, status, details')
+                    .select('id, job_number, created_at, status')
                     .eq('vehicle_id', vehicleId)
                     .lt('created_at', currentJob.created_at)
                     .order('created_at', { ascending: false })
@@ -89,14 +109,7 @@ export async function GET(
 
                 if (!prevError && previousJobs && previousJobs.length > 0) {
                     const job = previousJobs[0]
-                    const todos: TodoItem[] = job.details?.todos || []
-
-                    const partsWorkedOn = todos
-                        .filter(todo => todo.status === 'changed' || todo.status === 'repaired')
-                        .map(todo => ({
-                            name: todo.text,
-                            status: todo.status as 'changed' | 'repaired'
-                        }))
+                    const partsWorkedOn = await getPartsWorkedOn(job.id)
 
                     recentJob = {
                         id: job.id,
@@ -112,21 +125,14 @@ export async function GET(
             const { data: recentJobs, error: jobsError } = await supabase
                 .schema('tenant')
                 .from('jobcards')
-                .select('id, job_number, created_at, status, details')
+                .select('id, job_number, created_at, status')
                 .eq('vehicle_id', vehicleId)
                 .order('created_at', { ascending: false })
                 .limit(1)
 
             if (!jobsError && recentJobs && recentJobs.length > 0) {
                 const job = recentJobs[0]
-                const todos: TodoItem[] = job.details?.todos || []
-
-                const partsWorkedOn = todos
-                    .filter(todo => todo.status === 'changed' || todo.status === 'repaired')
-                    .map(todo => ({
-                        name: todo.text,
-                        status: todo.status as 'changed' | 'repaired'
-                    }))
+                const partsWorkedOn = await getPartsWorkedOn(job.id)
 
                 recentJob = {
                     id: job.id,
