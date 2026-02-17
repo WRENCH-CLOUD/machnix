@@ -3,6 +3,8 @@ import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.reposito
 import { CreateJobUseCase, JobLimitError } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { EntitlementService } from '@/lib/entitlements'
 import { z } from 'zod'
 import { normalizeTier } from '@/config/plan-features'
 
@@ -63,24 +65,29 @@ export async function POST(request: NextRequest) {
     // =============================================
     const tier = normalizeTier(user.app_metadata.subscription_tier || user.user_metadata.subscription_tier)
 
-    // Get current month job count
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    startOfMonth.setHours(0, 0, 0, 0)
+    // Use Entitlement Service for robust check (including overrides)
+    // We use admin client to ensure access to usage views and overrides
+    const supabaseAdmin = getSupabaseAdmin()
+    const entitlementService = new EntitlementService(supabaseAdmin)
+    
+    const check = await entitlementService.canCreateJob(tenantId, tier)
 
-    const { count: currentMonthJobCount } = await supabase
-      .schema('tenant')
-      .from('jobcards')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .gte('created_at', startOfMonth.toISOString())
+    if (!check.allowed) {
+      // Re-throw as JobLimitError to be caught below
+      throw new JobLimitError(
+        'Subscription job limit reached', 
+        tier, 
+        check.current, 
+        check.effectiveLimit
+      )
+    }
 
     const tenantContext = {
       tier,
-      currentMonthJobCount: currentMonthJobCount || 0,
+      currentMonthJobCount: check.current,
     }
     
-    // Create the job (with subscription limit check)
+    // Create the job (Use Case still checks locally but we double-checked above)
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)

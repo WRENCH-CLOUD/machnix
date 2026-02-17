@@ -12,6 +12,7 @@ import {
   BarChart3,
   Shield,
   Phone,
+  CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,6 +32,7 @@ const adminNavItems = [
   { id: "tenants", label: "Tenants", icon: Building2 },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "leads", label: "Leads", icon: Phone },
+  { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
   { id: "mechanics", label: "Mechanics", icon: HardHat, disabled: true, comingSoon: true },
   { id: "settings", label: "Settings", icon: Settings },
 ]

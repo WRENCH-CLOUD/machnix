@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Activity,
 } from "lucide-react"
+import { SubscriptionManagementPanel } from "./subscription-management-panel"
 
 interface TenantDetailsDialogProps {
   tenant: TenantWithStats | null
@@ -194,6 +195,14 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                 </div>
               </CardContent>
             </Card>
+
+            <Separator />
+
+            {/* Subscription Management */}
+            <SubscriptionManagementPanel
+              tenantId={tenant.id}
+              tenantName={tenant.name}
+            />
           </div>
         ) : (
           <p className="text-muted-foreground">No tenant data available</p>

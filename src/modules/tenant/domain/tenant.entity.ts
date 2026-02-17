@@ -1,4 +1,4 @@
-import type { SubscriptionTier, SubscriptionStatus } from '@/config/plan-features'
+import type { SubscriptionTier, SubscriptionStatus, BillingPeriod } from '@/config/plan-features'
 
 export type TenantStatus = 'active' | 'suspended' | 'trial' | 'inactive'
 export type TenantPlan = SubscriptionTier
@@ -18,4 +18,12 @@ export interface Tenant {
   }
   isOnboarded: boolean
   createdAt: Date
+
+  // Subscription lifecycle fields
+  subscriptionStartAt?: Date | null
+  subscriptionEndAt?: Date | null
+  gracePeriodEndsAt?: Date | null
+  trialEndsAt?: Date | null
+  customPrice?: number | null
+  billingPeriod?: BillingPeriod
 }

@@ -4,6 +4,8 @@ import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/me
 import { GetMechanicsUseCase } from '@/modules/mechanic/application/get-mechanics.use-case'
 import { CreateMechanicUseCase } from '@/modules/mechanic/application/create-mechanic.use-case'
 import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { EntitlementService } from '@/lib/entitlements'
 
 /**
  * GET /api/mechanics
@@ -60,13 +62,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
 
-    // Check subscription access (Team module is Pro+)
+    // Check module access
     const tier = normalizeTier(user.app_metadata.subscription_tier)
-    if (!isModuleAccessible(tier, 'team')) {
+    if (!isModuleAccessible(tier, 'mechanics')) {
         return NextResponse.json({ 
-            error: 'Upgrade required to add mechanics',
+            error: 'Mechanics module not available on your plan.',
             required_tier: 'pro'
         }, { status: 403 })
+    }
+
+    // Check staff count limit via EntitlementService
+    const supabaseAdmin = getSupabaseAdmin()
+    const entitlementService = new EntitlementService(supabaseAdmin)
+    
+    // Usage snapshot includes staff_count
+    const usage = await entitlementService.getUsageSnapshot(tenantId)
+    const check = await entitlementService.checkEntitlement(tenantId, tier, 'staffCount', usage.staffCount)
+
+    if (!check.allowed) {
+        return NextResponse.json({ 
+            error: `Limit reached: You can only add ${check.effectiveLimit} mechanics on the ${tier} plan.`,
+            code: 'LIMIT_REACHED',
+            current: check.current,
+            limit: check.effectiveLimit
+        }, { status: 429 })
     }
 
     const body = await request.json()

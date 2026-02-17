@@ -41,7 +41,7 @@ export function UpgradeRequiredModal({
 
     if (!open) return null
 
-    const targetTier = normalizeTier(requiredTier) || (tier === 'basic' ? 'pro' : 'enterprise')
+    const targetTier = requiredTier ? normalizeTier(requiredTier) : (tier === 'basic' ? 'pro' : 'enterprise')
     const targetPlan = PLAN_DISPLAY[targetTier as SubscriptionTier]
     const TierIcon = targetTier === 'enterprise' ? Crown : Zap
 

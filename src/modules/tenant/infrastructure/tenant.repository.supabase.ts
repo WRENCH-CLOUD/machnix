@@ -6,6 +6,14 @@ import { TenantSettings } from "../domain/tenant-settings.entity";
 import { GupshupSettings } from "../domain/gupshup-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeTier } from "@/config/plan-features";
+import type {
+  SubscriptionOverride,
+  CreateOverrideInput,
+  SubscriptionInvoice,
+  CreateSubscriptionInvoiceInput,
+  UsageSnapshot,
+  UpdateSubscriptionInput,
+} from '@/lib/entitlements/types'
 
 export class SupabaseTenantRepository implements TenantRepository {
   private supabase: SupabaseClient;
@@ -30,6 +38,13 @@ export class SupabaseTenantRepository implements TenantRepository {
       usageCounters: row.usage_counters || { job_count: 0, staff_count: 0, whatsapp_count: 0 },
       isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
+      // Subscription lifecycle fields
+      subscriptionStartAt: row.subscription_start_at ? new Date(row.subscription_start_at) : null,
+      subscriptionEndAt: row.subscription_end_at ? new Date(row.subscription_end_at) : null,
+      gracePeriodEndsAt: row.grace_period_ends_at ? new Date(row.grace_period_ends_at) : null,
+      trialEndsAt: row.trial_ends_at ? new Date(row.trial_ends_at) : null,
+      customPrice: row.custom_price ? Number(row.custom_price) : null,
+      billingPeriod: row.billing_period || 'monthly',
     };
   }
 
@@ -357,5 +372,41 @@ export class SupabaseTenantRepository implements TenantRepository {
       .upsert(dbSettings, { onConflict: 'tenant_id' });
 
     if (error) throw error;
+  }
+
+  // ==========================================================================
+  // SUBSCRIPTION MANAGEMENT (Admin-only — stubs for interface compliance)
+  // ==========================================================================
+
+  async getSubscriptionOverrides(_tenantId: string): Promise<SubscriptionOverride[]> {
+    return []
+  }
+
+  async addSubscriptionOverride(_tenantId: string, _input: CreateOverrideInput): Promise<SubscriptionOverride> {
+    throw new Error('Subscription override management is admin-only')
+  }
+
+  async updateSubscription(_tenantId: string, _input: UpdateSubscriptionInput): Promise<Tenant> {
+    throw new Error('Subscription updates are admin-only')
+  }
+
+  async getUsageSnapshot(tenantId: string): Promise<UsageSnapshot> {
+    const tenant = await this.findById(tenantId)
+    if (!tenant) throw new Error('Tenant not found')
+
+    return {
+      jobsThisMonth: tenant.usageCounters?.job_count || 0,
+      whatsappThisMonth: tenant.usageCounters?.whatsapp_count || 0,
+      staffCount: tenant.usageCounters?.staff_count || 0,
+      inventoryCount: 0,
+    }
+  }
+
+  async createSubscriptionInvoice(_tenantId: string, _input: CreateSubscriptionInvoiceInput): Promise<SubscriptionInvoice> {
+    throw new Error('Subscription invoice creation is admin-only')
+  }
+
+  async getSubscriptionInvoices(_tenantId: string): Promise<SubscriptionInvoice[]> {
+    return []
   }
 }

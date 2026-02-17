@@ -2,6 +2,14 @@ import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
 import { GupshupSettings } from '../domain/gupshup-settings.entity'
+import type {
+  SubscriptionOverride,
+  CreateOverrideInput,
+  SubscriptionInvoice,
+  CreateSubscriptionInvoiceInput,
+  UsageSnapshot,
+  UpdateSubscriptionInput,
+} from '@/lib/entitlements/types'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>
@@ -31,5 +39,13 @@ export interface TenantRepository {
   }): Promise<Tenant>
   update(id: string, updates: Partial<Tenant>): Promise<Tenant>
   delete(id: string): Promise<void>
+
+  // ---- Subscription Management ----
+  getSubscriptionOverrides(tenantId: string): Promise<SubscriptionOverride[]>
+  addSubscriptionOverride(tenantId: string, input: CreateOverrideInput): Promise<SubscriptionOverride>
+  updateSubscription(tenantId: string, input: UpdateSubscriptionInput): Promise<Tenant>
+  getUsageSnapshot(tenantId: string): Promise<UsageSnapshot>
+  createSubscriptionInvoice(tenantId: string, input: CreateSubscriptionInvoiceInput): Promise<SubscriptionInvoice>
+  getSubscriptionInvoices(tenantId: string): Promise<SubscriptionInvoice[]>
 }
 

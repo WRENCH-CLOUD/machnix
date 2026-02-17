@@ -54,6 +54,7 @@ interface NavItemConfig {
   description: string;
   /** Minimum tier required. If not set, accessible to all. */
   minTier?: SubscriptionTier;
+  moduleId?: string;
 }
 
 const navItems: NavItemConfig[] = [
@@ -93,6 +94,7 @@ const navItems: NavItemConfig[] = [
     icon: Wrench,
     description: "Manage mechanics",
     minTier: "pro",
+    moduleId: "mechanics",
   },
   {
     id: "transactions",
@@ -252,7 +254,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   const [lockedFeature, setLockedFeature] = useState<string>("");
 
   const handleNavClick = (item: NavItemConfig) => {
-    if (item.minTier && isLocked(item.id)) {
+    if (item.minTier && isLocked(item.moduleId || item.id)) {
       // Show upgrade modal instead of navigating
       setLockedFeature(item.label);
       setUpgradeModalOpen(true);
@@ -340,7 +342,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
                     key={item.id}
                     item={item}
                     isActive={activeView === item.id}
-                    isLocked={item.minTier ? isLocked(item.id) : false}
+                    isLocked={item.minTier ? isLocked(item.moduleId || item.id) : false}
                     onClick={() => handleNavClick(item)}
                   />
                 ))}

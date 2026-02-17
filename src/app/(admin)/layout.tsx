@@ -26,6 +26,7 @@ export default function AdminLayoutWrapper({
     if (pathname.includes("/analytics")) return "analytics";
     if (pathname.includes("/tenants")) return "tenants";
     if (pathname.includes("/leads")) return "leads";
+    if (pathname.includes("/subscriptions")) return "subscriptions";
     if (pathname.includes("/mechanics")) return "mechanics";
     if (pathname.includes("/settings")) return "settings";
     return "overview";
@@ -36,6 +37,7 @@ export default function AdminLayoutWrapper({
     tenants: "Tenants",
     analytics: "Revenue",
     leads: "Leads",
+    subscriptions: "Subscriptions",
     mechanics: "Mechanics",
     settings: "Settings",
   };
@@ -50,6 +52,7 @@ export default function AdminLayoutWrapper({
           tenants: "/tenants",
           analytics: "/admin/analytics",
           leads: "/admin/leads",
+          subscriptions: "/admin/subscriptions",
           mechanics: "/mechanics",
           settings: "/settings",
         };

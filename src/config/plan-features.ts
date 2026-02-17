@@ -130,6 +130,7 @@ export const TIER_MODULES: Record<SubscriptionTier, readonly ModuleId[]> = {
  */
 export const ROUTE_MODULE_MAP: Record<string, ModuleId> = {
   '/mechanics': 'mechanics',
+  '/team': 'mechanics',
   '/transactions': 'transactions',
   '/reports': 'reports',
   '/inventory': 'inventory',
@@ -154,7 +155,7 @@ export interface PlanLimits {
 
 export const TIER_LIMITS: Record<SubscriptionTier, PlanLimits> = {
   basic: {
-    jobsPerMonth: 50,
+    jobsPerMonth: 70,
     staffCount: 2,
     whatsappMessages: 0,
     inventory: 0,
@@ -214,7 +215,7 @@ export const PLAN_DISPLAY: Record<SubscriptionTier, PlanDisplayInfo> = {
     ],
     gstInvoicing: 'Basic Receipts.',
     communication: 'Email only.',
-    usageLimitLabel: '50 Jobs/mo, 2 Staff.',
+    usageLimitLabel: '70 Jobs/mo, 2 Staff.',
     color: 'zinc',
     gradient: 'from-zinc-500 to-zinc-700',
   },
@@ -238,7 +239,7 @@ export const PLAN_DISPLAY: Record<SubscriptionTier, PlanDisplayInfo> = {
     ],
     gstInvoicing: 'Full GST Filing & Tax Reports.',
     communication: 'WhatsApp (Gupshup) Integration.',
-    usageLimitLabel: '500 Jobs/mo, 10 Staff.',
+    usageLimitLabel: '200 Jobs/mo, 10 Staff.',
     color: 'primary',
     gradient: 'from-primary to-primary/80',
   },
@@ -254,7 +255,6 @@ export const PLAN_DISPLAY: Record<SubscriptionTier, PlanDisplayInfo> = {
     features: [
       'Everything in Pro +',
       'Custom Brand Website',
-      'Customer Portal',
       'Multi-GST / Multi-location',
       'Priority WhatsApp Support & Auto-alerts',
       'Unlimited Jobs & Staff',
@@ -394,6 +394,29 @@ export function isRouteAccessible(tier: SubscriptionTier, pathname: string): boo
  */
 export const TIER_PRICING: Record<SubscriptionTier, { monthly: number; annual: number }> = {
   basic: { monthly: 999, annual: 9990 },       // ₹999/mo
-  pro: { monthly: 2999, annual: 29990 },        // ₹2,999/mo
-  enterprise: { monthly: 9999, annual: 99990 }, // ₹9,999/mo (base)
+  pro: { monthly: 2499, annual: 24990 },        // ₹2,499/mo
+  enterprise: { monthly: 5599, annual: 55990 }, // ₹5,599/mo (base)
 }
+
+// ============================================================================
+// SUBSCRIPTION SYSTEM CONSTANTS
+// ============================================================================
+
+/** Loyalty discount applied when upgrading mid-cycle (5%) */
+export const UPGRADE_DISCOUNT_PERCENT = 5
+
+/** Days of read/write access after subscription expires before hard lock */
+export const GRACE_PERIOD_DAYS = 7
+
+/** Per-unit rates for Enterprise pay-as-you-go metering */
+export const PAYG_RATES = {
+  perJob: 25,           // ₹25 per job card beyond base
+  perWhatsapp: 0.50,    // ₹0.50 per WhatsApp message
+  perStaff: 199,        // ₹199 per additional staff member/mo
+} as const
+
+/** Valid billing periods */
+export type BillingPeriod = 'monthly' | 'yearly'
+
+/** Subscription validity states */
+export type SubscriptionValidity = 'active' | 'grace_period' | 'expired' | 'trial'

@@ -32,7 +32,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { RouteGuard } from "@/components/subscription/upgrade-modal";
+import { RouteGuard, UsageLimitModal } from "@/components/subscription/upgrade-modal";
+import { usePlan } from "@/hooks/use-plan";
 
 interface Mechanic {
     id: string;
@@ -57,8 +58,10 @@ const initialFormData: MechanicFormData = {
 
 export default function MechanicsPage() {
     const queryClient = useQueryClient();
+    const { checkLimit, limitFor } = usePlan();
     const [searchQuery, setSearchQuery] = useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
     const [editingMechanic, setEditingMechanic] = useState<Mechanic | null>(null);
     const [formData, setFormData] = useState<MechanicFormData>(initialFormData);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,10 +89,16 @@ export default function MechanicsPage() {
     }, [mechanics, searchQuery]);
 
     const handleOpenAddDialog = useCallback(() => {
+        // limit check
+        if (checkLimit('staffCount', mechanics.length)) {
+            setShowLimitModal(true);
+            return;
+        }
+
         setFormData(initialFormData);
         setEditingMechanic(null);
         setIsAddDialogOpen(true);
-    }, []);
+    }, [mechanics.length, checkLimit]);
 
     const handleOpenEditDialog = useCallback((mechanic: Mechanic) => {
         setFormData({
@@ -197,7 +206,7 @@ export default function MechanicsPage() {
     }
 
     return (
-        <RouteGuard moduleId="team">
+        <RouteGuard moduleId="mechanics">
             <div className="p-6 space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -379,6 +388,14 @@ export default function MechanicsPage() {
                         </form>
                     </DialogContent>
                 </Dialog>
+
+                <UsageLimitModal
+                    open={showLimitModal}
+                    onClose={() => setShowLimitModal(false)}
+                    limitType="Mechanics"
+                    currentUsage={mechanics.length}
+                    maxLimit={limitFor('staffCount')}
+                />
             </div>
         </RouteGuard>
     );

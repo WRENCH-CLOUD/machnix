@@ -11,6 +11,8 @@ import { AppSidebar } from "@/components/common/app-sidebar"
 import { TopHeader } from "@/components/common/top-header"
 import { SidebarProvider } from "@/components/ui/sidebar"
 
+import { UnpaidWarningBanner } from "@/components/subscription/unpaid-warning-banner"
+
 // Inner layout component that uses sidebar context
 function TenantLayoutContent({
   children,
@@ -32,6 +34,7 @@ function TenantLayoutContent({
         onViewChange={onViewChange}
       />
       <div className="flex-1 flex flex-col min-h-0 w-full">
+        <UnpaidWarningBanner />
         <TopHeader
           tenantName={tenantName}
           onCreateJob={onCreateJob}
