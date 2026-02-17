@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/supabase/client";
+import { queryKeys } from "@/hooks/queries";
 import type { 
   JobCardTask, 
   JobCardTaskWithItem, 
@@ -129,6 +130,8 @@ export function useCreateTask(jobId: string) {
     onSuccess: () => {
       // Invalidate tasks list for this job
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.byJob(jobId) });
+      // Invalidate estimate since tasks sync to estimate items
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
     },
   });
 }
@@ -158,6 +161,8 @@ export function useUpdateTask(jobId: string) {
     onSuccess: (_, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.byJob(jobId) });
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.detail(jobId, taskId) });
+      // Invalidate estimate since tasks sync to estimate items
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
     },
   });
 }
@@ -223,6 +228,8 @@ export function useDeleteTask(jobId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.byJob(jobId) });
+      // Invalidate estimate since deleting task removes the estimate item
+      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
     },
   });
 }

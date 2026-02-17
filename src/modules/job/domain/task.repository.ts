@@ -35,4 +35,8 @@ export interface TaskRepository {
   // Allocation linkage
   linkAllocation(taskId: string, allocationId: string): Promise<void>
   unlinkAllocation(taskId: string): Promise<void>
+  
+  // Estimate item linkage
+  linkEstimateItem(taskId: string, estimateItemId: string): Promise<void>
+  unlinkEstimateItem(taskId: string): Promise<void>
 }

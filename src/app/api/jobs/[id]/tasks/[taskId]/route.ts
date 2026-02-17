@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
 import { z } from 'zod'
 import type { TaskActionType } from '@/modules/job/domain/task.entity'
 
@@ -181,6 +182,14 @@ export async function PATCH(
       taxRateSnapshot: input.taxRateSnapshot,
     })
 
+    // Sync updated task to estimate
+    try {
+      const syncService = new TaskEstimateSyncService(supabase, tenantId)
+      await syncService.syncTaskToEstimate(task)
+    } catch (syncError) {
+      console.warn('[Task API] Failed to sync task to estimate:', syncError)
+    }
+
     return NextResponse.json({ task })
   } catch (error) {
     console.error('Error updating task:', error)
@@ -249,6 +258,14 @@ export async function DELETE(
     // if (existingTask.allocationId) {
     //   await allocationService.release(existingTask.allocationId)
     // }
+
+    // Remove the corresponding estimate item
+    try {
+      const syncService = new TaskEstimateSyncService(supabase, tenantId)
+      await syncService.removeEstimateItemForTask(existingTask)
+    } catch (syncError) {
+      console.warn('[Task API] Failed to remove estimate item for task:', syncError)
+    }
 
     await repository.softDelete(taskId, user.id)
 

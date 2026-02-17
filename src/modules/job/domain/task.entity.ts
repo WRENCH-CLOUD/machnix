@@ -51,6 +51,9 @@ export interface JobCardTask {
   // Allocation reference (for inventory reservation tracking)
   allocationId?: string
   
+  // Estimate item linkage (for customer-facing estimates)
+  estimateItemId?: string
+  
   // Audit fields
   createdBy?: string
   approvedBy?: string
@@ -159,6 +162,7 @@ export interface JobCardTaskRow {
   tax_rate_snapshot: number | null
   task_status: TaskStatus
   allocation_id: string | null
+  estimate_item_id: string | null
   created_by: string | null
   approved_by: string | null
   approved_at: string | null

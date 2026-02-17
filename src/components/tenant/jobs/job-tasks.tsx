@@ -136,6 +136,16 @@ interface TaskDialogProps {
   onSubmit: (data: CreateTaskInput) => void;
   isLoading?: boolean;
   initialData?: Partial<CreateTaskInput>;
+  /** Pre-selected inventory item for edit mode */
+  initialInventoryItem?: {
+    id: string;
+    name: string;
+    stockKeepingUnit?: string | null;
+    sellPrice?: number | null;
+    unitCost?: number | null;
+    stockOnHand: number;
+    stockReserved: number;
+  } | null;
   searchInventory?: (query: string, limit?: number) => InventoryItem[];
   mode: "add" | "edit";
 }
@@ -146,6 +156,7 @@ function TaskDialog({
   onSubmit,
   isLoading,
   initialData,
+  initialInventoryItem,
   searchInventory,
   mode,
 }: TaskDialogProps) {
@@ -170,14 +181,32 @@ function TaskDialog({
       setDescription(initialData?.description || "");
       setActionType(initialData?.actionType || "NO_CHANGE");
       setInventorySearch("");
-      setSelectedItem(null);
+      // Pre-select inventory item if provided (edit mode)
+      if (initialInventoryItem) {
+        setSelectedItem({
+          id: initialInventoryItem.id,
+          name: initialInventoryItem.name,
+          stockKeepingUnit: initialInventoryItem.stockKeepingUnit ?? undefined,
+          sellPrice: initialInventoryItem.sellPrice ?? 0,
+          unitCost: initialInventoryItem.unitCost ?? 0,
+          stockOnHand: initialInventoryItem.stockOnHand,
+          stockReserved: initialInventoryItem.stockReserved,
+        } as InventoryItem);
+      } else {
+        setSelectedItem(null);
+      }
       setQty(initialData?.qty || 1);
       setLaborCost(initialData?.laborCostSnapshot || 0);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, initialInventoryItem]);
 
   const handleSubmit = () => {
     if (!taskName.trim()) return;
+
+    // REPLACED action requires an inventory item
+    if (actionType === "REPLACED" && !selectedItem) {
+      return;
+    }
 
     const data: CreateTaskInput = {
       taskName: taskName.trim(),
@@ -198,6 +227,7 @@ function TaskDialog({
   };
 
   const showInventorySection = actionType === "REPLACED";
+  const canSubmit = taskName.trim() && (actionType !== "REPLACED" || selectedItem);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -359,6 +389,13 @@ function TaskDialog({
                   )}
                 </div>
               )}
+
+              {!selectedItem && (
+                <p className="text-xs text-amber-500 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Select a part to continue
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -369,7 +406,7 @@ function TaskDialog({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isLoading || !taskName.trim()}
+            disabled={isLoading || !canSubmit}
           >
             {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {mode === "add" ? "Add Task" : "Save Changes"}
@@ -389,6 +426,7 @@ interface TaskItemProps {
   disabled: boolean;
   onDelete: () => void;
   onStatusChange: (status: TaskStatus) => void;
+  onActionTypeChange: (actionType: TaskActionType, openEditDialog?: boolean) => void;
   isUpdating: boolean;
 }
 
@@ -397,11 +435,15 @@ function TaskItem({
   disabled, 
   onDelete, 
   onStatusChange,
+  onActionTypeChange,
   isUpdating,
 }: TaskItemProps) {
   const actionConfig = ACTION_TYPE_CONFIG[task.actionType];
   const statusConfig = STATUS_CONFIG[task.taskStatus];
   const ActionIcon = actionConfig.icon;
+  
+  // Can only edit action type for draft tasks
+  const canEditActionType = task.taskStatus === "DRAFT" && !disabled;
 
   const isCompleted = task.taskStatus === "COMPLETED";
   const isCancelled = task.taskStatus === "CANCELLED";
@@ -443,14 +485,61 @@ function TaskItem({
     >
       {/* Header Row */}
       <div className="flex items-start gap-3">
-        {/* Action Type Badge */}
-        <Badge 
-          variant="outline" 
-          className={cn("shrink-0 gap-1 text-xs", actionConfig.color)}
-        >
-          <ActionIcon className="h-3 w-3" />
-          {actionConfig.label}
-        </Badge>
+        {/* Action Type Badge - Editable dropdown for draft tasks */}
+        {canEditActionType ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild disabled={isUpdating}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-6 px-2 gap-1 text-xs shrink-0",
+                  actionConfig.color
+                )}
+              >
+                <ActionIcon className="h-3 w-3" />
+                {actionConfig.label}
+                <ChevronDown className="h-3 w-3 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {(Object.keys(ACTION_TYPE_CONFIG) as TaskActionType[]).map((type) => {
+                const config = ACTION_TYPE_CONFIG[type];
+                const TypeIcon = config.icon;
+                const isSelected = type === task.actionType;
+                const needsInventory = type === "REPLACED" && !task.inventoryItemId;
+                return (
+                  <DropdownMenuItem
+                    key={type}
+                    onClick={() => {
+                      if (type !== task.actionType) {
+                        // If changing to REPLACED and no inventory item, open edit dialog
+                        onActionTypeChange(type, needsInventory);
+                      }
+                    }}
+                    className={cn(isSelected && "bg-accent")}
+                  >
+                    <TypeIcon className={cn("h-3 w-3 mr-2", isSelected && "text-primary")} />
+                    {config.label}
+                    {needsInventory && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        + select part
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Badge 
+            variant="outline" 
+            className={cn("shrink-0 gap-1 text-xs", actionConfig.color)}
+          >
+            <ActionIcon className="h-3 w-3" />
+            {actionConfig.label}
+          </Badge>
+        )}
 
         {/* Task Name & Description */}
         <div className="flex-1 min-w-0">
@@ -603,7 +692,10 @@ export function JobTasks({
           description: data.description,
           actionType: data.actionType,
           laborCostSnapshot: data.laborCostSnapshot,
-          // Note: Can't change inventory item after creation
+          // Include inventory fields for REPLACED action type
+          inventoryItemId: data.inventoryItemId,
+          unitPriceSnapshot: data.unitPriceSnapshot,
+          qty: data.qty,
         },
       });
       setEditingTask(null);
@@ -643,6 +735,40 @@ export function JobTasks({
     } catch (error: unknown) {
       console.error("Failed to update status:", error);
       // Error will be shown via toast in the hook or can be handled here
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
+  const handleActionTypeChange = async (
+    task: JobCardTaskWithItem, 
+    actionType: TaskActionType, 
+    openEditDialog?: boolean
+  ) => {
+    // If changing to REPLACED, always open edit dialog to ensure inventory is selected
+    // (API requires inventoryItemId and qty > 0 for REPLACED)
+    if (actionType === "REPLACED") {
+      setEditingTask({ ...task, actionType });
+      return;
+    }
+
+    // If explicitly asked to open dialog (shouldn't happen for non-REPLACED)
+    if (openEditDialog) {
+      setEditingTask({ ...task, actionType });
+      return;
+    }
+
+    // For NO_CHANGE and REPAIRED, update directly
+    setUpdatingTaskId(task.id);
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        input: {
+          actionType,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to update action type:", error);
     } finally {
       setUpdatingTaskId(null);
     }
@@ -695,6 +821,9 @@ export function JobTasks({
                   disabled={disabled}
                   onDelete={() => handleDeleteTask(task.id)}
                   onStatusChange={(status) => handleStatusChange(task.id, status)}
+                  onActionTypeChange={(actionType, openEditDialog) => 
+                    handleActionTypeChange(task, actionType, openEditDialog)
+                  }
                   isUpdating={updatingTaskId === task.id}
                 />
               ))}
@@ -766,7 +895,18 @@ export function JobTasks({
           actionType: editingTask.actionType,
           laborCostSnapshot: editingTask.laborCostSnapshot,
           qty: editingTask.qty ?? undefined,
+          unitPriceSnapshot: editingTask.unitPriceSnapshot,
+          inventoryItemId: editingTask.inventoryItemId,
         } : undefined}
+        initialInventoryItem={editingTask?.inventoryItem ? {
+          id: editingTask.inventoryItem.id,
+          name: editingTask.inventoryItem.name,
+          stockKeepingUnit: editingTask.inventoryItem.stockKeepingUnit,
+          sellPrice: editingTask.unitPriceSnapshot,
+          unitCost: editingTask.unitPriceSnapshot,
+          stockOnHand: editingTask.inventoryItem.stockOnHand,
+          stockReserved: editingTask.inventoryItem.stockReserved,
+        } : null}
       />
     </>
   );

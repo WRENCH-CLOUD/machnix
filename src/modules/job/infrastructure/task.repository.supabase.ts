@@ -31,6 +31,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       taxRateSnapshot: row.tax_rate_snapshot ? Number(row.tax_rate_snapshot) : 0,
       taskStatus: row.task_status as TaskStatus,
       allocationId: row.allocation_id ?? undefined,
+      estimateItemId: row.estimate_item_id ?? undefined,
       createdBy: row.created_by ?? undefined,
       approvedBy: row.approved_by ?? undefined,
       approvedAt: row.approved_at ? new Date(row.approved_at) : undefined,
@@ -58,6 +59,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       tax_rate_snapshot: entity.taxRateSnapshot ?? null,
       task_status: entity.taskStatus,
       allocation_id: entity.allocationId ?? null,
+      estimate_item_id: entity.estimateItemId ?? null,
       created_by: entity.createdBy ?? null,
       approved_by: entity.approvedBy ?? null,
       approved_at: entity.approvedAt?.toISOString() ?? null,
@@ -401,6 +403,36 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       .schema('tenant')
       .from('job_card_tasks')
       .update({ allocation_id: null })
+      .eq('id', taskId)
+      .eq('tenant_id', tenantId)
+
+    if (error) throw error
+  }
+
+  // ============================================================================
+  // Estimate Item Linkage
+  // ============================================================================
+
+  async linkEstimateItem(taskId: string, estimateItemId: string): Promise<void> {
+    const tenantId = this.getContextTenantId()
+    
+    const { error } = await this.supabase
+      .schema('tenant')
+      .from('job_card_tasks')
+      .update({ estimate_item_id: estimateItemId })
+      .eq('id', taskId)
+      .eq('tenant_id', tenantId)
+
+    if (error) throw error
+  }
+
+  async unlinkEstimateItem(taskId: string): Promise<void> {
+    const tenantId = this.getContextTenantId()
+    
+    const { error } = await this.supabase
+      .schema('tenant')
+      .from('job_card_tasks')
+      .update({ estimate_item_id: null })
       .eq('id', taskId)
       .eq('tenant_id', tenantId)
 

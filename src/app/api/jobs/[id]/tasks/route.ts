@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
 import { z } from 'zod'
 import type { TaskActionType } from '@/modules/job/domain/task.entity'
 
@@ -186,6 +187,15 @@ export async function POST(
       taxRateSnapshot: input.taxRateSnapshot,
       createdBy: user.id,
     })
+
+    // Sync task to estimate for customer visibility
+    try {
+      const syncService = new TaskEstimateSyncService(supabase, tenantId)
+      await syncService.syncTaskToEstimate(task)
+    } catch (syncError) {
+      // Log but don't fail - estimate sync is non-critical
+      console.warn('[Tasks API] Failed to sync task to estimate:', syncError)
+    }
 
     return NextResponse.json({ task }, { status: 201 })
   } catch (error) {
