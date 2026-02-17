@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Printer,
+  ClipboardList,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,9 @@ import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
+import { JobTasks } from "./job-tasks";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
-import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+import type { InventorySnapshotItem, InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 
 // Using compatible types that match what child components expect
 interface EstimatePartial {
@@ -352,17 +354,15 @@ export function JobDetailsDialog({
                   </TabsTrigger>
                 )}
 
-                {/* DVI Tab skipped for now as per instructions (or logic is handled elsewhere, sticking to requested components) 
-                    Actually, I should check if I missed DVI component. The prompt said "Migrate job-details.tsx component".
-                    DVI logic was lines 975-1134. It's significant. 
-                    I'll add a placeholder or simple integration if I didn't create a specific DVI component.
-                    The user requested specifically: JobOverview, JobParts, JobInvoice.
-                    So I will omit DVI for now in this specific breakdown unless I create it inline or quickly.
-                    I'll comment it out to be safe or add a disabled tab.
-                */}
-
                 {!isMechanicMode && (
                   <>
+                    <TabsTrigger
+                      value="tasks"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    >
+                      <ClipboardList className="w-4 h-4 mr-2" />
+                      Tasks
+                    </TabsTrigger>
                     <TabsTrigger
                       value="parts"
                       className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
@@ -400,7 +400,14 @@ export function JobDetailsDialog({
                   onMechanicChange={onMechanicChange}
                   isEditable={job.status !== "completed" && job.status !== "cancelled"}
                   estimate={estimate}
-                  searchInventory={searchInventory}
+                />
+              </TabsContent>
+
+              <TabsContent value="tasks" className="m-0 h-full">
+                <JobTasks
+                  jobId={job.id}
+                  disabled={job.status === "completed" || job.status === "cancelled"}
+                  searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
                 />
               </TabsContent>
 

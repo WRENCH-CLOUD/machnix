@@ -10,24 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
-import { JobTasks } from "./job-tasks";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
-
-import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
-
-/** Minimal inventory item shape for search function */
-type InventorySearchItem = {
-  id: string;
-  name: string;
-  sellPrice?: number;
-  unitCost?: number;
-  stockOnHand?: number;
-  stockReserved?: number;
-  stockAvailable?: number;
-  stockKeepingUnit?: string;
-};
 
 interface JobOverviewProps {
   job: UIJob;
@@ -44,8 +29,6 @@ interface JobOverviewProps {
     tax_amount?: number;
     total_amount?: number;
   } | null;
-  // For task system: inventory search function (accepts both full items and snapshot items)
-  searchInventory?: (query: string, limit?: number) => InventorySearchItem[];
 }
 
 export function JobOverview({
@@ -56,7 +39,6 @@ export function JobOverview({
   isEditable = true,
   onMechanicChange,
   estimate,
-  searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
@@ -239,16 +221,8 @@ export function JobOverview({
           </CardContent>
         </Card>
 
-        {/* Task List */}
-        <JobTasks
-          jobId={job.id}
-          disabled={!isEditable}
-          searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
-          className="md:col-span-2"
-        />
-
         {/* Complaints / Notes */}
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               <div className="flex items-center gap-2">
