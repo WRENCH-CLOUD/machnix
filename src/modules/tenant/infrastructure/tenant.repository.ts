@@ -1,7 +1,6 @@
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
-import { GupshupSettings } from '../domain/gupshup-settings.entity'
 import type {
   SubscriptionOverride,
   CreateOverrideInput,
@@ -19,10 +18,6 @@ export interface TenantRepository {
   // Settings methods
   getSettings(tenantId: string): Promise<TenantSettings | null>
   updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void>
-
-  // Gupshup settings methods
-  getGupshupSettings(tenantId: string): Promise<GupshupSettings | null>
-  upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void>
 
   // Onboarding methods
   markOnboarded(tenantId: string): Promise<void>

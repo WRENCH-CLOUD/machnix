@@ -114,7 +114,6 @@ export class SupabaseTenantRepository implements TenantRepository {
 
       smsEnabled: row.sms_enabled,
       emailEnabled: row.email_enabled,
-      whatsappEnabled: row.whatsapp_enabled,
 
       invoicePrefix: row.invoice_prefix,
       jobPrefix: row.job_prefix,
@@ -166,7 +165,6 @@ export class SupabaseTenantRepository implements TenantRepository {
     // Notification toggle fields
     if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;
     if (settings.emailEnabled !== undefined) dbSettings.email_enabled = settings.emailEnabled;
-    if (settings.whatsappEnabled !== undefined) dbSettings.whatsapp_enabled = settings.whatsappEnabled;
     if (Object.keys(dbSettings).length > 0) {
       // Include tenant_id for upsert
       dbSettings.tenant_id = tenantId;
