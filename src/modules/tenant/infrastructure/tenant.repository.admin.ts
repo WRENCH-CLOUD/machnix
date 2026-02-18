@@ -4,6 +4,15 @@ import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantRepository } from './tenant.repository'
 
 import { TenantSettings } from '../domain/tenant-settings.entity'
+import { normalizeTier } from '@/config/plan-features'
+import type {
+  SubscriptionOverride,
+  CreateOverrideInput,
+  SubscriptionInvoice,
+  CreateSubscriptionInvoiceInput,
+  UsageSnapshot,
+  UpdateSubscriptionInput,
+} from '@/lib/entitlements/types'
 
 export class AdminSupabaseTenantRepository implements TenantRepository {
   constructor(private readonly supabase: SupabaseClient) { }
