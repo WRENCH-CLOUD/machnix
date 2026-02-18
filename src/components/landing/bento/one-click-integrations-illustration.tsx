@@ -14,7 +14,7 @@ const OneClickIntegrationsIllustration: React.FC<OneClickIntegrationsIllustratio
     "--oci-shadow-color": "rgba(0, 0, 0, 0.12)",
     "--oci-gradient-light-gray-start": "hsl(var(--foreground) / 0.2)",
     "--oci-gradient-light-gray-end": "transparent",
-  } as React.CSSProperties
+  }
 
   // Helper component for rendering each logo box
   const LogoBox: React.FC<{
@@ -199,9 +199,6 @@ const OneClickIntegrationsIllustration: React.FC<OneClickIntegrationsIllustratio
   return (
     <div
       className={`w-full h-full relative ${className}`}
-      style={{
-        ...themeVars,
-      }}
       role="img"
       aria-label="One-click integrations illustration showing a grid of connected squares"
     >
