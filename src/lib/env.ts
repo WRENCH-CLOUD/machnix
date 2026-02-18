@@ -110,71 +110,13 @@ const ENV_SCHEMA: EnvConfig[] = [
     name: 'TWILIO_ACCOUNT_SID',
     required: false,
     serverOnly: true,
-    description: 'Twilio account SID for WhatsApp notifications',
+    description: 'Twilio account SID for notifications',
   },
   {
     name: 'TWILIO_AUTH_TOKEN',
     required: false,
     serverOnly: true,
-    description: 'Twilio auth token for WhatsApp notifications',
-  },
-  {
-    name: 'TWILIO_WHATSAPP_FROM',
-    required: false,
-    serverOnly: true,
-    description: 'Twilio WhatsApp sender number',
-    example: '+14155238886',
-  },
-
-  // Gupshup WhatsApp (Optional)
-  {
-    name: 'GUPSHUP_API_KEY',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup API key for WhatsApp messaging',
-  },
-  {
-    name: 'GUPSHUP_APP_NAME',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup app name (src.name)',
-  },
-  {
-    name: 'GUPSHUP_TEMPLATE_JOB_READY',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup template ID for job ready notification',
-  },
-  {
-    name: 'GUPSHUP_TEMPLATE_JOB_DELIVERED',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup template ID for job delivered notification',
-  },
-  {
-    name: 'GUPSHUP_TEMPLATE_INVOICE',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup template ID for invoice notification',
-  },
-  {
-    name: 'GUPSHUP_TEMPLATE_PAYMENT',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup template ID for payment received notification',
-  },
-  {
-    name: 'GUPSHUP_SOURCE_NUMBER',
-    required: false,
-    serverOnly: true,
-    description: 'Centralized WrenchCloud WhatsApp source number',
-    example: '919876543210',
-  },
-  {
-    name: 'GUPSHUP_TEMPLATE_VEHICLE_STATUS',
-    required: false,
-    serverOnly: true,
-    description: 'Gupshup template ID for vehicle status update notification',
+    description: 'Twilio auth token for notifications',
   },
 ]
 
@@ -358,39 +300,7 @@ export const env = {
   get TWILIO_AUTH_TOKEN() {
     return process.env.TWILIO_AUTH_TOKEN
   },
-  get TWILIO_WHATSAPP_FROM() {
-    return process.env.TWILIO_WHATSAPP_FROM
-  },
   get hasTwilioConfig() {
     return !!(this.TWILIO_ACCOUNT_SID && this.TWILIO_AUTH_TOKEN)
-  },
-
-  // Gupshup (Optional)
-  get GUPSHUP_API_KEY() {
-    return process.env.GUPSHUP_API_KEY
-  },
-  get GUPSHUP_APP_NAME() {
-    return process.env.GUPSHUP_APP_NAME
-  },
-  get GUPSHUP_TEMPLATE_JOB_READY() {
-    return process.env.GUPSHUP_TEMPLATE_JOB_READY
-  },
-  get GUPSHUP_TEMPLATE_JOB_DELIVERED() {
-    return process.env.GUPSHUP_TEMPLATE_JOB_DELIVERED
-  },
-  get GUPSHUP_TEMPLATE_INVOICE() {
-    return process.env.GUPSHUP_TEMPLATE_INVOICE
-  },
-  get GUPSHUP_TEMPLATE_PAYMENT() {
-    return process.env.GUPSHUP_TEMPLATE_PAYMENT
-  },
-  get GUPSHUP_SOURCE_NUMBER() {
-    return process.env.GUPSHUP_SOURCE_NUMBER
-  },
-  get GUPSHUP_TEMPLATE_VEHICLE_STATUS() {
-    return process.env.GUPSHUP_TEMPLATE_VEHICLE_STATUS
-  },
-  get hasGupshupConfig() {
-    return !!(this.GUPSHUP_API_KEY && this.GUPSHUP_APP_NAME && this.GUPSHUP_SOURCE_NUMBER)
   },
 } as const

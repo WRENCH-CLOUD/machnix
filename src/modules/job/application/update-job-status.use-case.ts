@@ -119,11 +119,6 @@ export class UpdateJobStatusUseCase {
 
     const updatedJob = await this.repository.update(jobId, updates)
 
-    // Trigger WhatsApp Notification
-    if (this.tenantRepository && this.customerRepository && status !== currentStatus) {
-      await this.handleWhatsAppNotification(job, status, updatedJob)
-    }
-
     return { success: true, job: updatedJob }
   }
 

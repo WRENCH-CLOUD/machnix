@@ -201,9 +201,6 @@ const OneClickIntegrationsIllustration: React.FC<OneClickIntegrationsIllustratio
   return (
     <div
       className={`w-full h-full relative ${className}`}
-      style={{
-        ...themeVars,
-      }}
       role="img"
       aria-label="One-click integrations illustration showing a grid of connected squares"
     >
