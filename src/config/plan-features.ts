@@ -34,7 +34,7 @@ export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trial'
 export function normalizeTier(raw: string | null | undefined): SubscriptionTier {
   if (!raw) return 'basic'
   const lowered = raw.toLowerCase().trim()
-  if (lowered === 'basic' || lowered === 'basic' || lowered === 'free') return 'basic'
+  if (lowered === 'basic' || lowered === 'free') return 'basic'
   if (lowered === 'pro' || lowered === 'professional') return 'pro'
   if (lowered === 'enterprise' || lowered === 'business') return 'enterprise'
   return 'basic' // Unknown → default
