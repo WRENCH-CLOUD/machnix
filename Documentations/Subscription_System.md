@@ -13,10 +13,10 @@ The system is built to scale from solo workshops to large enterprise chains with
 ### 1. Basic (Starter)
 
 * **Target**: Single-mechanic garages or solo operators.
-* **Price**: ₹1,999/mo
+* **Price**: ₹999/mo
 * **Limits**:
-* **Jobs**: 100 per month
-* **WhatsApp**: 100 notifications included (Gupshup pass-through)
+* **Jobs**: 70 per month
+* **WhatsApp**: 0
 * **Digital Payments**: Not included (Cash/Manual only)
 
 
@@ -24,11 +24,11 @@ The system is built to scale from solo workshops to large enterprise chains with
 ### 2. Professional (Growth)
 
 * **Target**: Mid-sized workshops focused on automation.
-* **Price**: ₹3,999/mo
+* **Price**: ₹2,499/mo
 * **Limits**:
 * **Jobs**: 500 per month
-* **WhatsApp**: Unlimited (Usage-based billing)
-* **Digital Payments**: Enabled (Cashfree integration)
+* **WhatsApp**: 100 messages
+* **Digital Payments**: Enabled (Cashfree/razorpay integration)
 * **GST Automation**: Full filing and tax reports
 
 
@@ -36,9 +36,10 @@ The system is built to scale from solo workshops to large enterprise chains with
 ### 3. Enterprise (Brand)
 
 * **Target**: Multi-branch premium chains.
-* **Price**: ₹7,999/mo (Base) + **Pay-As-You-Go**
+* **Price**: ₹5,499/mo (Base) + **Pay-As-You-Go**
 * **Formula**: `Total Bill = Base_Fee + (Overage_Jobs * Job_Rate) + Third_Party_Costs`
 * **Key Features**:
+* **WhatsApp**: Unlimited (Pay As You Go)
 * **Jobs**: Unlimited (Metered billing per job card)
 * **Multi-Location**: Management of multiple branches (v4+)
 * **Custom Branding**: Brand-specific customer portals
@@ -101,7 +102,7 @@ The database tracks the specific state of a tenant's subscription:
 When a user upgrades from **Basic** to **Pro** mid-cycle, the system applies the following logic:
 
 1. **Price Difference**: `Pro_Price - Basic_Price` (e.g., ₹2,000).
-2. **Loyalty Discount**: A 5% discount is applied to the upgrade difference.
+2. **Loyalty Discount**: A 5% discount is applied to the upgrade difference for that month, and the same price after that.
 3. **Invoice Generation**: A new invoice is created in `tenant.invoices` for the prorated amount, ensuring a clear audit trail for GST reporting.
 
 ### Usage Metering
