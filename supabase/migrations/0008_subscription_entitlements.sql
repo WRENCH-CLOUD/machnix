@@ -133,6 +133,25 @@ BEGIN
 END;
 $$;
 
+-- 8a. Helper function to check if current user is a tenant admin
+-- This validates against the database, not just JWT claims
+CREATE OR REPLACE FUNCTION public.is_tenant_admin(p_tenant_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 
+    FROM tenant.users
+    WHERE auth_user_id = auth.uid()
+      AND tenant_id = p_tenant_id
+      AND role IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND is_active = true
+      AND deleted_at IS NULL
+  );
+$$;
+
 -- 9. Update admin_tenant_overview view with new subscription fields
 DROP VIEW IF EXISTS tenant.admin_tenant_overview;
 CREATE OR REPLACE VIEW tenant.admin_tenant_overview AS
@@ -269,7 +288,7 @@ CREATE POLICY subscription_overrides_select ON tenant.subscription_overrides FOR
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -279,7 +298,7 @@ CREATE POLICY subscription_overrides_insert ON tenant.subscription_overrides FOR
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -289,14 +308,14 @@ CREATE POLICY subscription_overrides_update ON tenant.subscription_overrides FOR
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   )
   WITH CHECK (
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -306,7 +325,7 @@ CREATE POLICY subscription_overrides_delete ON tenant.subscription_overrides FOR
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -324,7 +343,7 @@ CREATE POLICY subscription_invoices_select ON tenant.subscription_invoices FOR S
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -334,7 +353,7 @@ CREATE POLICY subscription_invoices_insert ON tenant.subscription_invoices FOR I
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -344,14 +363,14 @@ CREATE POLICY subscription_invoices_update ON tenant.subscription_invoices FOR U
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   )
   WITH CHECK (
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
@@ -361,7 +380,7 @@ CREATE POLICY subscription_invoices_delete ON tenant.subscription_invoices FOR D
     public.is_platform_admin()
     OR (
       tenant_id = public.current_tenant_id()
-      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+      AND public.is_tenant_admin(tenant_id)
     )
   );
 
