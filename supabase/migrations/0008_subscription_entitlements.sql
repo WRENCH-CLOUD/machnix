@@ -133,8 +133,18 @@ BEGIN
 END;
 $$;
 
--- 8a. Helper function to check if current user is a tenant admin
--- This validates against the database, not just JWT claims
+-- 9. Helper function to check if current user is a tenant admin
+-- Securely validates admin role against the database instead of trusting JWT claims
+-- Parameters:
+--   p_tenant_id: The tenant ID to check admin access for
+-- Returns:
+--   boolean: true if the current user (auth.uid()) has an admin role in the tenant
+-- Security:
+--   Uses SECURITY DEFINER to allow RLS policies to query tenant.users table
+--   Only checks active, non-deleted users with admin roles:
+--   - tenant_owner: Full tenant ownership
+--   - tenant_admin: Administrative access
+--   - admin: Administrative access
 CREATE OR REPLACE FUNCTION public.is_tenant_admin(p_tenant_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -152,7 +162,7 @@ AS $$
   );
 $$;
 
--- 9. Update admin_tenant_overview view with new subscription fields
+-- 10. Update admin_tenant_overview view with new subscription fields
 DROP VIEW IF EXISTS tenant.admin_tenant_overview;
 CREATE OR REPLACE VIEW tenant.admin_tenant_overview AS
 SELECT
@@ -279,7 +289,7 @@ SELECT
 FROM tenant.tenants t
 ORDER BY t.created_at DESC;
 
--- 10. RLS Policies for subscription_overrides
+-- 11. RLS Policies for subscription_overrides
 -- Only platform admins and tenant admins can manage subscription overrides
 
 DROP POLICY IF EXISTS subscription_overrides_select ON tenant.subscription_overrides;
@@ -329,12 +339,12 @@ CREATE POLICY subscription_overrides_delete ON tenant.subscription_overrides FOR
     )
   );
 
--- Service role bypass for subscription_overrides
+-- Service role bypass for subscription_overrides (needed for system operations)
 DROP POLICY IF EXISTS subscription_overrides_service_role ON tenant.subscription_overrides;
 CREATE POLICY subscription_overrides_service_role ON tenant.subscription_overrides FOR ALL
   USING (auth.role() = 'service_role');
 
--- 11. RLS Policies for subscription_invoices
+-- 12. RLS Policies for subscription_invoices
 -- Only platform admins and tenant admins can manage subscription invoices
 
 DROP POLICY IF EXISTS subscription_invoices_select ON tenant.subscription_invoices;
@@ -384,12 +394,12 @@ CREATE POLICY subscription_invoices_delete ON tenant.subscription_invoices FOR D
     )
   );
 
--- Service role bypass for subscription_invoices
+-- Service role bypass for subscription_invoices (needed for system operations)
 DROP POLICY IF EXISTS subscription_invoices_service_role ON tenant.subscription_invoices;
 CREATE POLICY subscription_invoices_service_role ON tenant.subscription_invoices FOR ALL
   USING (auth.role() = 'service_role');
 
--- 12. Grant access to views and service role only
+-- 13. Grant access to views and service role only
 GRANT SELECT ON tenant.admin_tenant_overview TO authenticated;
 GRANT SELECT ON tenant.admin_tenant_overview TO service_role;
 GRANT ALL ON tenant.subscription_overrides TO service_role;
