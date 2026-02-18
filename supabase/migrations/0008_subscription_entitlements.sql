@@ -45,7 +45,11 @@ CREATE TABLE IF NOT EXISTS tenant.subscription_invoices (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- 4. Indexes for new tables
+-- 4. Enable Row-Level Security on new tables
+ALTER TABLE tenant.subscription_overrides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tenant.subscription_invoices ENABLE ROW LEVEL SECURITY;
+
+-- 5. Indexes for new tables
 CREATE INDEX IF NOT EXISTS idx_subscription_overrides_tenant
   ON tenant.subscription_overrides(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_subscription_overrides_active
@@ -56,13 +60,13 @@ CREATE INDEX IF NOT EXISTS idx_subscription_invoices_tenant
 CREATE INDEX IF NOT EXISTS idx_subscription_invoices_status
   ON tenant.subscription_invoices(tenant_id, status);
 
--- 5. Indexes for new tenant columns
+-- 6. Indexes for new tenant columns
 CREATE INDEX IF NOT EXISTS idx_tenants_subscription_end
   ON tenant.tenants(subscription_end_at);
 CREATE INDEX IF NOT EXISTS idx_tenants_grace_period
   ON tenant.tenants(grace_period_ends_at);
 
--- 6. Double-spend protected job count check-and-increment
+-- 7. Double-spend protected job count check-and-increment
 -- Uses SELECT ... FOR UPDATE to prevent race conditions
 CREATE OR REPLACE FUNCTION tenant.check_and_increment_job_count(
   p_tenant_id uuid,
@@ -106,7 +110,7 @@ BEGIN
 END;
 $$;
 
--- 7. Function to get active override total for a feature
+-- 8. Function to get active override total for a feature
 CREATE OR REPLACE FUNCTION tenant.get_override_total(
   p_tenant_id uuid,
   p_feature_key text
@@ -129,7 +133,7 @@ BEGIN
 END;
 $$;
 
--- 8. Update admin_tenant_overview view with new subscription fields
+-- 9. Update admin_tenant_overview view with new subscription fields
 DROP VIEW IF EXISTS tenant.admin_tenant_overview;
 CREATE OR REPLACE VIEW tenant.admin_tenant_overview AS
 SELECT
@@ -256,12 +260,120 @@ SELECT
 FROM tenant.tenants t
 ORDER BY t.created_at DESC;
 
--- 9. Grant access
+-- 10. RLS Policies for subscription_overrides
+-- Only platform admins and tenant admins can manage subscription overrides
+
+DROP POLICY IF EXISTS subscription_overrides_select ON tenant.subscription_overrides;
+CREATE POLICY subscription_overrides_select ON tenant.subscription_overrides FOR SELECT
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_overrides_insert ON tenant.subscription_overrides;
+CREATE POLICY subscription_overrides_insert ON tenant.subscription_overrides FOR INSERT
+  WITH CHECK (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_overrides_update ON tenant.subscription_overrides;
+CREATE POLICY subscription_overrides_update ON tenant.subscription_overrides FOR UPDATE
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  )
+  WITH CHECK (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_overrides_delete ON tenant.subscription_overrides;
+CREATE POLICY subscription_overrides_delete ON tenant.subscription_overrides FOR DELETE
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+-- Service role bypass for subscription_overrides
+DROP POLICY IF EXISTS subscription_overrides_service_role ON tenant.subscription_overrides;
+CREATE POLICY subscription_overrides_service_role ON tenant.subscription_overrides FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- 11. RLS Policies for subscription_invoices
+-- Only platform admins and tenant admins can manage subscription invoices
+
+DROP POLICY IF EXISTS subscription_invoices_select ON tenant.subscription_invoices;
+CREATE POLICY subscription_invoices_select ON tenant.subscription_invoices FOR SELECT
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_invoices_insert ON tenant.subscription_invoices;
+CREATE POLICY subscription_invoices_insert ON tenant.subscription_invoices FOR INSERT
+  WITH CHECK (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_invoices_update ON tenant.subscription_invoices;
+CREATE POLICY subscription_invoices_update ON tenant.subscription_invoices FOR UPDATE
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  )
+  WITH CHECK (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS subscription_invoices_delete ON tenant.subscription_invoices;
+CREATE POLICY subscription_invoices_delete ON tenant.subscription_invoices FOR DELETE
+  USING (
+    public.is_platform_admin()
+    OR (
+      tenant_id = public.current_tenant_id()
+      AND (auth.jwt() ->> 'role') IN ('tenant_owner', 'tenant_admin', 'admin')
+    )
+  );
+
+-- Service role bypass for subscription_invoices
+DROP POLICY IF EXISTS subscription_invoices_service_role ON tenant.subscription_invoices;
+CREATE POLICY subscription_invoices_service_role ON tenant.subscription_invoices FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- 12. Grant access to views and service role only
 GRANT SELECT ON tenant.admin_tenant_overview TO authenticated;
 GRANT SELECT ON tenant.admin_tenant_overview TO service_role;
-GRANT ALL ON tenant.subscription_overrides TO authenticated;
 GRANT ALL ON tenant.subscription_overrides TO service_role;
-GRANT ALL ON tenant.subscription_invoices TO authenticated;
 GRANT ALL ON tenant.subscription_invoices TO service_role;
 
 -- End of 0008_subscription_entitlements.sql
