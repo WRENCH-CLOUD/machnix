@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
 import { z } from 'zod'
 import type { TaskActionType } from '@/modules/job/domain/task.entity'
@@ -10,7 +11,6 @@ import type { TaskActionType } from '@/modules/job/domain/task.entity'
 const updateTaskSchema = z.object({
   taskName: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).optional().nullable(),
-  actionType: z.enum(['NO_CHANGE', 'REPAIRED', 'REPLACED']).optional(),
   inventoryItemId: z.string().uuid().optional().nullable(),
   qty: z.number().int().positive().optional().nullable(),
   unitPriceSnapshot: z.number().min(0).optional(),
@@ -108,7 +108,7 @@ export async function PATCH(
     // Parse and validate body
     const body = await request.json()
     const validationResult = updateTaskSchema.safeParse(body)
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.errors },
@@ -119,7 +119,7 @@ export async function PATCH(
     const input = validationResult.data
 
     const repository = new SupabaseTaskRepository(supabase, tenantId)
-    
+
     // Get existing task
     const existingTask = await repository.findById(taskId)
     if (!existingTask) {
@@ -131,22 +131,23 @@ export async function PATCH(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Don't allow editing approved/completed tasks (prices are locked)
-    if (['APPROVED', 'COMPLETED'].includes(existingTask.taskStatus)) {
+    // Only COMPLETED tasks are locked
+    if (existingTask.taskStatus === 'COMPLETED') {
       return NextResponse.json(
-        { error: 'Cannot modify an approved or completed task' },
+        { error: 'Cannot modify a completed task' },
         { status: 400 }
       )
     }
 
-    // Validate REPLACED action has inventory info
-    const finalActionType = input.actionType ?? existingTask.actionType
+    // Auto-derive action type from inventory linkage
     const finalInventoryId = input.inventoryItemId !== undefined ? input.inventoryItemId : existingTask.inventoryItemId
     const finalQty = input.qty !== undefined ? input.qty : existingTask.qty
-    
-    if (finalActionType === 'REPLACED' && (!finalInventoryId || !finalQty)) {
+    const finalActionType: TaskActionType = (finalInventoryId && finalQty && finalQty > 0) ? 'REPLACED' : 'LABOR_ONLY'
+
+    // Validate: if inventory item is set, qty must also be set
+    if (finalInventoryId && (!finalQty || finalQty <= 0)) {
       return NextResponse.json(
-        { error: 'REPLACED action requires inventoryItemId and qty > 0' },
+        { error: 'Inventory item requires qty > 0' },
         { status: 400 }
       )
     }
@@ -171,12 +172,57 @@ export async function PATCH(
       }
     }
 
+    // Handle reservation changes for APPROVED tasks when inventory/qty changes
+    const inventoryChanged = existingTask.taskStatus === 'APPROVED' && (
+      (input.inventoryItemId !== undefined && input.inventoryItemId !== existingTask.inventoryItemId) ||
+      (input.qty !== undefined && input.qty !== existingTask.qty)
+    )
+
+    if (inventoryChanged) {
+      const allocationService = new InventoryAllocationService(supabase, tenantId)
+
+      // Release old reservation if it exists
+      if (existingTask.allocationId) {
+        try {
+          await allocationService.releaseForTask(taskId)
+          await repository.unlinkAllocation(taskId)
+        } catch (releaseError) {
+          console.warn('[Task API] Failed to release old allocation:', releaseError)
+        }
+      }
+
+      // Create new reservation if task still has inventory linked
+      if (finalInventoryId && finalQty && finalQty > 0) {
+        const canReserveResult = await allocationService.canReserve(finalInventoryId, finalQty)
+        if (!canReserveResult.canReserve) {
+          return NextResponse.json(
+            {
+              error: 'INSUFFICIENT_STOCK',
+              message: `Cannot reserve ${finalQty} units. Only ${canReserveResult.available} available.`,
+              stockAvailable: canReserveResult.available,
+              stockRequested: finalQty,
+            },
+            { status: 409 }
+          )
+        }
+
+        const reserveResult = await allocationService.reserveForTask(
+          taskId,
+          finalInventoryId,
+          finalQty,
+          existingTask.jobcardId,
+          user.id,
+        )
+        await repository.linkAllocation(taskId, reserveResult.allocation.id)
+      }
+    }
+
     const task = await repository.update(taskId, {
       taskName: input.taskName,
       description: input.description ?? undefined,
-      actionType: input.actionType as TaskActionType | undefined,
-      inventoryItemId: input.inventoryItemId ?? undefined,
-      qty: input.qty ?? undefined,
+      actionType: finalActionType,
+      inventoryItemId: input.inventoryItemId !== undefined ? (input.inventoryItemId ?? undefined) : undefined,
+      qty: input.qty !== undefined ? (input.qty ?? undefined) : undefined,
       unitPriceSnapshot: input.unitPriceSnapshot,
       laborCostSnapshot: input.laborCostSnapshot,
       taxRateSnapshot: input.taxRateSnapshot,
@@ -234,7 +280,7 @@ export async function DELETE(
     }
 
     const repository = new SupabaseTaskRepository(supabase, tenantId)
-    
+
     // Get existing task
     const existingTask = await repository.findById(taskId)
     if (!existingTask) {
@@ -254,10 +300,16 @@ export async function DELETE(
       )
     }
 
-    // TODO: If task has allocation, release it before deleting
-    // if (existingTask.allocationId) {
-    //   await allocationService.release(existingTask.allocationId)
-    // }
+    // Release inventory allocation before deleting
+    if (existingTask.allocationId) {
+      try {
+        const allocationService = new InventoryAllocationService(supabase, tenantId)
+        await allocationService.releaseForTask(taskId)
+        await repository.unlinkAllocation(taskId)
+      } catch (allocError) {
+        console.warn('[Task API] Failed to release allocation on delete:', allocError)
+      }
+    }
 
     // Remove the corresponding estimate item
     try {

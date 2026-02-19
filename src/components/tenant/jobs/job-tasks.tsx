@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  Wrench, 
-  RefreshCw, 
-  MinusCircle, 
-  Package,
-  ChevronDown,
-  Loader2,
+import {
+  MoreVertical,
+  Plus,
+  Trash2,
+  X,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
   AlertTriangle,
+  Package,
+  Wrench,
+  Search,
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  RefreshCw,
+  MinusCircle,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,19 +41,19 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { 
-  useJobTasks, 
-  useCreateTask, 
-  useUpdateTask, 
+import {
+  useJobTasks,
+  useCreateTask,
+  useUpdateTask,
   useDeleteTask,
   useTaskActions,
   calculateTaskTotals,
   type CreateTaskInput,
 } from "@/hooks/use-job-tasks";
-import type { 
-  JobCardTaskWithItem, 
-  TaskStatus, 
-  TaskActionType 
+import type {
+  JobCardTaskWithItem,
+  TaskStatus,
+  TaskActionType
 } from "@/modules/job/domain/task.entity";
 import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 import { getStockAvailable } from "@/modules/inventory/domain/inventory.entity";
@@ -56,17 +63,11 @@ import { getStockAvailable } from "@/modules/inventory/domain/inventory.entity";
 // ============================================================================
 
 const ACTION_TYPE_CONFIG = {
-  NO_CHANGE: {
-    label: "No Change",
-    icon: MinusCircle,
+  LABOR_ONLY: {
+    label: "Labor Only",
+    icon: Wrench,
     color: "bg-gray-500/20 text-gray-200 border-gray-500/30",
     activeColor: "bg-gray-600 hover:bg-gray-700 text-white",
-  },
-  REPAIRED: {
-    label: "Repaired",
-    icon: Wrench,
-    color: "bg-green-500/20 text-green-200 border-green-500/30",
-    activeColor: "bg-green-600 hover:bg-green-700 text-white",
   },
   REPLACED: {
     label: "Replaced",
@@ -76,9 +77,9 @@ const ACTION_TYPE_CONFIG = {
   },
 } as const;
 
-const STATUS_CONFIG: Record<TaskStatus, { 
-  label: string; 
-  color: string; 
+const STATUS_CONFIG: Record<TaskStatus, {
+  label: string;
+  color: string;
   bgColor: string;
   description: string;
 }> = {
@@ -94,23 +95,11 @@ const STATUS_CONFIG: Record<TaskStatus, {
     bgColor: "bg-yellow-500/20",
     description: "Stock reserved",
   },
-  IN_PROGRESS: {
-    label: "In Progress",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/20",
-    description: "Being worked on",
-  },
   COMPLETED: {
     label: "Completed",
     color: "text-green-400",
     bgColor: "bg-green-500/20",
     description: "Done",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    color: "text-red-400",
-    bgColor: "bg-red-500/20",
-    description: "Cancelled, stock released",
   },
 };
 
@@ -162,11 +151,11 @@ function TaskDialog({
 }: TaskDialogProps) {
   const [taskName, setTaskName] = useState(initialData?.taskName || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [actionType, setActionType] = useState<TaskActionType>(initialData?.actionType || "NO_CHANGE");
   const [inventorySearch, setInventorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [qty, setQty] = useState(initialData?.qty || 1);
   const [laborCost, setLaborCost] = useState(initialData?.laborCostSnapshot || 0);
+  const [openCombobox, setOpenCombobox] = useState(false);
 
   // Search results
   const searchResults = useMemo(() => {
@@ -179,7 +168,6 @@ function TaskDialog({
     if (isOpen) {
       setTaskName(initialData?.taskName || "");
       setDescription(initialData?.description || "");
-      setActionType(initialData?.actionType || "NO_CHANGE");
       setInventorySearch("");
       // Pre-select inventory item if provided (edit mode)
       if (initialInventoryItem) {
@@ -192,6 +180,7 @@ function TaskDialog({
           stockOnHand: initialInventoryItem.stockOnHand,
           stockReserved: initialInventoryItem.stockReserved,
         } as InventoryItem);
+        setInventorySearch(initialInventoryItem.name); // Set search input to item name
       } else {
         setSelectedItem(null);
       }
@@ -203,20 +192,18 @@ function TaskDialog({
   const handleSubmit = () => {
     if (!taskName.trim()) return;
 
-    // REPLACED action requires an inventory item
-    if (actionType === "REPLACED" && !selectedItem) {
-      return;
-    }
+    // Auto-derive action type from inventory selection
+    const derivedActionType: TaskActionType = (selectedItem && qty > 0) ? "REPLACED" : "LABOR_ONLY";
 
     const data: CreateTaskInput = {
       taskName: taskName.trim(),
       description: description.trim() || undefined,
-      actionType,
+      actionType: derivedActionType,
       laborCostSnapshot: laborCost,
     };
 
-    // If REPLACED and inventory item selected, include inventory details
-    if (actionType === "REPLACED" && selectedItem) {
+    // If inventory item selected, include inventory details
+    if (selectedItem && qty > 0) {
       data.inventoryItemId = selectedItem.id;
       data.qty = qty;
       data.unitPriceSnapshot = selectedItem.sellPrice ?? selectedItem.unitCost ?? 0;
@@ -226,8 +213,7 @@ function TaskDialog({
     onSubmit(data);
   };
 
-  const showInventorySection = actionType === "REPLACED";
-  const canSubmit = taskName.trim() && (actionType !== "REPLACED" || selectedItem);
+  const canSubmit = !!taskName.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -237,7 +223,7 @@ function TaskDialog({
             {mode === "add" ? "Add Task" : "Edit Task"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "add" 
+            {mode === "add"
               ? "Add a new task to this job card"
               : "Update task details"
             }
@@ -269,34 +255,7 @@ function TaskDialog({
             />
           </div>
 
-          {/* Action Type */}
-          <div className="space-y-2">
-            <Label>Action Type</Label>
-            <div className="flex gap-2">
-              {(Object.keys(ACTION_TYPE_CONFIG) as TaskActionType[]).map((type) => {
-                const config = ACTION_TYPE_CONFIG[type];
-                const Icon = config.icon;
-                const isActive = actionType === type;
 
-                return (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    className={cn(
-                      "flex-1 gap-1",
-                      isActive && config.activeColor
-                    )}
-                    onClick={() => setActionType(type)}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {config.label}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Labor Cost */}
           <div className="space-y-2">
@@ -311,64 +270,94 @@ function TaskDialog({
             />
           </div>
 
-          {/* Inventory Section - Only for REPLACED */}
-          {showInventorySection && (
+          {/* Inventory Section - Always visible */}
+          {
             <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
               <Label className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
-                Part/Item to Replace
+                Part/Item (optional)
               </Label>
 
-              {selectedItem ? (
-                <div className="flex items-center justify-between p-2 rounded border bg-background">
-                  <div>
-                    <p className="font-medium text-sm">{selectedItem.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedItem.stockKeepingUnit} · ₹{selectedItem.sellPrice?.toFixed(2)}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedItem(null)}
-                  >
-                    Change
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
+              <div className="relative">
+                <div className="relative">
                   <Input
+                    placeholder="Search parts to auto-fill..."
                     value={inventorySearch}
-                    onChange={(e) => setInventorySearch(e.target.value)}
-                    placeholder="Search inventory..."
+                    onChange={(e) => {
+                      setInventorySearch(e.target.value);
+                      if (selectedItem) {
+                        setSelectedItem(null); // Unlink if user types
+                      }
+                      setOpenCombobox(true);
+                    }}
+                    onFocus={() => setOpenCombobox(true)}
+                    onBlur={() => {
+                      // Small delay to allow click events to process if clicking an item
+                      setTimeout(() => setOpenCombobox(false), 200);
+                    }}
+                    className={cn(
+                      "pr-8",
+                      selectedItem && "border-emerald-500 ring-emerald-500/20"
+                    )}
                   />
-                  {searchResults.length > 0 && (
-                    <div className="border rounded-md max-h-32 overflow-y-auto">
-                      {searchResults.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-b-0"
-                          onClick={() => {
-                            setSelectedItem(item);
-                            setInventorySearch("");
-                          }}
-                        >
-                          <div className="font-medium">{item.name}</div>
-                          <div className="text-xs text-muted-foreground flex gap-2">
-                            <span>{item.stockKeepingUnit}</span>
-                            <span>₹{item.sellPrice?.toFixed(2)}</span>
-                            <span className={getStockAvailable(item) > 0 ? "text-green-500" : "text-red-500"}>
-                              {getStockAvailable(item)} available
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                  {selectedItem && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <Check className="h-4 w-4 text-emerald-500" />
                     </div>
                   )}
                 </div>
-              )}
+
+                {/* Custom Dropdown List - Replaces Popover to avoid Modal focus issues */}
+                {openCombobox && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95 overflow-hidden">
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                        Inventory
+                      </div>
+                      {searchResults.map((item) => (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                            selectedItem?.id === item.id && "bg-accent text-accent-foreground"
+                          )}
+                          onMouseDown={(e) => e.preventDefault()} // Prevent blur on Input
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setInventorySearch(item.name);
+                            setQty(1);
+                            setOpenCombobox(false);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span>{item.name}</span>
+                            {item.stockKeepingUnit && (
+                              <span className="text-xs text-muted-foreground">
+                                SKU: {item.stockKeepingUnit}
+                              </span>
+                            )}
+                            <span className={cn(
+                              "text-xs",
+                              getStockAvailable(item) > 0 ? "text-green-500" : "text-red-500"
+                            )}>
+                              {getStockAvailable(item)} available @ ₹{item.sellPrice?.toFixed(2)}
+                            </span>
+                          </div>
+                          {selectedItem?.id === item.id && (
+                            <Check className="ml-auto h-4 w-4" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {openCombobox && searchResults.length === 0 && inventorySearch && (
+                  <div className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border bg-popover text-popover-foreground shadow-md p-4 text-sm text-center text-muted-foreground">
+                    No parts found.
+                  </div>
+                )}
+              </div>
 
               {selectedItem && (
                 <div className="space-y-2">
@@ -391,21 +380,21 @@ function TaskDialog({
               )}
 
               {!selectedItem && (
-                <p className="text-xs text-amber-500 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  Select a part to continue
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  Search and select a part to auto-link inventory
                 </p>
               )}
             </div>
-          )}
+          }
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isLoading || !canSubmit}
           >
             {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -430,10 +419,10 @@ interface TaskItemProps {
   isUpdating: boolean;
 }
 
-function TaskItem({ 
-  task, 
-  disabled, 
-  onDelete, 
+function TaskItem({
+  task,
+  disabled,
+  onDelete,
   onStatusChange,
   onActionTypeChange,
   isUpdating,
@@ -441,13 +430,12 @@ function TaskItem({
   const actionConfig = ACTION_TYPE_CONFIG[task.actionType];
   const statusConfig = STATUS_CONFIG[task.taskStatus];
   const ActionIcon = actionConfig.icon;
-  
+
   // Can only edit action type for draft tasks
   const canEditActionType = task.taskStatus === "DRAFT" && !disabled;
 
   const isCompleted = task.taskStatus === "COMPLETED";
-  const isCancelled = task.taskStatus === "CANCELLED";
-  const isTerminal = isCompleted || isCancelled;
+  const isTerminal = isCompleted;
 
   // Calculate line total for REPLACED items
   const lineTotal = task.actionType === "REPLACED" && task.unitPriceSnapshot && task.qty
@@ -460,13 +448,9 @@ function TaskItem({
       case "DRAFT":
         return ["APPROVED"];
       case "APPROVED":
-        return ["IN_PROGRESS", "CANCELLED"];
-      case "IN_PROGRESS":
-        return ["COMPLETED", "CANCELLED"];
+        return ["DRAFT", "COMPLETED"];
       case "COMPLETED":
         return []; // Terminal
-      case "CANCELLED":
-        return ["DRAFT"]; // Can reactivate
       default:
         return [];
     }
@@ -532,8 +516,8 @@ function TaskItem({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Badge 
-            variant="outline" 
+          <Badge
+            variant="outline"
             className={cn("shrink-0 gap-1 text-xs", actionConfig.color)}
           >
             <ActionIcon className="h-3 w-3" />
@@ -562,9 +546,9 @@ function TaskItem({
           {validNextStatuses.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild disabled={disabled || isUpdating}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className={cn(
                     "h-7 px-2 gap-1 text-xs",
                     statusConfig.bgColor,
@@ -719,14 +703,8 @@ export function JobTasks({
         case "APPROVED":
           await taskActions.approve(taskId);
           break;
-        case "IN_PROGRESS":
-          await taskActions.startProgress(taskId);
-          break;
         case "COMPLETED":
           await taskActions.complete(taskId);
-          break;
-        case "CANCELLED":
-          await taskActions.cancel(taskId);
           break;
         case "DRAFT":
           await taskActions.reactivate(taskId);
@@ -741,8 +719,8 @@ export function JobTasks({
   };
 
   const handleActionTypeChange = async (
-    task: JobCardTaskWithItem, 
-    actionType: TaskActionType, 
+    task: JobCardTaskWithItem,
+    actionType: TaskActionType,
     openEditDialog?: boolean
   ) => {
     // If changing to REPLACED, always open edit dialog to ensure inventory is selected
@@ -758,7 +736,7 @@ export function JobTasks({
       return;
     }
 
-    // For NO_CHANGE and REPAIRED, update directly
+    // For LABOR_ONLY, update directly
     setUpdatingTaskId(task.id);
     try {
       await updateTask.mutateAsync({
@@ -821,7 +799,7 @@ export function JobTasks({
                   disabled={disabled}
                   onDelete={() => handleDeleteTask(task.id)}
                   onStatusChange={(status) => handleStatusChange(task.id, status)}
-                  onActionTypeChange={(actionType, openEditDialog) => 
+                  onActionTypeChange={(actionType, openEditDialog) =>
                     handleActionTypeChange(task, actionType, openEditDialog)
                   }
                   isUpdating={updatingTaskId === task.id}

@@ -4,7 +4,7 @@ import { UIJob } from "@/modules/job/application/job-transforms-service";
 interface PrintableTask {
   id: string;
   taskName: string;
-  actionType: 'NO_CHANGE' | 'REPAIRED' | 'REPLACED';
+  actionType: 'LABOR_ONLY' | 'REPLACED';
   taskStatus: string;
 }
 
@@ -565,15 +565,13 @@ export const usePrintableFunctions = ({
           const leftTask = tasks[leftIdx];
           const rightTask = tasks[rightIdx];
 
-          // Map task action types to display: REPLACED -> C (Changed), REPAIRED -> R, NO_CHANGE -> N
+          // Map task action types to display: REPLACED -> R (Replaced), LABOR_ONLY -> L (Labor Only)
           const leftChanged = leftTask?.actionType === 'REPLACED';
-          const leftRepaired = leftTask?.actionType === 'REPAIRED';
-          const leftNoChange = leftTask?.actionType === 'NO_CHANGE';
+          const leftLaborOnly = leftTask?.actionType === 'LABOR_ONLY';
           const leftCompleted = leftTask?.taskStatus === 'COMPLETED';
 
           const rightChanged = rightTask?.actionType === 'REPLACED';
-          const rightRepaired = rightTask?.actionType === 'REPAIRED';
-          const rightNoChange = rightTask?.actionType === 'NO_CHANGE';
+          const rightLaborOnly = rightTask?.actionType === 'LABOR_ONLY';
           const rightCompleted = rightTask?.taskStatus === 'COMPLETED';
 
           const leftStyle = leftCompleted ? 'text-decoration: line-through; color: #888;' : '';
@@ -582,15 +580,13 @@ export const usePrintableFunctions = ({
           rows.push('<tr>' +
             '<td class="task-cell" style="' + leftStyle + '">' + (leftTask ? escapeHtml(leftTask.taskName) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
-            '<span class="status-option"><span class="checkbox ' + (leftChanged ? 'checked' : '') + '">' + (leftChanged ? '✓' : '') + '</span>C</span>' +
-            '<span class="status-option"><span class="checkbox ' + (leftRepaired ? 'checked' : '') + '">' + (leftRepaired ? '✓' : '') + '</span>R</span>' +
-            '<span class="status-option"><span class="checkbox ' + (leftNoChange ? 'checked' : '') + '">' + (leftNoChange ? '✓' : '') + '</span>N</span>' +
+            '<span class="status-option"><span class="checkbox ' + (leftChanged ? 'checked' : '') + '">' + (leftChanged ? '✓' : '') + '</span>R</span>' +
+            '<span class="status-option"><span class="checkbox ' + (leftLaborOnly ? 'checked' : '') + '">' + (leftLaborOnly ? '✓' : '') + '</span>L</span>' +
             '</div></td>' +
             '<td class="task-cell" style="' + rightStyle + '">' + (rightTask ? escapeHtml(rightTask.taskName) : '') + '</td>' +
             '<td class="status-cell"><div class="status-checkboxes">' +
-            '<span class="status-option"><span class="checkbox ' + (rightChanged ? 'checked' : '') + '">' + (rightChanged ? '✓' : '') + '</span>C</span>' +
-            '<span class="status-option"><span class="checkbox ' + (rightRepaired ? 'checked' : '') + '">' + (rightRepaired ? '✓' : '') + '</span>R</span>' +
-            '<span class="status-option"><span class="checkbox ' + (rightNoChange ? 'checked' : '') + '">' + (rightNoChange ? '✓' : '') + '</span>N</span>' +
+            '<span class="status-option"><span class="checkbox ' + (rightChanged ? 'checked' : '') + '">' + (rightChanged ? '✓' : '') + '</span>R</span>' +
+            '<span class="status-option"><span class="checkbox ' + (rightLaborOnly ? 'checked' : '') + '">' + (rightLaborOnly ? '✓' : '') + '</span>L</span>' +
             '</div></td>' +
             '</tr>');
         }
@@ -599,7 +595,7 @@ export const usePrintableFunctions = ({
       })()}
             </tbody>
           </table>
-          <div style="font-size: 9px; color: #666; margin-top: 2px;">C = Changed | R = Repaired | N = No Change</div>
+          <div style="font-size: 9px; color: #666; margin-top: 2px;">R = Replaced | L = Labor Only</div>
         </div>
 
         <div class="section">

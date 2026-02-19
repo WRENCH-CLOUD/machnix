@@ -10,7 +10,6 @@ import type { TaskActionType } from '@/modules/job/domain/task.entity'
 const createTaskSchema = z.object({
   taskName: z.string().min(1).max(500),
   description: z.string().max(2000).optional(),
-  actionType: z.enum(['NO_CHANGE', 'REPAIRED', 'REPLACED']),
   inventoryItemId: z.string().uuid().optional(),
   qty: z.number().int().positive().optional(),
   unitPriceSnapshot: z.number().min(0).optional(),
@@ -18,13 +17,13 @@ const createTaskSchema = z.object({
   taxRateSnapshot: z.number().min(0).max(100).optional(),
 }).refine(
   (data) => {
-    // If action is REPLACED, inventory info is required
-    if (data.actionType === 'REPLACED') {
-      return data.inventoryItemId && data.qty && data.qty > 0
+    // If inventory item is set, qty is required
+    if (data.inventoryItemId) {
+      return data.qty && data.qty > 0
     }
     return true
   },
-  { message: 'REPLACED action requires inventoryItemId and qty > 0' }
+  { message: 'Inventory item requires qty > 0' }
 )
 
 /**
@@ -62,7 +61,7 @@ export async function GET(
     const withItems = searchParams.get('with_items') === 'true'
 
     const repository = new SupabaseTaskRepository(supabase, tenantId)
-    
+
     const tasks = withItems
       ? await repository.findByJobcardIdWithItems(jobcardId)
       : await repository.findByJobcardId(jobcardId)
@@ -113,7 +112,7 @@ export async function POST(
     // Parse and validate body
     const body = await request.json()
     const validationResult = createTaskSchema.safeParse(body)
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.errors },
@@ -174,12 +173,15 @@ export async function POST(
       }
     }
 
+    // Auto-derive action type from inventory linkage
+    const derivedActionType: TaskActionType = (input.inventoryItemId && input.qty && input.qty > 0) ? 'REPLACED' : 'LABOR_ONLY'
+
     const repository = new SupabaseTaskRepository(supabase, tenantId)
     const task = await repository.create({
       jobcardId,
       taskName: input.taskName,
       description: input.description,
-      actionType: input.actionType as TaskActionType,
+      actionType: derivedActionType,
       inventoryItemId: input.inventoryItemId,
       qty: input.qty,
       unitPriceSnapshot: input.unitPriceSnapshot,

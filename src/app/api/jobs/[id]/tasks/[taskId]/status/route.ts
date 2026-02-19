@@ -2,22 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
-import { SupabaseAllocationRepository } from '@/modules/inventory/infrastructure/allocation.repository.supabase'
 import { z } from 'zod'
 import type { TaskStatus } from '@/modules/job/domain/task.entity'
 
-// Status transition validation
+// Simplified status transitions (manager workflow)
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  'DRAFT': ['APPROVED', 'CANCELLED'],
-  'APPROVED': ['IN_PROGRESS', 'CANCELLED'],
-  'IN_PROGRESS': ['COMPLETED', 'APPROVED'], // Can go back to APPROVED
+  'DRAFT': ['APPROVED'],
+  'APPROVED': ['DRAFT', 'COMPLETED'],
   'COMPLETED': [], // Terminal state
-  'CANCELLED': ['DRAFT'], // Can reactivate
 }
 
 const updateStatusSchema = z.object({
-  taskStatus: z.enum(['DRAFT', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  taskStatus: z.enum(['DRAFT', 'APPROVED', 'COMPLETED']),
 })
 
 type RouteContext = { params: { id: string; taskId: string } } | { params: Promise<{ id: string; taskId: string }> }
@@ -26,11 +24,10 @@ type RouteContext = { params: { id: string; taskId: string } } | { params: Promi
  * PATCH /api/jobs/[id]/tasks/[taskId]/status
  * Update task status with inventory side effects
  * 
- * Status transitions and effects:
- * - DRAFT → APPROVED: Reserve inventory (if REPLACED)
- * - APPROVED → IN_PROGRESS: No inventory effect
- * - IN_PROGRESS → COMPLETED: Consume inventory (if REPLACED)
- * - Any → CANCELLED: Release reservation (if exists)
+ * Simplified transitions:
+ * - DRAFT → APPROVED: Reserve inventory (if task has linked inventory item)
+ * - APPROVED → DRAFT: Release reservation
+ * - APPROVED → COMPLETED: Lock task (consumption happens on job completion)
  */
 export async function PATCH(
   request: NextRequest,
@@ -67,7 +64,7 @@ export async function PATCH(
     // Parse and validate body
     const body = await request.json()
     const validationResult = updateStatusSchema.safeParse(body)
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.errors },
@@ -78,9 +75,9 @@ export async function PATCH(
     const { taskStatus: newStatus } = validationResult.data
 
     const taskRepository = new SupabaseTaskRepository(supabase, tenantId)
+    const allocationService = new InventoryAllocationService(supabase, tenantId)
     const inventoryRepository = new SupabaseInventoryRepository(supabase, tenantId)
-    const allocationRepository = new SupabaseAllocationRepository(supabase, tenantId)
-    
+
     // Get existing task
     const task = await taskRepository.findById(taskId)
     if (!task) {
@@ -98,7 +95,7 @@ export async function PATCH(
     const validNextStates = VALID_TRANSITIONS[currentStatus]
     if (!validNextStates.includes(newStatus)) {
       return NextResponse.json(
-        { 
+        {
           error: `Invalid status transition: ${currentStatus} → ${newStatus}`,
           allowedTransitions: validNextStates,
         },
@@ -106,94 +103,60 @@ export async function PATCH(
       )
     }
 
-    // Handle inventory side effects for REPLACED tasks
+    // Handle inventory side effects for tasks with linked inventory
     let updatedInventory = null
-    let allocationError = null
 
     if (task.actionType === 'REPLACED' && task.inventoryItemId && task.qty) {
       try {
         // DRAFT → APPROVED: Reserve inventory
         if (currentStatus === 'DRAFT' && newStatus === 'APPROVED') {
-          // Check stock availability
-          const item = await inventoryRepository.findById(task.inventoryItemId)
-          if (!item) {
-            return NextResponse.json({ error: 'Inventory item not found' }, { status: 400 })
-          }
-
-          const available = item.stockOnHand - (item.stockReserved || 0)
-          if (task.qty > available) {
+          const canReserveResult = await allocationService.canReserve(task.inventoryItemId, task.qty)
+          if (!canReserveResult.canReserve) {
             return NextResponse.json(
-              { 
+              {
                 error: 'INSUFFICIENT_STOCK',
-                message: `Cannot reserve ${task.qty} units. Only ${available} available.`,
-                stockAvailable: available,
+                message: `Cannot reserve ${task.qty} units. Only ${canReserveResult.available} available.`,
+                stockAvailable: canReserveResult.available,
                 stockRequested: task.qty,
               },
               { status: 409 }
             )
           }
 
-          // Reserve stock
-          await inventoryRepository.reserveStock(task.inventoryItemId, task.qty)
-
-          // Create allocation record
-          const allocation = await allocationRepository.create({
-            itemId: task.inventoryItemId,
-            jobcardId: task.jobcardId,
-            taskId: taskId, // Link allocation to task
-            quantityReserved: task.qty,
-            createdBy: user.id,
-          })
+          // Reserve via service (creates allocation + transaction record)
+          const reserveResult = await allocationService.reserveForTask(
+            taskId,
+            task.inventoryItemId,
+            task.qty,
+            task.jobcardId,
+            user.id,
+          )
 
           // Link allocation to task
-          await taskRepository.linkAllocation(taskId, allocation.id)
+          await taskRepository.linkAllocation(taskId, reserveResult.allocation.id)
 
           // Get updated inventory for response
           updatedInventory = await inventoryRepository.findById(task.inventoryItemId)
         }
 
-        // → COMPLETED: Consume inventory
-        if (newStatus === 'COMPLETED' && task.allocationId) {
-          const allocation = await allocationRepository.findById(task.allocationId)
-          if (allocation && allocation.status === 'reserved') {
-            // Consume the allocation
-            await allocationRepository.markConsumed(task.allocationId, task.qty)
+        // APPROVED → DRAFT: Release reservation
+        if (currentStatus === 'APPROVED' && newStatus === 'DRAFT' && task.allocationId) {
+          await allocationService.releaseForTask(taskId)
 
-            // Deduct from stock (both on-hand and reserved)
-            await inventoryRepository.consumeReservedStock(task.inventoryItemId, task.qty)
+          // Unlink allocation from task
+          await taskRepository.unlinkAllocation(taskId)
 
-            // Get updated inventory for response
-            updatedInventory = await inventoryRepository.findById(task.inventoryItemId)
-          }
+          // Get updated inventory for response
+          updatedInventory = await inventoryRepository.findById(task.inventoryItemId)
         }
 
-        // → CANCELLED: Release reservation
-        if (newStatus === 'CANCELLED' && task.allocationId) {
-          const allocation = await allocationRepository.findById(task.allocationId)
-          if (allocation && allocation.status === 'reserved') {
-            // Release the allocation
-            await allocationRepository.markReleased(task.allocationId)
-
-            // Unreserve stock
-            await inventoryRepository.unreserveStock(task.inventoryItemId, allocation.quantityReserved)
-
-            // Unlink allocation from task
-            await taskRepository.unlinkAllocation(taskId)
-
-            // Get updated inventory for response
-            updatedInventory = await inventoryRepository.findById(task.inventoryItemId)
-          }
-        }
-
-        // APPROVED → DRAFT (via CANCELLED → DRAFT): already handled by CANCELLED
-        // IN_PROGRESS → APPROVED: Release and re-reserve would be same, no action needed
+        // APPROVED → COMPLETED: No-op here. Consumption handled by job completion.
 
       } catch (error: unknown) {
         console.error('Inventory operation error:', error)
-        allocationError = error instanceof Error ? error.message : 'Unknown error'
-        // Don't proceed if inventory operation failed
+        const allocationError = error instanceof Error ? error.message : 'Unknown error'
         return NextResponse.json(
-          { 
+          {
             error: 'Inventory operation failed',
             details: allocationError,
           },
@@ -209,7 +172,7 @@ export async function PATCH(
       completedBy: newStatus === 'COMPLETED' ? user.id : undefined,
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       task: updatedTask,
       ...(updatedInventory && {
         inventoryUpdate: {

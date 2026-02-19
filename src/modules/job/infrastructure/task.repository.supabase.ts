@@ -108,7 +108,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async findByJobcardIdWithItems(jobcardId: string): Promise<JobCardTaskWithItem[]> {
     const tenantId = this.getContextTenantId()
-    
+
     // Get tasks
     const { data: tasks, error } = await this.supabase
       .schema('tenant')
@@ -126,7 +126,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
     const inventoryItemIds = tasks
       .map(t => t.inventory_item_id)
       .filter((id): id is string => id !== null)
-    
+
     interface InventoryItemPartial {
       id: string
       name: string
@@ -150,7 +150,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
     return tasks.map(row => {
       const task = this.toDomain(row)
       const item = row.inventory_item_id ? inventoryMap.get(row.inventory_item_id) : undefined
-      
+
       return {
         ...task,
         inventoryItem: item ? {
@@ -167,7 +167,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async create(input: CreateTaskInput): Promise<JobCardTask> {
     const tenantId = this.getContextTenantId()
-    
+
     const dbInput = {
       tenant_id: tenantId,
       jobcard_id: input.jobcardId,
@@ -196,7 +196,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async update(id: string, input: UpdateTaskInput): Promise<JobCardTask> {
     const tenantId = this.getContextTenantId()
-    
+
     // Build update object only with provided fields
     const updates: Record<string, unknown> = {}
     if (input.taskName !== undefined) updates.task_name = input.taskName
@@ -224,7 +224,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async updateStatus(id: string, input: UpdateTaskStatusInput): Promise<JobCardTask> {
     const tenantId = this.getContextTenantId()
-    
+
     const updates: Record<string, unknown> = {
       task_status: input.taskStatus,
     }
@@ -256,7 +256,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async softDelete(id: string, deletedBy?: string): Promise<void> {
     const tenantId = this.getContextTenantId()
-    
+
     const { error } = await this.supabase
       .schema('tenant')
       .from('job_card_tasks')
@@ -276,7 +276,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async findByJobcardIds(jobcardIds: string[]): Promise<JobCardTask[]> {
     if (jobcardIds.length === 0) return []
-    
+
     const tenantId = this.getContextTenantId()
     const { data, error } = await this.supabase
       .schema('tenant')
@@ -333,7 +333,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       .from('job_card_tasks')
       .select('*')
       .eq('jobcard_id', jobcardId)
-      .eq('task_status', 'IN_PROGRESS')
+      .eq('task_status', 'APPROVED')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
@@ -371,7 +371,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       .eq('tenant_id', tenantId)
       .not('inventory_item_id', 'is', null)
       .not('allocation_id', 'is', null)
-      .in('task_status', ['APPROVED', 'IN_PROGRESS'])
+      .eq('task_status', 'APPROVED')
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
 
@@ -385,7 +385,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async linkAllocation(taskId: string, allocationId: string): Promise<void> {
     const tenantId = this.getContextTenantId()
-    
+
     const { error } = await this.supabase
       .schema('tenant')
       .from('job_card_tasks')
@@ -398,7 +398,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async unlinkAllocation(taskId: string): Promise<void> {
     const tenantId = this.getContextTenantId()
-    
+
     const { error } = await this.supabase
       .schema('tenant')
       .from('job_card_tasks')
@@ -415,7 +415,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async linkEstimateItem(taskId: string, estimateItemId: string): Promise<void> {
     const tenantId = this.getContextTenantId()
-    
+
     const { error } = await this.supabase
       .schema('tenant')
       .from('job_card_tasks')
@@ -428,7 +428,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
 
   async unlinkEstimateItem(taskId: string): Promise<void> {
     const tenantId = this.getContextTenantId()
-    
+
     const { error } = await this.supabase
       .schema('tenant')
       .from('job_card_tasks')

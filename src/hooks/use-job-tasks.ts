@@ -3,11 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/supabase/client";
 import { queryKeys } from "@/hooks/queries";
-import type { 
-  JobCardTask, 
-  JobCardTaskWithItem, 
-  TaskStatus, 
-  TaskActionType 
+import type {
+  JobCardTask,
+  JobCardTaskWithItem,
+  TaskStatus,
+  TaskActionType
 } from "@/modules/job/domain/task.entity";
 
 // ============================================================================
@@ -76,7 +76,7 @@ interface TaskResponse {
  */
 export function useJobTasks(jobId: string, options?: { withItems?: boolean }) {
   const withItems = options?.withItems ?? true;
-  
+
   return useQuery({
     queryKey: taskQueryKeys.byJob(jobId),
     queryFn: async (): Promise<JobCardTaskWithItem[]> => {
@@ -143,12 +143,12 @@ export function useUpdateTask(jobId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      taskId, 
-      input 
-    }: { 
-      taskId: string; 
-      input: UpdateTaskInput 
+    mutationFn: async ({
+      taskId,
+      input
+    }: {
+      taskId: string;
+      input: UpdateTaskInput
     }): Promise<JobCardTask> => {
       const res = await api.patch(`/api/jobs/${jobId}/tasks/${taskId}`, input);
       if (!res.ok) {
@@ -174,21 +174,21 @@ export function useUpdateTaskStatus(jobId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      taskId, 
-      taskStatus 
-    }: { 
-      taskId: string; 
-      taskStatus: TaskStatus 
+    mutationFn: async ({
+      taskId,
+      taskStatus
+    }: {
+      taskId: string;
+      taskStatus: TaskStatus
     }): Promise<TaskResponse> => {
       const res = await api.patch(`/api/jobs/${jobId}/tasks/${taskId}/status`, { taskStatus });
       if (!res.ok) {
         const error = await res.json();
         // Pass through structured error for stock issues
         if (error.error === 'INSUFFICIENT_STOCK') {
-          const stockError = new Error(error.message) as Error & { 
-            code: string; 
-            stockAvailable: number; 
+          const stockError = new Error(error.message) as Error & {
+            code: string;
+            stockAvailable: number;
             stockRequested: number;
           };
           stockError.code = 'INSUFFICIENT_STOCK';
@@ -203,7 +203,7 @@ export function useUpdateTaskStatus(jobId: string) {
     onSuccess: (data, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.byJob(jobId) });
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.detail(jobId, taskId) });
-      
+
       // If inventory was updated, invalidate inventory cache
       if (data.inventoryUpdate) {
         queryClient.invalidateQueries({ queryKey: ["inventory-snapshot"] });
@@ -239,27 +239,21 @@ export function useDeleteTask(jobId: string) {
 // ============================================================================
 
 /**
- * Hook for common task actions (approve, complete, cancel)
+ * Hook for common task actions (approve, complete, reactivate)
  */
 export function useTaskActions(jobId: string) {
   const updateStatus = useUpdateTaskStatus(jobId);
 
   return {
-    approve: (taskId: string) => 
+    approve: (taskId: string) =>
       updateStatus.mutateAsync({ taskId, taskStatus: 'APPROVED' }),
-    
-    startProgress: (taskId: string) => 
-      updateStatus.mutateAsync({ taskId, taskStatus: 'IN_PROGRESS' }),
-    
-    complete: (taskId: string) => 
+
+    complete: (taskId: string) =>
       updateStatus.mutateAsync({ taskId, taskStatus: 'COMPLETED' }),
-    
-    cancel: (taskId: string) => 
-      updateStatus.mutateAsync({ taskId, taskStatus: 'CANCELLED' }),
-    
-    reactivate: (taskId: string) => 
+
+    reactivate: (taskId: string) =>
       updateStatus.mutateAsync({ taskId, taskStatus: 'DRAFT' }),
-    
+
     isLoading: updateStatus.isPending,
     error: updateStatus.error,
   };

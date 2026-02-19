@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 interface Task {
     id: string
     task_name: string
-    action_type: 'NO_CHANGE' | 'REPAIRED' | 'REPLACED'
+    action_type: 'LABOR_ONLY' | 'REPLACED'
     task_status: string
 }
 
@@ -74,7 +74,7 @@ export async function GET(
                 .select('id, task_name, action_type, task_status')
                 .eq('jobcard_id', jobId)
                 .is('deleted_at', null)
-                .in('action_type', ['REPLACED', 'REPAIRED'])
+                .eq('action_type', 'REPLACED')
 
             if (error || !tasks) {
                 return []
@@ -82,7 +82,7 @@ export async function GET(
 
             return (tasks as Task[]).map(task => ({
                 name: task.task_name,
-                status: task.action_type === 'REPLACED' ? 'changed' : 'repaired' as 'changed' | 'repaired'
+                status: 'changed' as 'changed' | 'repaired'
             }))
         }
 

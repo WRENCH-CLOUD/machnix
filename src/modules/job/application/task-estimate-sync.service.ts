@@ -11,8 +11,7 @@ import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/es
  * 
  * Sync rules:
  * - REPLACED tasks → estimate item with part and labor
- * - REPAIRED tasks → estimate item with labor only  
- * - NO_CHANGE tasks → no estimate item (inspection only)
+ * - LABOR_ONLY tasks → estimate item with labor only
  */
 export class TaskEstimateSyncService {
   private supabase: SupabaseClient
@@ -32,15 +31,7 @@ export class TaskEstimateSyncService {
    * Creates or updates the corresponding estimate_item
    */
   async syncTaskToEstimate(task: JobCardTask): Promise<string | null> {
-    // NO_CHANGE tasks don't need estimate items
-    if (task.actionType === 'NO_CHANGE') {
-      // If it had an estimate item before (action changed), unlink it
-      if (task.estimateItemId) {
-        await this.removeEstimateItem(task.estimateItemId)
-        await this.taskRepository.unlinkEstimateItem(task.id)
-      }
-      return null
-    }
+    // All tasks get estimate items now (REPLACED or LABOR_ONLY)
 
     // Get the estimate for this job
     const estimate = await this.getEstimateForJob(task.jobcardId)
@@ -59,16 +50,16 @@ export class TaskEstimateSyncService {
     } else {
       // Create new estimate item
       const estimateItem = await this.createEstimateItem(estimate.id, itemData, task.id)
-      
+
       // Link the estimate item back to the task
       await this.taskRepository.linkEstimateItem(task.id, estimateItem.id)
-      
+
       return estimateItem.id
     }
   }
 
   /**
-   * Remove the estimate item when a task is deleted or changed to NO_CHANGE
+   * Remove the estimate item when a task is deleted
    */
   async removeEstimateItemForTask(task: JobCardTask): Promise<void> {
     if (!task.estimateItemId) return
@@ -83,7 +74,7 @@ export class TaskEstimateSyncService {
    */
   async syncAllTasksForJob(jobcardId: string): Promise<void> {
     const tasks = await this.taskRepository.findByJobcardId(jobcardId)
-    
+
     for (const task of tasks) {
       await this.syncTaskToEstimate(task)
     }
@@ -101,7 +92,7 @@ export class TaskEstimateSyncService {
 
   private buildEstimateItemFromTask(task: JobCardTask): EstimateItemInput {
     const isReplaced = task.actionType === 'REPLACED'
-    
+
     return {
       partId: isReplaced ? task.inventoryItemId : undefined,
       customName: task.taskName,
@@ -113,7 +104,7 @@ export class TaskEstimateSyncService {
   }
 
   private async createEstimateItem(
-    estimateId: string, 
+    estimateId: string,
     item: EstimateItemInput,
     taskId: string
   ): Promise<{ id: string }> {
@@ -135,15 +126,15 @@ export class TaskEstimateSyncService {
       .single()
 
     if (error) throw error
-    
+
     // Recalculate estimate totals
     await this.recalculateEstimateTotals(estimateId)
-    
+
     return { id: data.id }
   }
 
   private async updateEstimateItem(
-    itemId: string, 
+    itemId: string,
     item: EstimateItemInput,
     taskId: string
   ): Promise<void> {
@@ -165,7 +156,7 @@ export class TaskEstimateSyncService {
       .single()
 
     if (error) throw error
-    
+
     // Recalculate estimate totals
     if (data?.estimate_id) {
       await this.recalculateEstimateTotals(data.estimate_id)
@@ -185,15 +176,15 @@ export class TaskEstimateSyncService {
     const { error } = await this.supabase
       .schema('tenant')
       .from('estimate_items')
-      .update({ 
+      .update({
         deleted_at: new Date().toISOString(),
-        task_id: null 
+        task_id: null
       })
       .eq('id', itemId)
       .eq('tenant_id', this.tenantId)
 
     if (error) throw error
-    
+
     // Recalculate estimate totals
     if (item?.estimate_id) {
       await this.recalculateEstimateTotals(item.estimate_id)
@@ -220,7 +211,7 @@ export class TaskEstimateSyncService {
     }
 
     const subtotal = partsTotal + laborTotal
-    
+
     // Update the estimate totals
     await this.supabase
       .schema('tenant')

@@ -4,22 +4,19 @@
  */
 
 /**
- * Action types determine inventory behavior
- * - NO_CHANGE: Inspection only, no action taken
- * - REPAIRED: Part/component was repaired (no inventory impact)
- * - REPLACED: Part was replaced (inventory consumption required)
+ * Action types — auto-derived from inventory linkage
+ * - LABOR_ONLY: No inventory impact (labor/repair only)
+ * - REPLACED: Part was replaced (inventory reservation + consumption)
  */
-export type TaskActionType = 'NO_CHANGE' | 'REPAIRED' | 'REPLACED'
+export type TaskActionType = 'LABOR_ONLY' | 'REPLACED'
 
 /**
- * Task lifecycle status
- * - DRAFT: Task created but not yet confirmed
- * - APPROVED: Customer approved, inventory reserved
- * - IN_PROGRESS: Mechanic working on task
- * - COMPLETED: Task done, inventory consumed (if REPLACED)
- * - CANCELLED: Task cancelled, reservations released
+ * Task lifecycle status (manager-only workflow)
+ * - DRAFT: Task created, editable, no inventory reservation
+ * - APPROVED: Customer approved, editable, inventory reserved (if REPLACED)
+ * - COMPLETED: Task done, locked — inventory consumed on job completion
  */
-export type TaskStatus = 'DRAFT' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+export type TaskStatus = 'DRAFT' | 'APPROVED' | 'COMPLETED'
 
 /**
  * Job Card Task Entity
@@ -28,32 +25,32 @@ export interface JobCardTask {
   id: string
   tenantId: string
   jobcardId: string
-  
+
   // Task description
   taskName: string
   description?: string
-  
+
   // Action type determines inventory behavior
   actionType: TaskActionType
-  
+
   // Inventory linkage (only when actionType = 'REPLACED')
   inventoryItemId?: string
   qty?: number
-  
+
   // Price snapshot (immutable after approval)
   unitPriceSnapshot?: number
   laborCostSnapshot: number
   taxRateSnapshot: number
-  
+
   // Task lifecycle status
   taskStatus: TaskStatus
-  
+
   // Allocation reference (for inventory reservation tracking)
   allocationId?: string
-  
+
   // Estimate item linkage (for customer-facing estimates)
   estimateItemId?: string
-  
+
   // Audit fields
   createdBy?: string
   approvedBy?: string
@@ -62,7 +59,7 @@ export interface JobCardTask {
   completedAt?: Date
   createdAt: Date
   updatedAt: Date
-  
+
   // Soft delete
   deletedAt?: Date
   deletedBy?: string
