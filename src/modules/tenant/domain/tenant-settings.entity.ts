@@ -21,7 +21,6 @@ export interface TenantSettings {
   // Notifications
   smsEnabled: boolean
   emailEnabled: boolean
-  whatsappEnabled: boolean
   
   // Prefixes
   invoicePrefix: string
