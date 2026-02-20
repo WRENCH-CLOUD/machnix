@@ -62,7 +62,7 @@ export default function AdminOverviewPage() {
       if (!response.ok) {
         throw new Error("Failed to fetch analytics");
       }
-      const { analytics } = await response.json();
+      // const { analytics } = await response.json();
       // setGlobalAnalytics(analytics);
     } catch (err) {
       console.error("Failed to load analytics:", err);

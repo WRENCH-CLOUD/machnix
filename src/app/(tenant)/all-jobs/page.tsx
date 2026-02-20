@@ -11,7 +11,7 @@ import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
 
 export default function AllJobsPage() {
-  const { user, tenantId } = useAuth()
+  const { tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
   const [transformedJobs, setTransformedJobs] = useState<UIJob[]>([])
   const { invalidateJobs } = useInvalidateQueries()
@@ -56,7 +56,7 @@ export default function AllJobsPage() {
     setSelectedJob(job)
   }
 
-  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => { //FIXME: this is a bit of a hack to get the jobId in the unpaid warning flow, need to refactor to have a more robust solution
     try {
       // Call API route - business logic is in the use case
       const response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })

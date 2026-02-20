@@ -27,7 +27,7 @@ type GarageProfile = {
 }
 
 export default function TenantSettingsPage() {
-  const { tenantId } = useAuth()
+  // const { tenantId } = useAuth()
   const { invalidateTenantSettings } = useInvalidateQueries()
   const [saving, setSaving] = useState(false)
   

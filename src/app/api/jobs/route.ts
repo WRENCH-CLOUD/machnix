@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { GetAllJobsUseCase } from '@/modules/job/application/get-all-jobs.use-case'
 import { createClient } from '@/lib/supabase/server'

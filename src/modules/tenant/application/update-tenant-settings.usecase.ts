@@ -15,7 +15,7 @@ export class UpdateTenantSettingsUseCase {
     }
 
     // Extract settings fields
-    const { name, ...settings } = data
+    const {...settings } = data
     if (Object.keys(settings).length > 0) {
       promises.push(this.tenantRepository.updateSettings(tenantId, settings))
       operations.push('updateSettings')

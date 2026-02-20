@@ -313,7 +313,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       .insert({
         tenant_id: tenantId,
         estimate_id: estimateId,
-        part_id: null,
+        part_id: item.partId || null,
         custom_name: item.customName,
         custom_part_number: item.customPartNumber || null,
         description: item.description || null,

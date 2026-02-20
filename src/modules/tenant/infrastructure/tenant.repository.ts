@@ -12,10 +12,6 @@ export interface TenantRepository {
   getSettings(tenantId: string): Promise<TenantSettings | null>
   updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void>
 
-  // Gupshup settings methods
-  getGupshupSettings(tenantId: string): Promise<GupshupSettings | null>
-  upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void>
-
   // Onboarding methods
   markOnboarded(tenantId: string): Promise<void>
 

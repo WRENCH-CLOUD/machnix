@@ -1,12 +1,12 @@
-import { JobRepository } from '../domain/job.repository'
 import { JobCard, JobStatus } from '../domain/job.entity'
+import { JobRepository } from '../domain/job.repository'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/application/generate-from-estimate.use-case'
 import { CustomerRepository } from '@/modules/customer/infrastructure/customer.repository'
 import { TenantRepository } from '@/modules/tenant/infrastructure/tenant.repository'
-import { gupshupService } from '@/lib/integrations/gupshup.service'
+import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 /**
  * Result types for UpdateJobStatusUseCase
@@ -46,6 +46,7 @@ export class UpdateJobStatusUseCase {
     private readonly invoiceRepository?: InvoiceRepository,
     private readonly customerRepository?: CustomerRepository,
     private readonly tenantRepository?: TenantRepository,
+    private readonly allocationService?: InventoryAllocationService,
   ) { }
 
   async execute(jobStatusCommand: jobStatusCommand): Promise<UpdateJobStatusResult> {
@@ -82,6 +83,28 @@ export class UpdateJobStatusUseCase {
       if (!completionCheck.success) {
         return completionCheck
       }
+
+      // Consume all reserved inventory allocations when job is completed
+      if (this.allocationService) {
+        try {
+          const consumeResult = await this.allocationService.consumeAllForJob(jobId)
+          console.log(`[UpdateJobStatusUseCase] Consumed ${consumeResult.totalQuantityConsumed} units for completed job ${jobId}`)
+        } catch (error) {
+          console.error('[UpdateJobStatusUseCase] Failed to consume allocations:', error)
+          // Don't block completion if consumption fails - log and continue
+        }
+      }
+    }
+
+    // Release all inventory allocations when job is cancelled
+    if (status === 'cancelled' && this.allocationService) {
+      try {
+        const releaseResult = await this.allocationService.releaseForJob(jobId)
+        console.log(`[UpdateJobStatusUseCase] Released ${releaseResult.totalQuantityReleased} units for cancelled job ${jobId}`)
+      } catch (error) {
+        console.error('[UpdateJobStatusUseCase] Failed to release allocations:', error)
+        // Don't block cancellation if release fails
+      }
     }
 
     // Update timestamps based on status
@@ -94,11 +117,6 @@ export class UpdateJobStatusUseCase {
     }
 
     const updatedJob = await this.repository.update(jobId, updates)
-
-    // Trigger WhatsApp Notification
-    if (this.tenantRepository && this.customerRepository && status !== currentStatus) {
-      await this.handleWhatsAppNotification(job, status, updatedJob)
-    }
 
     return { success: true, job: updatedJob }
   }
@@ -178,50 +196,7 @@ export class UpdateJobStatusUseCase {
 
     return { success: true }
   }
-   // Handle automated WhatsApp notifications logic
-  private async handleWhatsAppNotification(
-    originalJob: JobCard,
-    newStatus: JobStatus,
-    updatedJob: JobCard
-  ) {
-    try {
-      const settings = await this.tenantRepository!.getGupshupSettings(originalJob.tenantId)
-
-      // Check if active and mode is auto or both
-      if (!settings?.isActive) return
-      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return //FIXME: needs to setup and gupshup settings in tenant module.
-
-      // Determine event type
-      let event: 'job_ready' | 'job_delivered' | undefined
-
-      if (newStatus === 'ready') {
-        event = 'job_ready'
-      } else if (newStatus === 'completed') {
-        event = 'job_delivered'
-      }
-
-      if (!event) return
-
-      // Fetch customer for phone number
-      const customer = await this.customerRepository!.findById(originalJob.customerId)
-      if (!customer?.phone) return
-
-      // Send notification
-      await gupshupService.sendEventNotification(
-        settings,
-        event,
-        customer.phone,
-        {
-          customer_name: customer.name,
-          job_number: originalJob.jobNumber,
-          // Add other params as needed by your templates
-        }
-      )
-    } catch (error) {
-      // Log but don't fail the job update
-      console.error('[UpdateJobStatusUseCase] Failed to send WhatsApp:', error)
-    }
-  }
 }
+
 
 

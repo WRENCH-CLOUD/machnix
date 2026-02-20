@@ -69,7 +69,7 @@ async function checkAndSeedTenants() {
   ]
   
   for (const tenant of sampleTenants) {
-    const { data, error: insertError } = await supabase
+    const {error: insertError } = await supabase
       .schema('tenant')
       .from('tenants')
       .insert(tenant)

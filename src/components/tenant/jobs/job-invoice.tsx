@@ -45,7 +45,7 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
-  const { name, address, gstin } = tenantDetails;
+
 
   // Check if editing is allowed (only locked when job is completed)
   const isCompleted = job.status === "completed";

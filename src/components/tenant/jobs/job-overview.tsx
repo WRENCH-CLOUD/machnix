@@ -10,20 +10,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
-import { JobTodos } from "./job-todos";
-import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
 
+
+/** Minimal inventory item shape for search function */
+type InventorySearchItem = {
+  id: string;
+  name: string;
+  sellPrice?: number;
+  unitCost?: number;
+  stockOnHand?: number;
+  stockReserved?: number;
+  stockAvailable?: number;
+  stockKeepingUnit?: string;
+};
+
 interface JobOverviewProps {
   job: UIJob;
-  todos?: TodoItem[];
-  onAddTodo?: (text: string) => void;
-  onToggleTodo?: (todoId: string) => void;
-  onRemoveTodo?: (todoId: string) => void;
-  onUpdateTodo?: (todoId: string, text: string) => void;
-  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   notes?: string;
   onUpdateNotes?: (notes: string) => void;
   onViewJob?: (jobId: string) => void;
@@ -36,23 +41,20 @@ interface JobOverviewProps {
     labor_total?: number;
     tax_amount?: number;
     total_amount?: number;
-  };
+  } | null;
+  // For task system: inventory search function (accepts both full items and snapshot items)
+  searchInventory?: (query: string, limit?: number) => InventorySearchItem[];
 }
 
 export function JobOverview({
   job,
-  todos = [],
-  onAddTodo,
-  onToggleTodo,
-  onRemoveTodo,
-  onUpdateTodo,
-  onUpdateTodoStatus,
   notes,
   onUpdateNotes,
   onViewJob,
   isEditable = true,
   onMechanicChange,
   estimate,
+  searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
@@ -231,20 +233,6 @@ export function JobOverview({
           </CardContent>
         </Card>
 
-        {/* Task List - Primary */}
-        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
-          <JobTodos
-            todos={todos}
-            onAddTodo={onAddTodo}
-            onToggleTodo={onToggleTodo}
-            onRemoveTodo={onRemoveTodo}
-            onUpdateTodo={onUpdateTodo}
-            onUpdateTodoStatus={onUpdateTodoStatus}
-            disabled={!isEditable}
-            className="md:col-span-2"
-          />
-        )}
-
         {/* Complaints / Notes */}
         <Card>
           <CardHeader className="pb-3">
@@ -339,7 +327,7 @@ export function JobOverview({
           <CardContent>
             <div className="space-y-4">
               {enrichedJob.activities && enrichedJob.activities.length > 0 ? (
-                enrichedJob.activities.map((activity: any, index: number) => (
+                enrichedJob.activities.map((activity: { id: string; description: string; timestamp: string; user: string }, index: number) => (
                   <div key={activity.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="w-2 h-2 rounded-full bg-primary" />

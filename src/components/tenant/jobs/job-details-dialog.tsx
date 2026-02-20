@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Printer,
+  CheckCircle2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,46 @@ import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
+import { JobTasks } from "./job-tasks";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
-import { type TodoItem, type TodoStatus } from "./job-todos";
+import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+
+// Using compatible types that match what child components expect
+interface EstimatePartial {
+  id?: string;
+  parts_total?: number;
+  labor_total?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  estimate_items?: unknown[];
+}
+
+/** Minimal estimate item - only fields actually used */
+interface EstimateItemPartial {
+  id: string;
+  custom_name: string | null;
+  custom_part_number?: string | null;
+  qty: number;
+  unit_price: number;
+  labor_cost?: number | null;
+}
+
+interface InvoicePartial {
+  id?: string;
+  status?: string;
+  totalAmount?: number;
+  total_amount?: number;
+  is_gst_billed?: boolean;
+  isGstBilled?: boolean;
+  discount_percentage?: number;
+  discountPercentage?: number;
+  tax_amount?: number;
+  paid_amount?: number;
+  parts_total?: number;
+  labor_total?: number;
+  discount_amount?: number;
+}
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -41,15 +80,15 @@ interface JobDetailsDialogProps {
   isRefreshing?: boolean;
 
   // Estimate props
-  estimate: any;
-  estimateItems: any[];
+  estimate: EstimatePartial | null | undefined;
+  estimateItems: EstimateItemPartial[];
   onAddEstimateItem: (part: Part) => Promise<void>;
   onRemoveEstimateItem: (itemId: string) => Promise<void>;
   onUpdateEstimateItem?: (itemId: string, updates: { qty?: number; unitPrice?: number; laborCost?: number }) => Promise<void>;
   onGenerateEstimatePdf: () => void;
 
   // Invoice props
-  invoice: any;
+  invoice: InvoicePartial | null | undefined;
   loadingInvoice: boolean;
   onRetryInvoice: () => void;
   onMarkPaid: () => void;
@@ -60,6 +99,15 @@ interface JobDetailsDialogProps {
   onGstToggle?: (value: boolean) => void;
   discountPercentage?: number;
   onDiscountChange?: (value: number) => void;
+
+  // Inventory props
+  inventoryItems?: InventorySnapshotItem[];
+  loadingInventory?: boolean;
+  inventoryError?: Error | null;
+  /** Optimized search function from inventory snapshot */
+  searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
+  /** Function to refresh inventory from server */
+  onRefreshInventory?: () => void;
 
   // Payment Modal props
   showPaymentModal: boolean;
@@ -73,14 +121,6 @@ interface JobDetailsDialogProps {
     gstin: string;
   };
   onGenerateJobPdf?: () => void;
-
-  // Todo props
-  todos?: TodoItem[];
-  onAddTodo?: (text: string) => void;
-  onToggleTodo?: (todoId: string) => void;
-  onRemoveTodo?: (todoId: string) => void;
-  onUpdateTodo?: (todoId: string, text: string) => void;
-  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
 
   // Notes props
   notes?: string;
@@ -117,17 +157,19 @@ export function JobDetailsDialog({
   onPaymentComplete,
   tenantDetails,
   onGenerateJobPdf,
-  todos = [],
-  onAddTodo,
-  onToggleTodo,
-  onRemoveTodo,
-  onUpdateTodo,
-  onUpdateTodoStatus,
   notes,
   onUpdateNotes,
   onViewJob,
   onMechanicChange,
-  maxTodos = 5,
+  isGstBilled = true,
+  onGstToggle,
+  discountPercentage = 0,
+  onDiscountChange,
+  inventoryItems,
+  loadingInventory,
+  inventoryError,
+  searchInventory,
+  onRefreshInventory,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -317,6 +359,16 @@ export function JobDetailsDialog({
                   </TabsTrigger>
                 )}
 
+                {!isMechanicMode && (
+                  <TabsTrigger
+                    value="tasks"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Tasks
+                  </TabsTrigger>
+                )}
+
                 {/* DVI Tab skipped for now as per instructions (or logic is handled elsewhere, sticking to requested components) 
                     Actually, I should check if I missed DVI component. The prompt said "Migrate job-details.tsx component".
                     DVI logic was lines 975-1134. It's significant. 
@@ -359,30 +411,42 @@ export function JobDetailsDialog({
               <TabsContent value="overview" className="m-0 h-full">
                 <JobOverview
                   job={job}
-                  todos={todos}
-                  onAddTodo={onAddTodo}
-                  onToggleTodo={onToggleTodo}
-                  onRemoveTodo={onRemoveTodo}
-                  onUpdateTodo={onUpdateTodo}
-                  onUpdateTodoStatus={onUpdateTodoStatus}
                   notes={notes}
                   onUpdateNotes={onUpdateNotes}
                   onViewJob={onViewJob}
                   onMechanicChange={onMechanicChange}
                   isEditable={job.status !== "completed" && job.status !== "cancelled"}
                   estimate={estimate}
+                  searchInventory={searchInventory}
                 />
+              </TabsContent>
+
+              <TabsContent value="tasks" className="m-0 h-full">
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="p-4 md:p-6">
+                    <JobTasks
+                      jobId={job.id}
+                      disabled={job.status === "completed" || job.status === "cancelled"}
+                      searchInventory={searchInventory as any}
+                    />
+                  </div>
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">
                 <JobParts
-                  estimate={estimate}
+                  estimate={estimate ?? null}
                   estimateItems={estimateItems}
                   jobStatus={currentStatus}
                   onAddItem={onAddEstimateItem}
                   onRemoveItem={onRemoveEstimateItem}
                   onUpdateItem={onUpdateEstimateItem}
                   onGenerateEstimatePdf={onGenerateEstimatePdf}
+                  inventoryItems={inventoryItems}
+                  loadingInventory={loadingInventory}
+                  inventoryError={inventoryError}
+                  searchInventory={searchInventory}
+                  onRefreshInventory={onRefreshInventory}
                 />
               </TabsContent>
 
