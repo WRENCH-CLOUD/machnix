@@ -7,7 +7,6 @@ import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/applicatio
 import { CustomerRepository } from '@/modules/customer/infrastructure/customer.repository'
 import { TenantRepository } from '@/modules/tenant/infrastructure/tenant.repository'
 import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
-import { gupshupService } from '@/lib/integrations/gupshup.service'
 
 /**
  * Result types for UpdateJobStatusUseCase
@@ -119,11 +118,6 @@ export class UpdateJobStatusUseCase {
 
     const updatedJob = await this.repository.update(jobId, updates)
 
-    // Trigger WhatsApp Notification
-    if (this.tenantRepository && this.customerRepository && status !== currentStatus) {
-      await this.handleWhatsAppNotification(job, status, updatedJob)
-    }
-
     return { success: true, job: updatedJob }
   }
 
@@ -202,54 +196,5 @@ export class UpdateJobStatusUseCase {
 
     return { success: true }
   }
-
-  /**
-   * Handle automated WhatsApp notifications logic
-   */
-  private async handleWhatsAppNotification(
-    originalJob: JobCard,
-    newStatus: JobStatus,
-    updatedJob: JobCard
-  ) {
-    try {
-      const settings = await this.tenantRepository!.getGupshupSettings(originalJob.tenantId)
-
-      // Check if active and mode is auto or both
-      if (!settings?.isActive) return
-      if (settings.triggerMode !== 'auto' && settings.triggerMode !== 'both') return
-
-      // Determine event type
-      let event: 'job_ready' | 'job_delivered' | undefined
-
-      if (newStatus === 'ready') {
-        event = 'job_ready'
-      } else if (newStatus === 'completed') {
-        event = 'job_delivered'
-      }
-
-      if (!event) return
-
-      // Fetch customer for phone number
-      const customer = await this.customerRepository!.findById(originalJob.customerId)
-      if (!customer?.phone) return
-
-      // TODO: Implement sendEventNotification method in GupshupService
-      // Send notification
-      // await gupshupService.sendEventNotification(
-      //   settings,
-      //   event,
-      //   customer.phone,
-      //   {
-      //     customer_name: customer.name,
-      //     job_number: originalJob.jobNumber,
-      //   }
-      // )
-      console.log(`[UpdateJobStatusUseCase] Would send ${event} notification to ${customer.phone}`)
-    } catch (error) {
-      // Log but don't fail the job update
-      console.error('[UpdateJobStatusUseCase] Failed to send WhatsApp:', error)
-    }
-  }
 }
-
 
