@@ -66,8 +66,8 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
         {/* Right Section - Actions, User */}
         <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-shrink-0">
           {/* Create Job Button - icon only on mobile */}
-          <Button 
-            onClick={onCreateJob} 
+          <Button
+            onClick={onCreateJob}
             size={isMobile ? "sm" : "default"}
             className="gap-1 md:gap-2 px-2 md:px-4"
           >
@@ -79,10 +79,14 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
           <div className="scale-85 origin-center">
             <ThemeToggle />
           </div>
+          {/* notification */}
+          <div className="scale-85 origin-center">
+            {/* <Bell /> */}
+          </div>
 
           {/* User Profile Dropdown */}
           <div className="scale-80 origin-center">
-            <ProfileDropdown data={profileData} onSignOut={signOut}  />
+            <ProfileDropdown data={profileData} onSignOut={signOut} />
           </div>
         </div>
       </header>
