@@ -400,7 +400,7 @@ export function JobInvoice({
               </Button>
               <Button
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                disabled={!invoice || loading || (invoice.status === "paid" && job.status === "completed")}
+                disabled={loading || (invoice.status === "paid" && job.status === "completed")}
                 onClick={onMarkPaid}
               >
                 <Check className="w-4 h-4" />
