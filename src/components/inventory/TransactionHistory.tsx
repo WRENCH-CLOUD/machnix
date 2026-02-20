@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -73,8 +75,8 @@ export function TransactionHistory({ itemId }: TransactionHistoryProps) {
                   </TableCell>
                   <TableCell>
                     <span className={tx.transactionType.includes("out") || tx.transactionType === "sale" || tx.transactionType === "usage" ? "text-red-500" : "text-green-600"}>
-                        {tx.transactionType.includes("out") || tx.transactionType === "sale" || tx.transactionType === "usage" ? "-" : "+"}
-                        {tx.quantity}
+                      {tx.transactionType.includes("out") || tx.transactionType === "sale" || tx.transactionType === "usage" ? "-" : "+"}
+                      {tx.quantity}
                     </span>
                   </TableCell>
                   <TableCell>

@@ -5,7 +5,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 export interface RemoveEstimateItemResult {
   success: boolean
   releasedStock?: number
-  unllinkedTaskId?: string
+  unlinkedTaskId?: string
 }
 
 export class RemoveEstimateItemUseCase {
@@ -18,7 +18,7 @@ export class RemoveEstimateItemUseCase {
 
   async execute(itemId: string, createdBy?: string): Promise<RemoveEstimateItemResult> {
     let releasedStock: number | undefined
-    let unllinkedTaskId: string | undefined
+    let unlinkedTaskId: string | undefined
 
     // Release any stock allocation for this estimate item BEFORE removal
     if (this.allocationService) {
@@ -46,7 +46,7 @@ export class RemoveEstimateItemUseCase {
           .single()
 
         if (estimateItem?.task_id) {
-          unllinkedTaskId = estimateItem.task_id
+          unlinkedTaskId = estimateItem.task_id
 
           // Update the linked task: turn off showInEstimate and clear estimateItemId
           await this.supabase
@@ -70,7 +70,7 @@ export class RemoveEstimateItemUseCase {
     return {
       success: true,
       releasedStock,
-      unllinkedTaskId,
+      unlinkedTaskId,
     }
   }
 }

@@ -39,9 +39,9 @@ export async function POST(request: Request) {
     const { itemId, jobcardId, quantity, estimateItemId } = result.data
 
     const service = createInventoryAllocationService(supabase, tenantId)
-    
+
     const reserveResult = await service.reserveForEstimateItem(
-      estimateItemId || '',
+      estimateItemId ?? '',
       itemId,
       quantity,
       jobcardId,
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     console.error('Error reserving stock:', error)
-    
+
     // Handle insufficient stock error
     if (error instanceof InsufficientStockError) {
       return NextResponse.json({
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
     // Handle duplicate reservation
     if (error instanceof Error && error.message?.includes('already reserved')) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: error.message,
         code: 'ALREADY_RESERVED'
       }, { status: 409 })

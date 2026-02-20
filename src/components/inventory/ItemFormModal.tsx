@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,25 +63,25 @@ export function ItemFormModal({
 
   useEffect(() => {
     if (open) {
-        if (initialData) {
+      if (initialData) {
         form.reset({
-            stockKeepingUnit: initialData.stockKeepingUnit || "",
-            name: initialData.name,
-            unitCost: initialData.unitCost,
-            sellPrice: initialData.sellPrice,
-            stockOnHand: initialData.stockOnHand,
-            reorderLevel: initialData.reorderLevel,
+          stockKeepingUnit: initialData.stockKeepingUnit || "",
+          name: initialData.name,
+          unitCost: initialData.unitCost,
+          sellPrice: initialData.sellPrice,
+          stockOnHand: initialData.stockOnHand,
+          reorderLevel: initialData.reorderLevel,
         });
-        } else {
-            form.reset({
-                stockKeepingUnit: "",
-                name: "",
-                unitCost: 0,
-                sellPrice: 0,
-                stockOnHand: 0,
-                reorderLevel: 0,
-            });
-        }
+      } else {
+        form.reset({
+          stockKeepingUnit: "",
+          name: "",
+          unitCost: 0,
+          sellPrice: 0,
+          stockOnHand: 0,
+          reorderLevel: 0,
+        });
+      }
     }
   }, [initialData, form, open]);
 
@@ -111,85 +113,85 @@ export function ItemFormModal({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-                <FormField
+              <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                    <FormItem className="col-span-2">
+                  <FormItem className="col-span-2">
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                        <Input placeholder="Oil Filter" {...field} />
+                      <Input placeholder="Oil Filter" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="stockKeepingUnit"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Stock Keeping Unit</FormLabel>
                     <FormControl>
-                        <Input placeholder="OF-123" {...field} />
+                      <Input placeholder="OF-123" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                 <FormField
+              />
+              <FormField
                 control={form.control}
                 name="stockOnHand"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Stock On Hand</FormLabel>
                     <FormControl>
-                        <Input type="number" min="0" {...field} disabled={mode === "edit"} />
+                      <Input type="number" min="0" {...field} disabled={mode === "edit"} />
                     </FormControl>
                     <FormMessage />
                     {mode === 'edit' && <p className="text-xs text-muted-foreground">Use Adjust Stock to change quantity</p>}
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="unitCost"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Unit Cost</FormLabel>
                     <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
+                      <Input type="number" min="0" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="sellPrice"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Sell Price</FormLabel>
                     <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
+                      <Input type="number" min="0" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="reorderLevel"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem>
                     <FormLabel>Reorder Level</FormLabel>
                     <FormControl>
-                        <Input type="number" min="0" {...field} />
+                      <Input type="number" min="0" {...field} />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

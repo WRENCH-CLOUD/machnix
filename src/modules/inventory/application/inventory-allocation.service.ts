@@ -39,7 +39,7 @@ export class InventoryAllocationService {
     const client = supabase || defaultSupabase
     this.inventoryRepository = new SupabaseInventoryRepository(client, tenantId)
     this.allocationRepository = new SupabaseAllocationRepository(client, tenantId)
-    
+
     this.reserveStockUseCase = new ReserveStockUseCase(
       this.inventoryRepository,
       this.allocationRepository
@@ -111,9 +111,9 @@ export class InventoryAllocationService {
    * Consume ALL reserved allocations for a job card
    * Called when job is completed - all quoted parts are assumed used
    */
-  async consumeAllForJob(jobcardId: string, createdBy?: string): Promise<{ 
+  async consumeAllForJob(jobcardId: string, createdBy?: string): Promise<{
     consumedAllocations: InventoryAllocation[]
-    totalQuantityConsumed: number 
+    totalQuantityConsumed: number
   }> {
     const reservedAllocations = await this.allocationRepository.findReservedByJobcard(jobcardId)
     const consumedAllocations: InventoryAllocation[] = []
@@ -154,6 +154,17 @@ export class InventoryAllocationService {
   async releaseForEstimateItem(estimateItemId: string, createdBy?: string): Promise<ReleaseStockResult> {
     return this.releaseStockUseCase.execute({
       estimateItemId,
+      createdBy,
+    })
+  }
+
+  /**
+   * Release reservation by allocation ID
+   * Called when releasing a specific known allocation
+   */
+  async releaseByAllocationId(allocationId: string, createdBy?: string): Promise<ReleaseStockResult> {
+    return this.releaseStockUseCase.execute({
+      allocationId,
       createdBy,
     })
   }
@@ -209,7 +220,7 @@ export class InventoryAllocationService {
     }
 
     const available = getStockAvailable(item)
-    
+
     if (available >= quantity) {
       return { canReserve: true, available }
     }

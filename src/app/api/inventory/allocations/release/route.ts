@@ -41,10 +41,10 @@ export async function POST(request: Request) {
     const { allocationId, estimateItemId, jobcardId } = result.data
 
     const service = createInventoryAllocationService(supabase, tenantId)
-    
+
     let releaseResult
     if (allocationId) {
-      releaseResult = await service.releaseForEstimateItem(allocationId, user.id)
+      releaseResult = await service.releaseByAllocationId(allocationId, user.id)
     } else if (estimateItemId) {
       releaseResult = await service.releaseForEstimateItem(estimateItemId, user.id)
     } else if (jobcardId) {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     console.error('Error releasing stock:', error)
-    
+
     if (error instanceof AllocationNotFoundError) {
       return NextResponse.json({
         error: error.message,
