@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS tenant.jobcards (
 CREATE TABLE IF NOT EXISTS tenant.parts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
-  sku text,
+  stock_keeping_unit text,
   name text NOT NULL,
   description text,
   unit_cost numeric(12,2) DEFAULT 0,

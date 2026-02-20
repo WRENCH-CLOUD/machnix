@@ -56,7 +56,6 @@ export default function TransactionsPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "completed":
-            case "success":
                 return <Badge className="bg-emerald-500/20 text-emerald-400 border-0">Completed</Badge>;
             case "pending":
             case "initiated":
@@ -135,7 +134,6 @@ export default function TransactionsPage() {
                             <SelectContent>
                                 <SelectItem value="all">All Status</SelectItem>
                                 <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="success">Success</SelectItem>
                                 <SelectItem value="pending">Pending</SelectItem>
                                 <SelectItem value="initiated">Initiated</SelectItem>
                                 <SelectItem value="failed">Failed</SelectItem>

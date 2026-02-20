@@ -15,14 +15,15 @@ import {
   useGenerateInvoice,
   useRecordPayment,
   useUpdateJobStatus,
-  useUpdateJobTodos,
   useUpdateJobNotes,
   useVehicleJobHistory,
   useUpdateInvoice,
   transformTenantSettingsForJobDetails,
+  StockError,
 } from "@/hooks/queries";
+import { useInventorySnapshot } from "@/hooks/use-inventory-snapshot";
+import { useJobTasks } from "@/hooks/use-job-tasks";
 import { usePrintableFunctions } from "./printable-function";
-import { type TodoItem, type TodoStatus, generateTodoId } from "@/modules/job/domain/todo.types";
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -61,6 +62,15 @@ export function JobDetailsContainer({
   const { data: tenantSettings } = useTenantSettings();
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
+  // Inventory snapshot with delta sync (efficient caching across session)
+  const { 
+    items: inventoryItems, 
+    isLoading: loadingInventory, 
+    error: inventoryError,
+    searchItems,
+    refresh: refreshInventory,
+  } = useInventorySnapshot();
+
   const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(//FIXME: used to get estimate items, but should refactor to have a separate query for estimate items to avoid refetching entire estimate when items change
     job.id,
     {
@@ -76,6 +86,9 @@ export function JobDetailsContainer({
   // Service history for print
   const { data: serviceHistoryData } = useVehicleJobHistory(job.vehicle.id, job.id);
 
+  // Job tasks for print
+  const { data: tasks = [] } = useJobTasks(job.id);
+
   // Mutations
   const addItemMutation = useAddEstimateItem(job.id);
   const removeItemMutation = useRemoveEstimateItem(job.id);
@@ -83,7 +96,6 @@ export function JobDetailsContainer({
   const generateInvoiceMutation = useGenerateInvoice(job.id);
   const recordPaymentMutation = useRecordPayment(job.id);
   const updateStatusMutation = useUpdateJobStatus(job.id);
-  const updateTodosMutation = useUpdateJobTodos(job.id);
   const updateNotesMutation = useUpdateJobNotes(job.id);
   const updateInvoiceMutation = useUpdateInvoice(job.id);
 
@@ -139,21 +151,11 @@ export function JobDetailsContainer({
     };
   }, []);
 
-  // Helper to normalize todos (add default status for legacy todos)
-  const normalizeTodos = (todos: any[]): TodoItem[] => {
-    return (todos || []).map(t => ({
-      ...t,
-      status: t.status ?? null,
-    }));
-  };
-
-  // Local state for todos and notes (optimistic updates)
-  const [localTodos, setLocalTodos] = useState<TodoItem[]>(normalizeTodos(job.todos || []));
+  // Local state for notes (optimistic updates)
   const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
 
   // Sync local state when job changes
   useEffect(() => {
-    setLocalTodos(normalizeTodos(job.todos || []));
     setLocalNotes(job.complaints || "");
   }, [job.id]);
 
@@ -167,6 +169,7 @@ export function JobDetailsContainer({
 
   // Handlers
   const handleAddEstimateItem = async (part: {
+    inventoryItemId?: string;
     name: string;
     partNumber?: string;
     quantity: number;
@@ -178,12 +181,23 @@ export function JobDetailsContainer({
     try {
       await addItemMutation.mutateAsync({
         estimateId: estimate.id,
-        item: part,
+        item: {
+          ...part,
+          partId: part.inventoryItemId,
+        },
       });
       toast.success("Item added to estimate");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding item:", error);
-      toast.error("Failed to add item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} units available. Cannot add ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to add item");
+      }
     }
   };
 
@@ -204,9 +218,17 @@ export function JobDetailsContainer({
     try {
       await updateItemMutation.mutateAsync({ itemId, updates });
       toast.success("Item updated");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating item:", error);
-      toast.error("Failed to update item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} additional units available. Cannot increase to ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to update item");
+      }
     }
   };
 
@@ -217,16 +239,6 @@ export function JobDetailsContainer({
   const handleMarkPaid = async () => {
     // If already paid, direct completion (bypass payment modal)
     if (invoice?.status === "paid") {
-      // Guardrail: Ensure all todos have a status
-      const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
-      if (todosWithUnassignedStatus.length > 0) {
-        toast.warning(
-          `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
-          { duration: 5000 }
-        );
-        return;
-      }
-
       try {
         await updateStatusMutation.mutateAsync("completed");
         toast.success("Job completed successfully");
@@ -243,19 +255,6 @@ export function JobDetailsContainer({
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     try {
-      // Guardrail: When job is being completed/ready, ensure all todos have a status
-      // Block completion if any todo has no status assigned
-      if (newStatus === "completed" || newStatus === "ready") {
-        const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
-        if (todosWithUnassignedStatus.length > 0) {
-          toast.warning(
-            `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
-            { duration: 5000 }
-          );
-          return; // Block the status change
-        }
-      }
-
       await updateStatusMutation.mutateAsync(newStatus);
       toast.success(`Job status updated to ${newStatus}`);
       onJobUpdate?.();
@@ -281,7 +280,12 @@ export function JobDetailsContainer({
     tenantDetails,
     estimate,
     notes: localNotes,
-    todos: localTodos,
+    tasks: tasks.map(t => ({
+      id: t.id,
+      taskName: t.taskName,
+      actionType: t.actionType,
+      taskStatus: t.taskStatus,
+    })),
     serviceHistory: serviceHistoryData,
     isGstBilled,
     discountPercentage,
@@ -302,96 +306,6 @@ export function JobDetailsContainer({
       toast.success("Invoice generated");
     } catch (error) {
       console.error("Error generating invoice:", error);
-    }
-  };
-
-  // Todo handlers
-  const handleAddTodo = async (text: string) => {
-    const newTodo: TodoItem = {
-      id: generateTodoId(),
-      text,
-      completed: false,
-      status: null,
-      createdAt: new Date().toISOString(),
-    };
-    const previousTodos = localTodos;
-    const updatedTodos = [...localTodos, newTodo];
-    setLocalTodos(updatedTodos);
-
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error adding todo:", error);
-      setLocalTodos(previousTodos); // Revert on error
-      toast.error("Failed to add task");
-    }
-  };
-
-  const handleToggleTodo = async (todoId: string) => {
-    const previousTodos = localTodos;
-    const updatedTodos = localTodos.map((t) =>
-      t.id === todoId
-        ? {
-          ...t,
-          completed: !t.completed,
-          completedAt: !t.completed ? new Date().toISOString() : undefined,
-        }
-        : t
-    );
-    setLocalTodos(updatedTodos);
-
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error toggling todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
-  };
-
-  const handleRemoveTodo = async (todoId: string) => {
-    const previousTodos = localTodos;
-    const updatedTodos = localTodos.filter((t) => t.id !== todoId);
-    setLocalTodos(updatedTodos);
-
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error removing todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to remove task");
-    }
-  };
-
-  const handleUpdateTodo = async (todoId: string, text: string) => {
-    const previousTodos = localTodos;
-    const updatedTodos = localTodos.map((t) =>
-      t.id === todoId ? { ...t, text } : t
-    );
-    setLocalTodos(updatedTodos);
-
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task");
-    }
-  };
-
-  const handleUpdateTodoStatus = async (todoId: string, status: TodoStatus) => {
-    const previousTodos = localTodos;
-    const updatedTodos = localTodos.map((t) =>
-      t.id === todoId ? { ...t, status } : t
-    );
-    setLocalTodos(updatedTodos);
-
-    try {
-      await updateTodosMutation.mutateAsync(updatedTodos);
-    } catch (error) {
-      console.error("Error updating todo status:", error);
-      setLocalTodos(previousTodos);
-      toast.error("Failed to update task status");
     }
   };
 
@@ -433,16 +347,6 @@ export function JobDetailsContainer({
 
   const handlePaymentComplete = async (method: string) => {
     if (!invoice) return;
-
-    // Guardrail: Ensure all todos have a status before completing via payment
-    const todosWithUnassignedStatus = localTodos.filter(t => t.status === null);
-    if (todosWithUnassignedStatus.length > 0) {
-      toast.warning(
-        `Please set status (Changed/Repaired/No Change) for ${todosWithUnassignedStatus.length} task(s) before completing the job.`,
-        { duration: 5000 }
-      );
-      throw new Error("Tasks require status assignment"); // Throw to keep payment modal open
-    }
 
     try {
       // 1. Record Payment
@@ -491,13 +395,6 @@ export function JobDetailsContainer({
       onPaymentComplete={handlePaymentComplete}
       onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
-      // Todo props
-      todos={localTodos}
-      onAddTodo={handleAddTodo}
-      onToggleTodo={handleToggleTodo}
-      onRemoveTodo={handleRemoveTodo}
-      onUpdateTodo={handleUpdateTodo}
-      onUpdateTodoStatus={handleUpdateTodoStatus}
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}
@@ -506,6 +403,12 @@ export function JobDetailsContainer({
       onGstToggle={handleGstToggle}
       discountPercentage={discountPercentage}
       onDiscountChange={handleDiscountChange}
+      // Inventory props (using delta-sync snapshot for efficient caching)
+      inventoryItems={inventoryItems}
+      loadingInventory={loadingInventory}
+      inventoryError={inventoryError}
+      searchInventory={searchItems}
+      onRefreshInventory={refreshInventory}
     />
   );
 }

@@ -17,6 +17,9 @@ import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/es
 import type { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 
+import type { InventoryRepository } from '@/modules/inventory/domain/inventory.repository'
+import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
+
 import type { JobRepository } from '@/modules/job/domain/job.repository'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 
@@ -35,6 +38,7 @@ export const REPOSITORY_TOKENS = {
   customer: 'CustomerRepository',
   estimate: 'EstimateRepository',
   invoice: 'InvoiceRepository',
+  inventory: 'InventoryRepository',
   job: 'JobRepository',
   user: 'UserRepository',
   vehicle: 'VehicleRepository'
@@ -46,6 +50,7 @@ container.registerSingleton<TenantRepository>(REPOSITORY_TOKENS.tenant, Supabase
 container.registerSingleton<CustomerRepository>(REPOSITORY_TOKENS.customer, SupabaseCustomerRepository)
 container.registerSingleton<EstimateRepository>(REPOSITORY_TOKENS.estimate, SupabaseEstimateRepository)
 container.registerSingleton<InvoiceRepository>(REPOSITORY_TOKENS.invoice, SupabaseInvoiceRepository)
+container.registerSingleton<InventoryRepository>(REPOSITORY_TOKENS.inventory, SupabaseInventoryRepository)
 container.registerSingleton<JobRepository>(REPOSITORY_TOKENS.job, SupabaseJobRepository)
 container.registerSingleton<UserRepository>(REPOSITORY_TOKENS.user, SupabaseUserRepository)
 container.registerSingleton<VehicleRepository>(REPOSITORY_TOKENS.vehicle, SupabaseVehicleRepository)

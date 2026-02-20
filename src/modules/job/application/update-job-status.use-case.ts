@@ -6,6 +6,7 @@ import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/application/generate-from-estimate.use-case'
 import { CustomerRepository } from '@/modules/customer/infrastructure/customer.repository'
 import { TenantRepository } from '@/modules/tenant/infrastructure/tenant.repository'
+import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 /**
  * Result types for UpdateJobStatusUseCase
@@ -45,6 +46,7 @@ export class UpdateJobStatusUseCase {
     private readonly invoiceRepository?: InvoiceRepository,
     private readonly customerRepository?: CustomerRepository,
     private readonly tenantRepository?: TenantRepository,
+    private readonly allocationService?: InventoryAllocationService,
   ) { }
 
   async execute(jobStatusCommand: jobStatusCommand): Promise<UpdateJobStatusResult> {
@@ -80,6 +82,28 @@ export class UpdateJobStatusUseCase {
       const completionCheck = await this.ensureCompletionRequirements(job)
       if (!completionCheck.success) {
         return completionCheck
+      }
+
+      // Consume all reserved inventory allocations when job is completed
+      if (this.allocationService) {
+        try {
+          const consumeResult = await this.allocationService.consumeAllForJob(jobId)
+          console.log(`[UpdateJobStatusUseCase] Consumed ${consumeResult.totalQuantityConsumed} units for completed job ${jobId}`)
+        } catch (error) {
+          console.error('[UpdateJobStatusUseCase] Failed to consume allocations:', error)
+          // Don't block completion if consumption fails - log and continue
+        }
+      }
+    }
+
+    // Release all inventory allocations when job is cancelled
+    if (status === 'cancelled' && this.allocationService) {
+      try {
+        const releaseResult = await this.allocationService.releaseForJob(jobId)
+        console.log(`[UpdateJobStatusUseCase] Released ${releaseResult.totalQuantityReleased} units for cancelled job ${jobId}`)
+      } catch (error) {
+        console.error('[UpdateJobStatusUseCase] Failed to release allocations:', error)
+        // Don't block cancellation if release fails
       }
     }
 
