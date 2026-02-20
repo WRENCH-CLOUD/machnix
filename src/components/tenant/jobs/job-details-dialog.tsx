@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Printer,
+  CheckCircle2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
+import { JobTasks } from "./job-tasks";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
 
@@ -352,6 +355,16 @@ export function JobDetailsDialog({
                   </TabsTrigger>
                 )}
 
+                {!isMechanicMode && (
+                  <TabsTrigger
+                    value="tasks"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Tasks
+                  </TabsTrigger>
+                )}
+
                 {/* DVI Tab skipped for now as per instructions (or logic is handled elsewhere, sticking to requested components) 
                     Actually, I should check if I missed DVI component. The prompt said "Migrate job-details.tsx component".
                     DVI logic was lines 975-1134. It's significant. 
@@ -402,6 +415,18 @@ export function JobDetailsDialog({
                   estimate={estimate}
                   searchInventory={searchInventory}
                 />
+              </TabsContent>
+
+              <TabsContent value="tasks" className="m-0 h-full">
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="p-4 md:p-6">
+                    <JobTasks
+                      jobId={job.id}
+                      disabled={job.status === "completed" || job.status === "cancelled"}
+                      searchInventory={searchInventory as any}
+                    />
+                  </div>
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">

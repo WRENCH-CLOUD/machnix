@@ -33,6 +33,7 @@ export interface CreateTaskInput {
   unitPriceSnapshot?: number;
   laborCostSnapshot?: number;
   taxRateSnapshot?: number;
+  showInEstimate?: boolean;
 }
 
 export interface UpdateTaskInput {
@@ -44,6 +45,7 @@ export interface UpdateTaskInput {
   unitPriceSnapshot?: number;
   laborCostSnapshot?: number;
   taxRateSnapshot?: number;
+  showInEstimate?: boolean;
 }
 
 export interface TaskStatusUpdate {

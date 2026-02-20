@@ -10,12 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
-import { JobTasks } from "./job-tasks";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
 
-import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 
 /** Minimal inventory item shape for search function */
 type InventorySearchItem = {
@@ -238,14 +236,6 @@ export function JobOverview({
             )}
           </CardContent>
         </Card>
-
-        {/* Task List */}
-        <JobTasks
-          jobId={job.id}
-          disabled={!isEditable}
-          searchInventory={searchInventory as ((query: string, limit?: number) => InventoryItem[]) | undefined}
-          className="md:col-span-2"
-        />
 
         {/* Complaints / Notes */}
         <Card>

@@ -51,6 +51,9 @@ export interface JobCardTask {
   // Estimate item linkage (for customer-facing estimates)
   estimateItemId?: string
 
+  // Whether this task should appear in the customer estimate
+  showInEstimate: boolean
+
   // Audit fields
   createdBy?: string
   approvedBy?: string
@@ -121,6 +124,7 @@ export interface CreateTaskInput {
   unitPriceSnapshot?: number
   laborCostSnapshot?: number
   taxRateSnapshot?: number
+  showInEstimate?: boolean
   createdBy?: string
 }
 
@@ -133,6 +137,7 @@ export interface UpdateTaskInput {
   unitPriceSnapshot?: number
   laborCostSnapshot?: number
   taxRateSnapshot?: number
+  showInEstimate?: boolean
 }
 
 export interface UpdateTaskStatusInput {
@@ -160,6 +165,7 @@ export interface JobCardTaskRow {
   task_status: TaskStatus
   allocation_id: string | null
   estimate_item_id: string | null
+  show_in_estimate: boolean
   created_by: string | null
   approved_by: string | null
   approved_at: string | null

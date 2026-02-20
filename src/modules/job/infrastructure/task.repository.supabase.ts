@@ -32,6 +32,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       taskStatus: row.task_status as TaskStatus,
       allocationId: row.allocation_id ?? undefined,
       estimateItemId: row.estimate_item_id ?? undefined,
+      showInEstimate: row.show_in_estimate ?? true,
       createdBy: row.created_by ?? undefined,
       approvedBy: row.approved_by ?? undefined,
       approvedAt: row.approved_at ? new Date(row.approved_at) : undefined,
@@ -60,6 +61,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       task_status: entity.taskStatus,
       allocation_id: entity.allocationId ?? null,
       estimate_item_id: entity.estimateItemId ?? null,
+      show_in_estimate: entity.showInEstimate ?? true,
       created_by: entity.createdBy ?? null,
       approved_by: entity.approvedBy ?? null,
       approved_at: entity.approvedAt?.toISOString() ?? null,
@@ -181,6 +183,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       tax_rate_snapshot: input.taxRateSnapshot ?? 0,
       task_status: 'DRAFT' as TaskStatus,
       created_by: input.createdBy ?? null,
+      show_in_estimate: input.showInEstimate ?? true,
     }
 
     const { data, error } = await this.supabase
@@ -207,6 +210,7 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
     if (input.unitPriceSnapshot !== undefined) updates.unit_price_snapshot = input.unitPriceSnapshot
     if (input.laborCostSnapshot !== undefined) updates.labor_cost_snapshot = input.laborCostSnapshot
     if (input.taxRateSnapshot !== undefined) updates.tax_rate_snapshot = input.taxRateSnapshot
+    if (input.showInEstimate !== undefined) updates.show_in_estimate = input.showInEstimate
 
     const { data, error } = await this.supabase
       .schema('tenant')

@@ -15,6 +15,7 @@ const createTaskSchema = z.object({
   unitPriceSnapshot: z.number().min(0).optional(),
   laborCostSnapshot: z.number().min(0).optional(),
   taxRateSnapshot: z.number().min(0).max(100).optional(),
+  showInEstimate: z.boolean().optional(),
 }).refine(
   (data) => {
     // If inventory item is set, qty is required
@@ -187,6 +188,7 @@ export async function POST(
       unitPriceSnapshot: input.unitPriceSnapshot,
       laborCostSnapshot: input.laborCostSnapshot,
       taxRateSnapshot: input.taxRateSnapshot,
+      showInEstimate: input.showInEstimate,
       createdBy: user.id,
     })
 

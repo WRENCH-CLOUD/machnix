@@ -405,6 +405,8 @@ export function useRemoveEstimateItem(jobId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+      // Reverse sync: task's showInEstimate may have changed, refresh tasks
+      queryClient.invalidateQueries({ queryKey: ["tasks", "job", jobId] });
     },
   });
 }

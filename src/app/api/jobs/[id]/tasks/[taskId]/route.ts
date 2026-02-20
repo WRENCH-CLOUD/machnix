@@ -16,6 +16,7 @@ const updateTaskSchema = z.object({
   unitPriceSnapshot: z.number().min(0).optional(),
   laborCostSnapshot: z.number().min(0).optional(),
   taxRateSnapshot: z.number().min(0).max(100).optional(),
+  showInEstimate: z.boolean().optional(),
 })
 
 type RouteContext = { params: { id: string; taskId: string } } | { params: Promise<{ id: string; taskId: string }> }
@@ -226,6 +227,7 @@ export async function PATCH(
       unitPriceSnapshot: input.unitPriceSnapshot,
       laborCostSnapshot: input.laborCostSnapshot,
       taxRateSnapshot: input.taxRateSnapshot,
+      showInEstimate: input.showInEstimate,
     })
 
     // Sync updated task to estimate

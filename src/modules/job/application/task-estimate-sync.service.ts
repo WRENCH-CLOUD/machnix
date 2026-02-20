@@ -31,7 +31,15 @@ export class TaskEstimateSyncService {
    * Creates or updates the corresponding estimate_item
    */
   async syncTaskToEstimate(task: JobCardTask): Promise<string | null> {
-    // All tasks get estimate items now (REPLACED or LABOR_ONLY)
+    // If task is not flagged for estimate, remove any existing estimate item
+    if (task.showInEstimate === false) {
+      if (task.estimateItemId) {
+        await this.removeEstimateItemForTask(task)
+      }
+      return null
+    }
+
+    // All tasks flagged for estimate get estimate items (REPLACED or LABOR_ONLY)
 
     // Get the estimate for this job
     const estimate = await this.getEstimateForJob(task.jobcardId)
@@ -172,14 +180,11 @@ export class TaskEstimateSyncService {
       .eq('id', itemId)
       .single()
 
-    // Soft delete the estimate item
+    // Hard delete the estimate item (table has no deleted_at column)
     const { error } = await this.supabase
       .schema('tenant')
       .from('estimate_items')
-      .update({
-        deleted_at: new Date().toISOString(),
-        task_id: null
-      })
+      .delete()
       .eq('id', itemId)
       .eq('tenant_id', this.tenantId)
 
@@ -192,13 +197,12 @@ export class TaskEstimateSyncService {
   }
 
   private async recalculateEstimateTotals(estimateId: string): Promise<void> {
-    // Get all non-deleted items for this estimate
+    // Get all items for this estimate
     const { data: items, error } = await this.supabase
       .schema('tenant')
       .from('estimate_items')
       .select('qty, unit_price, labor_cost')
       .eq('estimate_id', estimateId)
-      .is('deleted_at', null)
 
     if (error) throw error
 

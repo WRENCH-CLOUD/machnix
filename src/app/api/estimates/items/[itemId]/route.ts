@@ -26,11 +26,11 @@ export async function DELETE(
     const { itemId } = await context.params;
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const allocationService = createInventoryAllocationService(supabase, tenantId);
-    const useCase = new RemoveEstimateItemUseCase(repository, allocationService);
+    const useCase = new RemoveEstimateItemUseCase(repository, allocationService, supabase, tenantId);
 
     const result = await useCase.execute(itemId, user.id);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       released_stock: result.releasedStock ?? null,
     });
@@ -85,11 +85,11 @@ export async function PATCH(
     });
   } catch (error: any) {
     console.error("Error updating estimate item:", error);
-    
+
     // Handle insufficient stock error specifically
     if (error instanceof InsufficientStockError) {
       return NextResponse.json(
-        { 
+        {
           error: error.message,
           code: 'INSUFFICIENT_STOCK',
           requested: error.requested,
@@ -98,7 +98,7 @@ export async function PATCH(
         { status: 409 }
       );
     }
-    
+
     return NextResponse.json(
       { error: error.message || "Failed to update estimate item" },
       { status: 400 }
