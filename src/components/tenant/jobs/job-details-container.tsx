@@ -25,6 +25,7 @@ import { useInventorySnapshot } from "@/hooks/use-inventory-snapshot";
 import { useJobTasks } from "@/hooks/use-job-tasks";
 import { usePrintableFunctions } from "./printable-function";
 
+
 interface JobDetailsContainerProps {
   job: UIJob;
   isOpen: boolean;
@@ -63,9 +64,9 @@ export function JobDetailsContainer({
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
   // Inventory snapshot with delta sync (efficient caching across session)
-  const { 
-    items: inventoryItems, 
-    isLoading: loadingInventory, 
+  const {
+    items: inventoryItems,
+    isLoading: loadingInventory,
     error: inventoryError,
     searchItems,
     refresh: refreshInventory,
@@ -154,6 +155,7 @@ export function JobDetailsContainer({
   // Local state for notes (optimistic updates)
   const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
 
+
   // Sync local state when job changes
   useEffect(() => {
     setLocalNotes(job.complaints || "");
@@ -239,6 +241,7 @@ export function JobDetailsContainer({
   const handleMarkPaid = async () => {
     // If already paid, direct completion (bypass payment modal)
     if (invoice?.status === "paid") {
+
       try {
         await updateStatusMutation.mutateAsync("completed");
         toast.success("Job completed successfully");
@@ -308,6 +311,7 @@ export function JobDetailsContainer({
       console.error("Error generating invoice:", error);
     }
   };
+
 
   // Notes handler
   const handleUpdateNotes = async (notes: string) => {
@@ -395,6 +399,7 @@ export function JobDetailsContainer({
       onPaymentComplete={handlePaymentComplete}
       onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
+
       notes={localNotes}
       onUpdateNotes={handleUpdateNotes}
       onViewJob={onViewJob}

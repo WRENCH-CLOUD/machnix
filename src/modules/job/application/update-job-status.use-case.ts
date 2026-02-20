@@ -1,5 +1,5 @@
-import { JobRepository } from '../domain/job.repository'
 import { JobCard, JobStatus } from '../domain/job.entity'
+import { JobRepository } from '../domain/job.repository'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
@@ -197,4 +197,6 @@ export class UpdateJobStatusUseCase {
     return { success: true }
   }
 }
+
+
 

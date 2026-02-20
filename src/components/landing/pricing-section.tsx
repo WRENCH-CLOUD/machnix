@@ -115,7 +115,7 @@ export function PricingSection() {
                   {plan.name}
                   {plan.popular && (
                     <div className="ml-2 px-2 overflow-hidden rounded-full justify-center items-center gap-2.5 inline-flex mt-0 py-0.5 bg-gradient-to-b from-primary-light/50 to-primary-light bg-white">
-                      <div className="text-center text-primary-foreground text-xs font-normal leading-tight break-words">
+                      <div className="text-center text-primary-foreground text-xs font-normal leading-tight warp-break-words">
                         Popular
                       </div>
                     </div>

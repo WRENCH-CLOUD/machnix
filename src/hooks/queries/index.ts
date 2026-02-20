@@ -563,6 +563,7 @@ export function useUpdateJobStatus(jobId: string) {
   });
 }
 
+
 // ============================================
 // Job Notes Mutation
 // ============================================

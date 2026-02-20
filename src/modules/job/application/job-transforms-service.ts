@@ -149,6 +149,7 @@ function extractComplaints(details: any): string {
 }
 
 /**
+/**
  * Transform UI job data back to database format for updates
  */
 export function transformUIJobToDatabase(uiJob: UIJob): Record<string, any> {
