@@ -560,11 +560,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               <Label>Description of Work</Label>
               <Textarea
                 placeholder="Describe the issues or services required..."
-                rows={4}
                 value={jobDetails.description}
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
-                className="break-all overflow-wrap-anywhere resize-none"
-                style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
+                className="max-h-15 overflow-y-auto resize-none break-words"
+                style={{ overflowWrap: 'anywhere' }}
               />
             </div>
 
@@ -572,7 +571,6 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
             <InlineTodos
               todos={todos}
               onChange={setTodos}
-              className="border-dashed"
             />
 
             {/* Mechanic Assignment (Optional) */}
@@ -587,13 +585,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
             </div>
 
             {/* Vehicle History */}
-            {selectedVehicle && (
+            {/* {selectedVehicle && (
               <VehicleServiceHistory
                 vehicleId={selectedVehicle.id}
                 compact
                 className="mt-4"
               />
-            )}
+            )} */}
           </div>
         );
 
@@ -618,12 +616,12 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
             </div>
 
             {/* Vehicle History Short Summary */}
-            {selectedVehicle && (
+            {/* {selectedVehicle && (
               <VehicleServiceHistory
                 vehicleId={selectedVehicle.id}
                 compact
               />
-            )}
+            )} */}
 
             <div className="space-y-2">
               <Label className="text-muted-foreground">Job Details</Label>
@@ -637,19 +635,21 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     {jobDetails.priority} Priority
                   </Badge>
                 </div>
-                <p className="text-sm italic break-words whitespace-pre-wrap">"{jobDetails.description || 'No description provided'}"</p>
+                <p className="text-sm italic break-words whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
             {todos.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Tasks ({todos.length})</Label>
-                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
                   {todos.map((todo) => (
-                    <div key={todo.id} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>{todo.text}</span>
+                    <div key={todo.id} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <span className="break-words" style={{ overflowWrap: 'anywhere' }}>{todo.text}</span>
                     </div>
                   ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -667,7 +667,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]  h-screen overflow-y-auto">
+      <DialogContent className="sm:max-w-150 h-200">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -704,9 +704,11 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           })}
         </div>
 
-        {renderStepContent()}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {renderStepContent()}
+        </div>
 
-        <DialogFooter className="flex justify-between sm:justify-between items-center">
+        <DialogFooter className="flex justify-between sm:justify-between items-center shrink-0 border-t pt-4">
           <Button
             variant="ghost"
             onClick={() => {

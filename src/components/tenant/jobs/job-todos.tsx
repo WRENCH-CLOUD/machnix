@@ -115,7 +115,7 @@ export function JobTodos({
       <CardContent className="space-y-3">
         {/* Todo Items */}
         {todos.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-30 overflow-y-auto pr-1">
             {todos.map((todo) => (
               <div
                 key={todo.id}
