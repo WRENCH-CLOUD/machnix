@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS tenant.inventory_allocations (
   CONSTRAINT check_consumed_not_exceeds_reserved    CHECK (quantity_consumed <= quantity_reserved)
 );
 
+-- Add task_id column if table already exists but column is missing
+ALTER TABLE tenant.inventory_allocations
+  ADD COLUMN IF NOT EXISTS task_id uuid;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_allocations_tenant        ON tenant.inventory_allocations(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_allocations_jobcard       ON tenant.inventory_allocations(jobcard_id);
@@ -323,3 +327,8 @@ GRANT SELECT ON tenant.inventory_items_with_availability TO authenticated;
 -- #############################################################################
 
 COMMIT;
+-- Hotfix: Add stock_keeping_unit column if missing from inventory_items
+-- This column should exist from 0001_base_schema.sql but may be missing in some envs
+
+ALTER TABLE tenant.inventory_items
+  ADD COLUMN IF NOT EXISTS stock_keeping_unit text;
