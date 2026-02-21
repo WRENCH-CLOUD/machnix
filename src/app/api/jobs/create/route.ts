@@ -5,15 +5,6 @@ import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/es
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
-// Todo item schema for validation
-const todoItemSchema = z.object({
-  id: z.string(),
-  text: z.string().max(500, 'Task text too long'),
-  completed: z.boolean(),
-  createdAt: z.string(),
-  completedAt: z.string().optional(),
-})
-
 // Input validation schema
 const createJobSchema = z.object({
   customerId: z.string().uuid('Invalid customer ID format'),
@@ -25,7 +16,6 @@ const createJobSchema = z.object({
   priority: z.enum(['low', 'normal', 'medium', 'high', 'urgent']).optional(),
   estimatedCompletion: z.string().optional(),
   details: z.record(z.unknown()).optional(),
-  todos: z.array(todoItemSchema).max(50, 'Too many tasks').optional(),
 })
 
 export async function POST(request: NextRequest) {

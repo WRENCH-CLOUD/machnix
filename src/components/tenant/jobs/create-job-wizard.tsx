@@ -33,7 +33,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { InlineTodos, type TodoItem } from "./job-todos";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 
@@ -79,9 +78,6 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Duplicate customer dialog state
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
-
-  // Todos state for job creation
-  const [todos, setTodos] = useState<TodoItem[]>([]);
 
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
@@ -263,7 +259,6 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           customerId: selectedCustomer.id,
           vehicleId: selectedVehicle.id,
           ...jobDetails,
-          todos: todos.length > 0 ? todos : undefined,
           assignedMechanicId: selectedMechanicId || undefined,
         }),
       });

@@ -118,6 +118,7 @@ const ENV_SCHEMA: EnvConfig[] = [
     serverOnly: true,
     description: 'Twilio auth token for notifications',
   },
+
 ]
 
 /**
@@ -303,4 +304,5 @@ export const env = {
   get hasTwilioConfig() {
     return !!(this.TWILIO_ACCOUNT_SID && this.TWILIO_AUTH_TOKEN)
   },
+
 } as const
