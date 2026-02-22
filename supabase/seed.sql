@@ -17,7 +17,11 @@ INSERT INTO public.vehicle_category (name, description) VALUES
     ('Van', 'Cargo or passenger vans'),
     ('Coupe', 'Two-door car with a fixed roof'),
     ('Convertible', 'Car with a retractable roof'),
-    ('Wagon', 'Station wagon with extended cargo area')
+    ('Wagon', 'Station wagon with extended cargo area'),
+    ('Motorcycle', 'Two-wheeled motor vehicle'),
+    ('Scooter', 'Step-through frame two-wheeler with automatic transmission'),
+    ('Electric Motorcycle', 'Battery-powered two-wheeled vehicle'),
+    ('Electric Scooter', 'Battery-powered step-through scooter')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
@@ -61,7 +65,20 @@ INSERT INTO public.vehicle_make (name, code) VALUES
     ('MG Motor', 'MG'),
     ('Skoda', 'SKO'),
     ('Renault', 'REN'),
-    ('Citroen', 'CIT')
+    ('Citroen', 'CIT'),
+    -- Two-Wheeler Brands
+    ('Hero MotoCorp', 'HERO'),
+    ('Hero Electric', 'HEROE'),
+    ('TVS Motor', 'TVS'),
+    ('Bajaj', 'BAJ'),
+    ('Yamaha', 'YAM'),
+    ('Suzuki', 'SUZ'),
+    ('Royal Enfield', 'RE'),
+    ('Kawasaki', 'KAW'),
+    ('KTM', 'KTM'),
+    ('Ola Electric', 'OLA'),
+    ('Ampere Electric', 'AMP'),
+    ('Revolt Motors', 'REV')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
@@ -108,6 +125,18 @@ DECLARE
     ferrari_id uuid;
     lamborghini_id uuid;
     citroen_id uuid;
+    hero_id uuid;
+    hero_electric_id uuid;
+    tvs_id uuid;
+    bajaj_id uuid;
+    yamaha_id uuid;
+    suzuki_id uuid;
+    royal_enfield_id uuid;
+    kawasaki_id uuid;
+    ktm_id uuid;
+    ola_id uuid;
+    ampere_id uuid;
+    revolt_id uuid;
     
     -- Category IDs
     sedan_id uuid;
@@ -119,6 +148,10 @@ DECLARE
     hybrid_id uuid;
     electric_id uuid;
     van_id uuid;
+    motorcycle_id uuid;
+    scooter_id uuid;
+    electric_motorcycle_id uuid;
+    electric_scooter_id uuid;
 BEGIN
     -- Get category IDs
     SELECT id INTO sedan_id FROM public.vehicle_category WHERE name = 'Sedan';
@@ -130,6 +163,10 @@ BEGIN
     SELECT id INTO hybrid_id FROM public.vehicle_category WHERE name = 'Hybrid';
     SELECT id INTO electric_id FROM public.vehicle_category WHERE name = 'Electric';
     SELECT id INTO van_id FROM public.vehicle_category WHERE name = 'Van';
+    SELECT id INTO motorcycle_id FROM public.vehicle_category WHERE name = 'Motorcycle';
+    SELECT id INTO scooter_id FROM public.vehicle_category WHERE name = 'Scooter';
+    SELECT id INTO electric_motorcycle_id FROM public.vehicle_category WHERE name = 'Electric Motorcycle';
+    SELECT id INTO electric_scooter_id FROM public.vehicle_category WHERE name = 'Electric Scooter';
 
     -- Get make IDs
     SELECT id INTO toyota_id FROM public.vehicle_make WHERE name = 'Toyota';
@@ -163,6 +200,18 @@ BEGIN
     SELECT id INTO mg_id FROM public.vehicle_make WHERE name = 'MG Motor';
     SELECT id INTO skoda_id FROM public.vehicle_make WHERE name = 'Skoda';
     SELECT id INTO renault_id FROM public.vehicle_make WHERE name = 'Renault';
+    SELECT id INTO hero_id FROM public.vehicle_make WHERE name = 'Hero MotoCorp';
+    SELECT id INTO hero_electric_id FROM public.vehicle_make WHERE name = 'Hero Electric';
+    SELECT id INTO tvs_id FROM public.vehicle_make WHERE name = 'TVS Motor';
+    SELECT id INTO bajaj_id FROM public.vehicle_make WHERE name = 'Bajaj';
+    SELECT id INTO yamaha_id FROM public.vehicle_make WHERE name = 'Yamaha';
+    SELECT id INTO suzuki_id FROM public.vehicle_make WHERE name = 'Suzuki';
+    SELECT id INTO royal_enfield_id FROM public.vehicle_make WHERE name = 'Royal Enfield';
+    SELECT id INTO kawasaki_id FROM public.vehicle_make WHERE name = 'Kawasaki';
+    SELECT id INTO ktm_id FROM public.vehicle_make WHERE name = 'KTM';
+    SELECT id INTO ola_id FROM public.vehicle_make WHERE name = 'Ola Electric';
+    SELECT id INTO ampere_id FROM public.vehicle_make WHERE name = 'Ampere Electric';
+    SELECT id INTO revolt_id FROM public.vehicle_make WHERE name = 'Revolt Motors';
 
     -- ========================================================================
     -- Toyota Models
@@ -524,6 +573,291 @@ BEGIN
         (mini_id, 'Countryman', 'COUN', suv_id),
         (mini_id, 'Clubman', 'CLUB', hatchback_id),
         (mini_id, 'Electric', 'ELEC', electric_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- TWO-WHEELER MODELS
+    -- ========================================================================
+
+    -- ========================================================================
+    -- Hero MotoCorp Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (hero_id, 'Splendor', 'SPL', motorcycle_id),
+        (hero_id, 'Splendor Plus', 'SPLP', motorcycle_id),
+        (hero_id, 'HF Deluxe', 'HFD', motorcycle_id),
+        (hero_id, 'HF 100', 'HF100', motorcycle_id),
+        (hero_id, 'CD Deluxe', 'CDD', motorcycle_id),
+        (hero_id, 'Passion', 'PAS', motorcycle_id),
+        (hero_id, 'Passion Plus', 'PASP', motorcycle_id),
+        (hero_id, 'Achiever', 'ACH', motorcycle_id),
+        (hero_id, 'Hunk', 'HNK', motorcycle_id),
+        (hero_id, 'Karizma R', 'KARR', motorcycle_id),
+        (hero_id, 'Karizma ZMR', 'KARZ', motorcycle_id),
+        (hero_id, 'Karizma XMR', 'KARX', motorcycle_id),
+        (hero_id, 'Impulse', 'IMP', motorcycle_id),
+        (hero_id, 'Ignitor', 'IGN', motorcycle_id),
+        (hero_id, 'XPulse 200', 'XP200', motorcycle_id),
+        (hero_id, 'XPulse 210', 'XP210', motorcycle_id),
+        (hero_id, 'Mavrick 440', 'MAV', motorcycle_id),
+        (hero_id, 'Glamour', 'GLM', motorcycle_id),
+        (hero_id, 'Super Splendor', 'SSPL', motorcycle_id),
+        (hero_id, 'Maestro Edge', 'MAEE', scooter_id),
+        (hero_id, 'Maestro', 'MAE', scooter_id),
+        (hero_id, 'Duet', 'DUE', scooter_id),
+        (hero_id, 'Xoom 110', 'X110', scooter_id),
+        (hero_id, 'Xoom 125', 'X125', scooter_id),
+        (hero_id, 'Xoom 160', 'X160', scooter_id),
+        (hero_id, 'Destini 110', 'D110', scooter_id),
+        (hero_id, 'Destini 125', 'D125', scooter_id),
+        (hero_id, 'Pleasure', 'PLE', scooter_id),
+        (hero_id, 'Winner', 'WIN', motorcycle_id),
+        (hero_id, 'Optima', 'OPT', scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Hero Electric Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (hero_electric_id, 'Optima', 'OPT', electric_scooter_id),
+        (hero_electric_id, 'Cruz Li', 'CRUZ', electric_scooter_id),
+        (hero_electric_id, 'Maxi', 'MAX', electric_scooter_id),
+        (hero_electric_id, 'Wave Dx', 'WAVE', electric_scooter_id),
+        (hero_electric_id, 'Zion', 'ZION', electric_scooter_id),
+        (hero_electric_id, 'E-Sprint', 'ESPR', electric_scooter_id),
+        (hero_electric_id, 'Photon', 'PHO', electric_scooter_id),
+        (hero_electric_id, 'NYX', 'NYX', electric_scooter_id),
+        (hero_electric_id, 'Flash', 'FLA', electric_scooter_id),
+        (hero_electric_id, 'Dash', 'DAS', electric_scooter_id),
+        (hero_electric_id, 'Atria', 'ATR', electric_scooter_id),
+        (hero_electric_id, 'NYX HX', 'NYXH', electric_scooter_id),
+        (hero_electric_id, 'Optima CX', 'OPTC', electric_scooter_id),
+        (hero_electric_id, 'Eddy', 'EDY', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Honda Two-Wheeler Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (honda_id, 'Shine', 'SHI', motorcycle_id),
+        (honda_id, 'SP 125', 'SP125', motorcycle_id),
+        (honda_id, 'Unicorn', 'UNI', motorcycle_id),
+        (honda_id, 'Hornet 2.0', 'HOR2', motorcycle_id),
+        (honda_id, 'SP 160', 'SP160', motorcycle_id),
+        (honda_id, 'CB350 Hness', 'CB350H', motorcycle_id),
+        (honda_id, 'CB125R Hornet', 'CB125R', motorcycle_id),
+        (honda_id, 'CB350', 'CB350', motorcycle_id),
+        (honda_id, 'CB350RS', 'CB350RS', motorcycle_id),
+        (honda_id, 'Livo', 'LIV', motorcycle_id),
+        (honda_id, 'CBR650R', 'CBR650', motorcycle_id),
+        (honda_id, 'Shine 100', 'SHI100', motorcycle_id),
+        (honda_id, 'CB300R', 'CB300R', motorcycle_id),
+        (honda_id, 'Rebel 500', 'REB500', motorcycle_id),
+        (honda_id, 'CB300F', 'CB300F', motorcycle_id),
+        (honda_id, 'Gold Wing', 'GW', motorcycle_id),
+        (honda_id, 'Shine 100 DX', 'SHI100D', motorcycle_id),
+        (honda_id, 'NX 200', 'NX200', motorcycle_id),
+        (honda_id, 'CB650R', 'CB650R', motorcycle_id),
+        (honda_id, 'CB1000 Hornet SP', 'CB1000', motorcycle_id),
+        (honda_id, 'NX 500', 'NX500', motorcycle_id),
+        (honda_id, 'CB750 Hornet', 'CB750', motorcycle_id),
+        (honda_id, 'CB350C', 'CB350C', motorcycle_id),
+        (honda_id, 'CBR1000RR-R SP', 'CBR1000', motorcycle_id),
+        (honda_id, 'XL750 Transalp', 'XL750', motorcycle_id),
+        (honda_id, 'Activa', 'ACT', scooter_id),
+        (honda_id, 'Activa 6G', 'ACT6G', scooter_id),
+        (honda_id, 'Dio', 'DIO', scooter_id),
+        (honda_id, 'Activa e:', 'ACTE', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- TVS Motor Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (tvs_id, 'Apache RTR 160', 'APR160', motorcycle_id),
+        (tvs_id, 'Apache RTR 310', 'APR310', motorcycle_id),
+        (tvs_id, 'Apache RTR 200 4V', 'APR200', motorcycle_id),
+        (tvs_id, 'Apache RR 310', 'ARR310', motorcycle_id),
+        (tvs_id, 'Apache RTX 300', 'APX300', motorcycle_id),
+        (tvs_id, 'Apache RTR 180', 'APR180', motorcycle_id),
+        (tvs_id, 'Ronin', 'RON', motorcycle_id),
+        (tvs_id, 'Raider', 'RAI', motorcycle_id),
+        (tvs_id, 'Radeon', 'RAD', motorcycle_id),
+        (tvs_id, 'Sport', 'SPT', motorcycle_id),
+        (tvs_id, 'Star City Plus', 'SCP', motorcycle_id),
+        (tvs_id, 'XL 100', 'XL100', motorcycle_id),
+        (tvs_id, 'Zest 110', 'ZST', scooter_id),
+        (tvs_id, 'Jupiter', 'JUP', scooter_id),
+        (tvs_id, 'iQube', 'IQB', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Bajaj Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (bajaj_id, 'Pulsar NS200', 'PNS200', motorcycle_id),
+        (bajaj_id, 'Pulsar N160', 'PN160', motorcycle_id),
+        (bajaj_id, 'Pulsar 125', 'P125', motorcycle_id),
+        (bajaj_id, 'Pulsar 150', 'P150', motorcycle_id),
+        (bajaj_id, 'Pulsar NS125', 'PNS125', motorcycle_id),
+        (bajaj_id, 'Pulsar NS160', 'PNS160', motorcycle_id),
+        (bajaj_id, 'Pulsar RS200', 'PRS200', motorcycle_id),
+        (bajaj_id, 'Pulsar 220F', 'P220F', motorcycle_id),
+        (bajaj_id, 'Platina 110', 'PL110', motorcycle_id),
+        (bajaj_id, 'Platina 100', 'PL100', motorcycle_id),
+        (bajaj_id, 'Freedom 125', 'FR125', motorcycle_id),
+        (bajaj_id, 'CT 110X', 'CT110X', motorcycle_id),
+        (bajaj_id, 'Pulsar N250', 'PN250', motorcycle_id),
+        (bajaj_id, 'Pulsar N125', 'PN125', motorcycle_id),
+        (bajaj_id, 'Pulsar NS400Z', 'PNS400', motorcycle_id),
+        (bajaj_id, 'Avenger Cruise 220', 'AVC220', motorcycle_id),
+        (bajaj_id, 'Avenger Street 160', 'AVS160', motorcycle_id),
+        (bajaj_id, 'Avenger 220 Street', 'AV220S', motorcycle_id),
+        (bajaj_id, 'Dominar 400', 'DOM400', motorcycle_id),
+        (bajaj_id, 'Dominar 250', 'DOM250', motorcycle_id),
+        (bajaj_id, 'Chetak', 'CHE', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Yamaha Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (yamaha_id, 'XSR 155', 'XSR155', motorcycle_id),
+        (yamaha_id, 'R15 V4', 'R15V4', motorcycle_id),
+        (yamaha_id, 'MT 15', 'MT15', motorcycle_id),
+        (yamaha_id, '2025 FZ-S Fi', 'FZS25', motorcycle_id),
+        (yamaha_id, 'FZS-FI V4', 'FZSV4', motorcycle_id),
+        (yamaha_id, 'R15S', 'R15S', motorcycle_id),
+        (yamaha_id, 'FZS-FI V3', 'FZSV3', motorcycle_id),
+        (yamaha_id, 'FZ X', 'FZX', motorcycle_id),
+        (yamaha_id, 'FZ-FI V3', 'FZV3', motorcycle_id),
+        (yamaha_id, 'R3', 'R3', motorcycle_id),
+        (yamaha_id, 'MT-03', 'MT03', motorcycle_id),
+        (yamaha_id, 'FZ X Hybrid', 'FZXH', motorcycle_id),
+        (yamaha_id, 'FZ-RAVE', 'FZRV', motorcycle_id),
+        (yamaha_id, 'RayZR 125', 'RAY125', scooter_id),
+        (yamaha_id, 'Fascino 125', 'FAS125', scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Suzuki Two-Wheeler Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (suzuki_id, 'Hayabusa', 'HAY', motorcycle_id),
+        (suzuki_id, 'Gixxer SF', 'GXSF', motorcycle_id),
+        (suzuki_id, 'V-Strom SX', 'VSSX', motorcycle_id),
+        (suzuki_id, 'Gixxer', 'GXR', motorcycle_id),
+        (suzuki_id, 'Gixxer SF 250', 'GXSF250', motorcycle_id),
+        (suzuki_id, 'Gixxer 250', 'GXR250', motorcycle_id),
+        (suzuki_id, 'GSX-8R', 'GSX8R', motorcycle_id),
+        (suzuki_id, 'V-Strom 800 DE', 'VS800', motorcycle_id),
+        (suzuki_id, 'Gixxer SF 250 Flex Fuel', 'GXSF250F', motorcycle_id),
+        (suzuki_id, 'Access 125', 'ACC125', scooter_id),
+        (suzuki_id, 'Burgman Street', 'BURG', scooter_id),
+        (suzuki_id, 'Avenis', 'AVN', scooter_id),
+        (suzuki_id, 'e-Access', 'EACC', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Royal Enfield Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (royal_enfield_id, 'Bullet 350', 'BUL350', motorcycle_id),
+        (royal_enfield_id, 'Continental GT 650', 'CGT650', motorcycle_id),
+        (royal_enfield_id, 'Classic 350', 'CLS350', motorcycle_id),
+        (royal_enfield_id, 'Himalayan 450', 'HIM450', motorcycle_id),
+        (royal_enfield_id, 'Guerrilla 450', 'GUE450', motorcycle_id),
+        (royal_enfield_id, 'Super Meteor 650', 'SM650', motorcycle_id),
+        (royal_enfield_id, 'Interceptor 650', 'INT650', motorcycle_id),
+        (royal_enfield_id, 'Shotgun 650', 'SHO650', motorcycle_id),
+        (royal_enfield_id, 'Classic 650', 'CLS650', motorcycle_id),
+        (royal_enfield_id, 'Meteor 350', 'MET350', motorcycle_id),
+        (royal_enfield_id, 'Bear 650', 'BEA650', motorcycle_id),
+        (royal_enfield_id, 'Goan Classic 350', 'GOA350', motorcycle_id),
+        (royal_enfield_id, 'Scram 440', 'SCR440', motorcycle_id),
+        (royal_enfield_id, 'Scram 411', 'SCR411', motorcycle_id),
+        (royal_enfield_id, 'Hunter 350', 'HUN350', motorcycle_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Kawasaki Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (kawasaki_id, 'Z900', 'Z900', motorcycle_id),
+        (kawasaki_id, 'Ninja ZX-10R', 'NZX10R', motorcycle_id),
+        (kawasaki_id, 'Ninja 300', 'N300', motorcycle_id),
+        (kawasaki_id, 'Ninja ZX-6R', 'NZX6R', motorcycle_id),
+        (kawasaki_id, 'Ninja 650', 'N650', motorcycle_id),
+        (kawasaki_id, 'Ninja 500', 'N500', motorcycle_id),
+        (kawasaki_id, 'W175', 'W175', motorcycle_id),
+        (kawasaki_id, 'Ninja ZX-4R', 'NZX4R', motorcycle_id),
+        (kawasaki_id, 'KLX 230', 'KLX230', motorcycle_id),
+        (kawasaki_id, 'Z650', 'Z650', motorcycle_id),
+        (kawasaki_id, 'Ninja H2 SX', 'NH2SX', motorcycle_id),
+        (kawasaki_id, 'Z1100', 'Z1100', motorcycle_id),
+        (kawasaki_id, 'Versys-X 300', 'VX300', motorcycle_id),
+        (kawasaki_id, 'Vulcan S', 'VULS', motorcycle_id),
+        (kawasaki_id, 'Z H2', 'ZH2', motorcycle_id),
+        (kawasaki_id, 'Eliminator', 'ELI', motorcycle_id),
+        (kawasaki_id, 'Ninja 1100SX', 'N1100SX', motorcycle_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- KTM Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (ktm_id, 'Duke 390', 'D390', motorcycle_id),
+        (ktm_id, '200 Duke', 'D200', motorcycle_id),
+        (ktm_id, '250 Duke', 'D250', motorcycle_id),
+        (ktm_id, '160 Duke', 'D160', motorcycle_id),
+        (ktm_id, 'RC 390', 'RC390', motorcycle_id),
+        (ktm_id, '390 Adventure', 'ADV390', motorcycle_id),
+        (ktm_id, '1390 Super Duke R', 'SD1390', motorcycle_id),
+        (ktm_id, '250 Adventure', 'ADV250', motorcycle_id),
+        (ktm_id, 'RC 200', 'RC200', motorcycle_id),
+        (ktm_id, '390 Adventure X', 'ADV390X', motorcycle_id),
+        (ktm_id, '390 Enduro R', 'END390', motorcycle_id),
+        (ktm_id, 'RC 160', 'RC160', motorcycle_id),
+        (ktm_id, '890 Duke', 'D890', motorcycle_id),
+        (ktm_id, '1290 Super Adventure S', 'SA1290', motorcycle_id),
+        (ktm_id, '890 Adventure R', 'ADV890R', motorcycle_id),
+        (ktm_id, '350 EXC-F', 'EXC350', motorcycle_id),
+        (ktm_id, '450 SX-F', 'SX450', motorcycle_id),
+        (ktm_id, '250 SX-F', 'SX250', motorcycle_id),
+        (ktm_id, '85 SX', 'SX85', motorcycle_id),
+        (ktm_id, '65 SX', 'SX65', motorcycle_id),
+        (ktm_id, '50 SX', 'SX50', motorcycle_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Ola Electric Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (ola_id, 'S1 Z', 'S1Z', electric_scooter_id),
+        (ola_id, 'S1 X', 'S1X', electric_scooter_id),
+        (ola_id, 'S1 Pro', 'S1P', electric_scooter_id),
+        (ola_id, 'Roadster', 'RDS', electric_motorcycle_id),
+        (ola_id, 'Roadster Pro', 'RDSP', electric_motorcycle_id),
+        (ola_id, 'Roadster X Plus', 'RDSXP', electric_motorcycle_id),
+        (ola_id, 'Roadster X', 'RDSX', electric_motorcycle_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Ampere Electric Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (ampere_id, 'Magnus', 'MAG', electric_scooter_id),
+        (ampere_id, 'Nexus', 'NEX', electric_scooter_id),
+        (ampere_id, 'Reo', 'REO', electric_scooter_id),
+        (ampere_id, 'Magnus Grand', 'MAGG', electric_scooter_id)
+    ON CONFLICT (make_id, name) DO NOTHING;
+
+    -- ========================================================================
+    -- Revolt Motors Models
+    -- ========================================================================
+    INSERT INTO public.vehicle_model (make_id, name, model_code, vehicle_category) VALUES
+        (revolt_id, 'RV400', 'RV400', electric_motorcycle_id),
+        (revolt_id, 'RV300', 'RV300', electric_motorcycle_id)
     ON CONFLICT (make_id, name) DO NOTHING;
 
     RAISE NOTICE 'Vehicle seed data inserted successfully!';

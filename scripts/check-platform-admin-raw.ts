@@ -8,13 +8,14 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { error } from 'console';
 
 const envPath = path.join(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
 
 // tiny raw writers
-function out(...parts: any[]) { try { fs.writeSync(1, parts.map(String).join(' ') + '\n'); } catch (e) { /* ignore */ } }
-function err(...parts: any[]) { try { fs.writeSync(2, parts.map(String).join(' ') + '\n'); } catch (e) { /* ignore */ } }
+function out(...parts: any[]) { try { fs.writeSync(1, parts.map(String).join(' ') + '\n'); } catch {error} { /* ignore */ } }
+function err(...parts: any[]) { try { fs.writeSync(2, parts.map(String).join(' ') + '\n'); } catch {error} { /* ignore */ } }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';

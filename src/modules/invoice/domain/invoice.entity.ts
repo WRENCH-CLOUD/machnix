@@ -11,7 +11,7 @@ export type PaymentMode = 'cash' | 'razorpay' | 'card' | 'upi' | 'bank_transfer'
 /**
  * Payment Status Types
  */
-export type PaymentStatus = 'initiated' | 'success' | 'failed'
+export type PaymentStatus = 'initiated' | 'completed' | 'failed'
 
 /**
  * Invoice Entity
@@ -28,9 +28,11 @@ export interface Invoice {
   subtotal: number
   taxAmount: number
   discountAmount: number
+  discountPercentage: number
   totalAmount: number
   paidAmount: number
   balance: number
+  isGstBilled: boolean
   invoiceDate: Date
   dueDate?: Date
   metadata: Record<string, any>

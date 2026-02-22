@@ -5,6 +5,7 @@ import { api } from "@/lib/supabase/client";
 import type { TenantWithStats } from "@/modules/tenant";
 import type { CustomerOverview } from "@/modules/customer/domain/customer.entity";
 import type { TenantSettings } from "@/modules/tenant/domain/tenant-settings.entity";
+import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 
 // ============================================
 // Utility Functions
@@ -40,6 +41,7 @@ export const queryKeys = {
   jobs: {
     all: ["jobs"] as const,
     list: (tenantId: string) => [...queryKeys.jobs.all, "list", tenantId] as const,
+    detail: (jobId: string) => [...queryKeys.jobs.all, "detail", jobId] as const,
   },
   customers: {
     all: ["customers"] as const,
@@ -48,6 +50,7 @@ export const queryKeys = {
   vehicles: {
     all: ["vehicles"] as const,
     list: () => [...queryKeys.vehicles.all, "list"] as const,
+    jobHistory: (vehicleId: string) => [...queryKeys.vehicles.all, "job-history", vehicleId] as const,
   },
   vehicleMakes: {
     all: ["vehicle-makes"] as const,
@@ -60,6 +63,14 @@ export const queryKeys = {
   invoices: {
     all: ["invoices"] as const,
     byJob: (jobId: string) => [...queryKeys.invoices.all, "by-job", jobId] as const,
+  },
+  transactions: {
+    all: ["transactions"] as const,
+    list: () => [...queryKeys.transactions.all, "list"] as const,
+  },
+  inventory: {
+    all: ["inventory"] as const,
+    list: () => [...queryKeys.inventory.all, "list"] as const,
   },
 } as const;
 
@@ -176,6 +187,45 @@ export function useVehicleMakes() {
 }
 
 // ============================================
+// Vehicle Job History Query
+// ============================================
+
+interface VehicleJobHistory {
+  totalJobs: number;
+  recentJob: {
+    id: string;
+    jobNumber: string;
+    createdAt: string;
+    status: string;
+    partsWorkedOn: Array<{
+      name: string;
+      status: 'changed' | 'repaired';
+    }>;
+  } | null;
+}
+
+export function useVehicleJobHistory(vehicleId: string | undefined, currentJobId?: string) {
+  return useQuery({
+    queryKey: [...queryKeys.vehicles.jobHistory(vehicleId || ""), currentJobId],
+    queryFn: async (): Promise<VehicleJobHistory> => {
+      if (!vehicleId) {
+        return { totalJobs: 0, recentJob: null };
+      }
+      const url = currentJobId
+        ? `/api/vehicles/${vehicleId}/job-history?currentJobId=${currentJobId}`
+        : `/api/vehicles/${vehicleId}/job-history`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("Failed to fetch vehicle job history");
+      }
+      return res.json();
+    },
+    enabled: Boolean(vehicleId),
+    staleTime: 60_000,
+  });
+}
+
+// ============================================
 // Estimate Query
 // Fetches estimate by job ID, creates one if not found
 // ============================================
@@ -205,7 +255,6 @@ export function useEstimateByJob(
   jobId: string | undefined,
   jobData?: { jobNumber: string; customerId: string; vehicleId: string }
 ) {
-  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: queryKeys.estimates.byJob(jobId || ""),
@@ -244,12 +293,16 @@ export function useEstimateByJob(
 
 interface Invoice {
   id: string;
-  invoice_number: string;
-  invoice_date: string;
+  invoiceNumber: string;
+  invoiceDate: string | Date;
   status: string;
-  paid_amount: number;
+  paidAmount: number;
   totalAmount?: number;
-  total_amount?: number;
+  taxAmount?: number;
+  subtotal?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
+  isGstBilled?: boolean;
 }
 
 export function useInvoiceByJob(jobId: string | undefined) {
@@ -273,6 +326,27 @@ export function useInvoiceByJob(jobId: string | undefined) {
 // Estimate Item Mutations
 // ============================================
 
+export interface InsufficientStockErrorData {
+  code: 'INSUFFICIENT_STOCK';
+  requested: number;
+  available: number;
+  message: string;
+}
+
+export class StockError extends Error {
+  code: string;
+  requested: number;
+  available: number;
+
+  constructor(data: InsufficientStockErrorData) {
+    super(data.message);
+    this.name = 'StockError';
+    this.code = data.code;
+    this.requested = data.requested;
+    this.available = data.available;
+  }
+}
+
 export function useAddEstimateItem(jobId: string) {
   const queryClient = useQueryClient();
 
@@ -283,6 +357,7 @@ export function useAddEstimateItem(jobId: string) {
     }: {
       estimateId: string;
       item: {
+        partId?: string; // Inventory Item ID
         name: string;
         partNumber?: string;
         quantity: number;
@@ -291,6 +366,7 @@ export function useAddEstimateItem(jobId: string) {
       };
     }) => {
       const res = await api.post(`/api/estimates/${estimateId}/items`, {
+        part_id: item.partId,
         custom_name: item.name,
         custom_part_number: item.partNumber,
         qty: item.quantity,
@@ -298,7 +374,18 @@ export function useAddEstimateItem(jobId: string) {
         labor_cost: item.laborCost,
       });
 
-      if (!res.ok) throw new Error("Failed to add item");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to add item' }));
+        if (errorData.code === 'INSUFFICIENT_STOCK') {
+          throw new StockError({
+            code: errorData.code,
+            requested: errorData.requested,
+            available: errorData.available,
+            message: errorData.error,
+          });
+        }
+        throw new Error(errorData.error || 'Failed to add item');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -318,6 +405,8 @@ export function useRemoveEstimateItem(jobId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+      // Reverse sync: task's showInEstimate may have changed, refresh tasks
+      queryClient.invalidateQueries({ queryKey: ["tasks", "job", jobId] });
     },
   });
 }
@@ -335,10 +424,21 @@ export function useUpdateEstimateItem(jobId: string) {
     }) => {
       const res = await api.patch(`/api/estimates/items/${itemId}`, {
         qty: updates.qty,
-        unitPrice: updates.unitPrice,
-        laborCost: updates.laborCost,
+        unit_price: updates.unitPrice,
+        labor_cost: updates.laborCost,
       });
-      if (!res.ok) throw new Error("Failed to update item");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to update item' }));
+        if (errorData.code === 'INSUFFICIENT_STOCK') {
+          throw new StockError({
+            code: errorData.code,
+            requested: errorData.requested,
+            available: errorData.available,
+            message: errorData.error,
+          });
+        }
+        throw new Error(errorData.error || 'Failed to update item');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -355,10 +455,19 @@ export function useGenerateInvoice(jobId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ estimateId }: { estimateId: string }) => {
+    mutationFn: async ({
+      estimateId,
+      isGstBilled = true,
+      discountPercentage = 0,
+    }: {
+      estimateId: string;
+      isGstBilled?: boolean;
+      discountPercentage?: number;
+    }) => {
       const res = await api.post("/api/invoices/generate", {
-        jobcardId: jobId,
         estimateId,
+        isGstBilled,
+        discountPercentage,
       });
       if (!res.ok) throw new Error("Failed to generate invoice");
       return res.json();
@@ -396,6 +505,37 @@ export function useRecordPayment(jobId: string) {
   });
 }
 
+/**
+ * Mutation to update invoice GST/discount settings
+ * Used for real-time toggle updates
+ */
+export function useUpdateInvoice(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      invoiceId,
+      isGstBilled,
+      discountPercentage,
+    }: {
+      invoiceId: string;
+      isGstBilled?: boolean;
+      discountPercentage?: number;
+    }) => {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isGstBilled, discountPercentage }),
+      });
+      if (!res.ok) throw new Error("Failed to update invoice");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
 // ============================================
 // Job Status Mutation
 // ============================================
@@ -406,12 +546,46 @@ export function useUpdateJobStatus(jobId: string) {
   return useMutation({
     mutationFn: async (status: string) => {
       const res = await api.post(`/api/jobs/${jobId}/update-status`, { status });
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const error = new Error(errorData.error || "Failed to update status");
+        (error as any).status = res.status;
+        (error as any).paymentRequired = errorData.paymentRequired;
+        (error as any).balance = errorData.balance;
+        throw error;
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
+    },
+  });
+}
+
+
+// ============================================
+// Job Notes Mutation
+// ============================================
+
+export function useUpdateJobNotes(jobId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notes: string) => {
+      const res = await api.patch(`/api/jobs/${jobId}/notes`, { notes });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Notes update failed:", res.status, errorData);
+        const message =
+          (errorData && (errorData.error || errorData.message || errorData.detail)) ||
+          `Failed to update notes (status ${res.status})`;
+        throw new Error(message);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
     },
   });
 }
@@ -448,3 +622,62 @@ export function useInvalidateQueries() {
     },
   };
 }
+
+// ============================================
+// Transactions Query
+// ============================================
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  mode: string;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+  invoice: { id: string; invoiceNumber: string } | null;
+  customer: { id: string; name: string; phone: string } | null;
+  vehicle: { id: string; regNo: string; make: string; model: string } | null;
+  jobcard: { id: string; jobNumber: string } | null;
+}
+
+export function useTransactions() {
+  return useQuery({
+    queryKey: queryKeys.transactions.list(),
+    queryFn: async (): Promise<Transaction[]> => {
+      const res = await fetch("/api/transactions");
+      if (!res.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+      return res.json();
+    },
+  });
+}
+
+// ============================================
+// Inventory Query
+// ============================================
+
+/**
+ * @deprecated Use `useInventorySnapshot` from '@/hooks/use-inventory-snapshot' instead.
+ * 
+ * The new hook provides:
+ * - Delta sync (only fetches changes, not full list)
+ * - O(1) item lookups by ID
+ * - Client-side search
+ * - Session-long caching
+ * 
+ * This legacy hook fetches all items on every mount and is less efficient.
+ */
+export function useInventoryItems() {
+  return useQuery({
+    queryKey: queryKeys.inventory.list(),
+    queryFn: async () => {
+      const res = await api.get("/api/inventory/items");
+      if (!res.ok) throw new Error("Failed to fetch inventory items");
+      return res.json() as Promise<InventoryItem[]>;
+    },
+    // Increase stale time to reduce refetches while migrating
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+

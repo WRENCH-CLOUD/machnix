@@ -1,19 +1,20 @@
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
+import { GupshupSettings } from '../domain/gupshup-settings.entity'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>
   findBySlug(slug: string): Promise<Tenant | null>
   findAll(): Promise<Tenant[]>
-  
+
   // Settings methods
   getSettings(tenantId: string): Promise<TenantSettings | null>
   updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void>
-  
+
   // Onboarding methods
   markOnboarded(tenantId: string): Promise<void>
-  
+
   // Stats methods
   getStats(tenantId: string): Promise<TenantStats>
   getRecentJobs(tenantId: string, limit?: number): Promise<any[]>
@@ -27,3 +28,4 @@ export interface TenantRepository {
   update(id: string, updates: Partial<Tenant>): Promise<Tenant>
   delete(id: string): Promise<void>
 }
+

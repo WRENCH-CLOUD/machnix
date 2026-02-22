@@ -110,21 +110,15 @@ const ENV_SCHEMA: EnvConfig[] = [
     name: 'TWILIO_ACCOUNT_SID',
     required: false,
     serverOnly: true,
-    description: 'Twilio account SID for WhatsApp notifications',
+    description: 'Twilio account SID for notifications',
   },
   {
     name: 'TWILIO_AUTH_TOKEN',
     required: false,
     serverOnly: true,
-    description: 'Twilio auth token for WhatsApp notifications',
+    description: 'Twilio auth token for notifications',
   },
-  {
-    name: 'TWILIO_WHATSAPP_FROM',
-    required: false,
-    serverOnly: true,
-    description: 'Twilio WhatsApp sender number',
-    example: '+14155238886',
-  },
+
 ]
 
 /**
@@ -307,10 +301,8 @@ export const env = {
   get TWILIO_AUTH_TOKEN() {
     return process.env.TWILIO_AUTH_TOKEN
   },
-  get TWILIO_WHATSAPP_FROM() {
-    return process.env.TWILIO_WHATSAPP_FROM
-  },
   get hasTwilioConfig() {
     return !!(this.TWILIO_ACCOUNT_SID && this.TWILIO_AUTH_TOKEN)
   },
+
 } as const

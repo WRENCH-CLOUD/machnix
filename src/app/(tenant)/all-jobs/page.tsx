@@ -11,7 +11,7 @@ import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
 
 export default function AllJobsPage() {
-  const { user, tenantId } = useAuth()
+  const { tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
   const [transformedJobs, setTransformedJobs] = useState<UIJob[]>([])
   const { invalidateJobs } = useInvalidateQueries()
@@ -32,8 +32,8 @@ export default function AllJobsPage() {
   const { data: tenantSettings } = useTenantSettings()
 
   // Transform tenant settings to match the format expected by JobDetailsContainer
-  const tenantDetails = useMemo(() => 
-    transformTenantSettingsForJobDetails(tenantSettings), 
+  const tenantDetails = useMemo(() =>
+    transformTenantSettingsForJobDetails(tenantSettings),
     [tenantSettings]
   )
 
@@ -56,11 +56,11 @@ export default function AllJobsPage() {
     setSelectedJob(job)
   }
 
-  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => {
+  const handleStatusChange = async (jobId: string, newStatus: JobStatus): Promise<void> => { //FIXME: this is a bit of a hack to get the jobId in the unpaid warning flow, need to refactor to have a more robust solution
     try {
       // Call API route - business logic is in the use case
       const response = await api.post(`/api/jobs/${jobId}/update-status`, { status: newStatus })
-      
+
       // Handle payment required response (402)
       if (response.status === 402) {
         const data = await response.json()
@@ -80,9 +80,9 @@ export default function AllJobsPage() {
       if (!response.ok) {
         throw new Error('Failed to update job status')
       }
-      
+
       await invalidateJobs()
-      
+
       // Update selected job if it's the one being changed
       if (selectedJob?.id === jobId) {
         const updatedJob = transformedJobs.find(j => j.id === jobId)
@@ -112,8 +112,8 @@ export default function AllJobsPage() {
       }
 
       // 2. Update Job Status to completed
-      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, { 
-        status: 'completed' 
+      const statusRes = await api.post(`/api/jobs/${pendingCompletion.jobId}/update-status`, {
+        status: 'completed'
       })
 
       if (!statusRes.ok) {
@@ -162,6 +162,23 @@ export default function AllJobsPage() {
             await invalidateJobs()
           }}
           tenantDetails={tenantDetails}
+          onViewJob={async (jobId) => {
+            const found = transformedJobs.find(j => j.id === jobId);
+            if (found) {
+              setSelectedJob(found);
+            } else {
+              try {
+                const res = await api.get(`/api/jobs/${jobId}`);
+                if (res.ok) {
+                  const dbJob = await res.json();
+                  const uiJob = await transformDatabaseJobToUI(dbJob);
+                  setSelectedJob(uiJob);
+                }
+              } catch (err) {
+                console.error("Error navigating to job:", err);
+              }
+            }
+          }}
         />
       )}
 

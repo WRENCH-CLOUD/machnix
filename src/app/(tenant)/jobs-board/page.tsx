@@ -26,15 +26,15 @@ export default function JobsPage() {
   const { data: tenantSettings } = useTenantSettings()
 
   // Transform tenant settings to match the format expected by JobDetailsContainer
-  const tenantDetails = useMemo(() => 
-    transformTenantSettingsForJobDetails(tenantSettings), 
+  const tenantDetails = useMemo(() =>
+    transformTenantSettingsForJobDetails(tenantSettings),
     [tenantSettings]
   )
 
   useEffect(() => {
     const handleOpenCreateJob = () => setShowCreateJob(true);
     window.addEventListener('open-create-job', handleOpenCreateJob);
-    
+
     // Check search params for 'create' flag
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -63,6 +63,27 @@ export default function JobsPage() {
       'completed': ['completed'],
     }
     return validTransitions[fromStatus]?.includes(toStatus) ?? false
+  }
+
+  /**
+   * Check if an invoice has an unpaid balance and set up pending completion if so
+   */
+  const checkInvoicePaymentRequired = (
+    invoice: { id: string; status: string; totalAmount?: number; total_amount?: number } | null,
+    jobId: string,
+    jobNumber: string
+  ): boolean => {
+    if (!invoice) return false
+
+    const isUnpaid = invoice.status !== 'paid'
+    const total = invoice.totalAmount || invoice.total_amount || 0
+
+    if (isUnpaid && total > 0) {
+      setPendingCompletion({ jobId, invoiceId: invoice.id, balance: total, jobNumber })
+      setShowUnpaidWarning(true)
+      return true
+    }
+    return false
   }
 
   const jobsQuery = useQuery({
@@ -127,11 +148,11 @@ export default function JobsPage() {
         oldJobs.map((job) =>
           job.id === jobId
             ? {
-                ...job,
-                status,
-                updatedAt,
-                updated_at: updatedAt,
-              }
+              ...job,
+              status,
+              updatedAt,
+              updated_at: updatedAt,
+            }
             : job
         )
       )
@@ -156,7 +177,7 @@ export default function JobsPage() {
     const oldJob = jobs.find(job => job.id === jobId)
     const oldStatus = oldJob?.status
     const oldJobNumber = oldJob?.jobNumber
-    
+
     try {
       if (!oldStatus) {
         console.error('Job not found:', jobId)
@@ -178,22 +199,12 @@ export default function JobsPage() {
       // 2. Handle Payment Validation before completing
       if (newStatus === 'completed' && oldStatus !== 'completed') {
         const invRes = await api.get(`/api/invoices/by-job/${jobId}`)
-        
+
         if (invRes.ok) {
           const invoice = await invRes.json()
-          // Check if invoice is unpaid and has a total
-          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
-            const total = invoice.totalAmount || invoice.total_amount
-            setPendingCompletion({
-              jobId,
-              invoiceId: invoice.id,
-              balance: total,
-              jobNumber: oldJobNumber || '',
-            })
-            setShowUnpaidWarning(true)
-            return
-          }
+          if (checkInvoicePaymentRequired(invoice, jobId, oldJobNumber || '')) return
         } else if (invRes.status === 404) {
+          // No invoice exists - try to generate from estimate
           const estRes = await api.get(`/api/estimates/by-job/${jobId}`)
           if (!estRes.ok) {
             alert('Cannot complete job: No estimate found for this job.')
@@ -201,7 +212,7 @@ export default function JobsPage() {
           }
 
           const estimate = await estRes.json()
-          if (!estimate || !estimate.id) {
+          if (!estimate?.id) {
             alert('Cannot complete job: Invalid estimate data.')
             return
           }
@@ -213,18 +224,7 @@ export default function JobsPage() {
           }
 
           const invoice = await genRes.json()
-          // Check if invoice is unpaid and has a total
-          if (invoice && invoice.status !== 'paid' && (invoice.totalAmount || invoice.total_amount) > 0) {
-            const total = invoice.totalAmount || invoice.total_amount
-            setPendingCompletion({
-              jobId,
-              invoiceId: invoice.id,
-              balance: total,
-              jobNumber: oldJobNumber || '',
-            })
-            setShowUnpaidWarning(true)
-            return
-          }
+          if (checkInvoicePaymentRequired(invoice, jobId, oldJobNumber || '')) return
         }
       }
 
@@ -277,7 +277,7 @@ export default function JobsPage() {
     }
   }
 
-  const handleMechanicChange = async (jobId: string, mechanicId: string) => {
+  const handleMechanicChange = async (jobId: string, mechanicId: string) => {// FIXME: this is a rough implementation to get the mechanic change working, need to refactor 
     try {
       const response = await api.post(`/api/jobs/${jobId}/assign-mechanic`, { mechanicId })
       if (!response.ok) {
@@ -320,6 +320,23 @@ export default function JobsPage() {
             await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
           tenantDetails={tenantDetails}
+          onViewJob={async (jobId) => {
+            const found = jobs.find(j => j.id === jobId);
+            if (found) {
+              setSelectedJob(found);
+            } else {
+              try {
+                const res = await api.get(`/api/jobs/${jobId}`);
+                if (res.ok) {
+                  const dbJob = await res.json();
+                  const uiJob = await transformDatabaseJobToUI(dbJob);
+                  setSelectedJob(uiJob);
+                }
+              } catch (err) {
+                console.error("Error navigating to job:", err);
+              }
+            }
+          }}
         />
       )}
 

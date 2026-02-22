@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
 import { createClient } from "@/lib/supabase/server";
+import { createInventoryAllocationService } from "@/modules/inventory/application/inventory-allocation.service";
+import { InsufficientStockError } from "@/modules/inventory/domain/allocation.entity";
+
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(
   request: NextRequest,
-  context:
-    | { params: { id: string } }
-    | { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const resolvedParams = await (context.params as any);
-    const { id: estimateId } = resolvedParams as { id: string };
+    const { id: estimateId } = await context.params;
 
     const supabase = await createClient();
     const {
@@ -34,42 +35,58 @@ export async function POST(
     const raw = await request.json();
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
-    const useCase = new AddEstimateItemUseCase(repository);
+    const allocationService = createInventoryAllocationService(supabase, tenantId);
+    const useCase = new AddEstimateItemUseCase(repository, allocationService);
 
-    const item = await useCase.execute({
+    const result = await useCase.execute({
       estimateId,
+      partId: raw.part_id,
       customName: raw.custom_name,
       customPartNumber: raw.custom_part_number,
       description: raw.description,
       qty: raw.qty,
       unitPrice: raw.unit_price,
       laborCost: raw.labor_cost,
+      createdBy: user.id,
     });
 
+    const item = result.item;
     const apiItem = {
-      id: (item as any).id,
-      estimate_id: (item as any).estimateId,
-      part_id: (item as any).partId ?? null,
-      custom_name: (item as any).customName,
-      custom_part_number: (item as any).customPartNumber,
-      description: (item as any).description,
-      qty: (item as any).qty,
-      unit_price: (item as any).unitPrice,
-      labor_cost: (item as any).laborCost ?? 0,
-      total:
-        (item as any).total ??
-        (item as any).qty * (item as any).unitPrice +
-          ((item as any).laborCost ?? 0),
-      created_at: (item as any).createdAt
-        ? (item as any).createdAt.toISOString()
-        : null,
+      id: item.id,
+      estimate_id: item.estimateId,
+      part_id: item.partId ?? null,
+      custom_name: item.customName,
+      custom_part_number: item.customPartNumber,
+      description: item.description,
+      qty: item.qty,
+      unit_price: item.unitPrice,
+      labor_cost: item.laborCost ?? 0,
+      total: item.total ?? item.qty * item.unitPrice + (item.laborCost ?? 0),
+      created_at: item.createdAt ? item.createdAt.toISOString() : null,
+      allocation_id: result.allocationId ?? null,
+      stock_reserved: result.stockReserved ?? null,
     };
 
     return NextResponse.json(apiItem, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error adding estimate item:", error);
+    
+    // Handle insufficient stock error specifically
+    if (error instanceof InsufficientStockError) {
+      return NextResponse.json(
+        { 
+          error: error.message,
+          code: 'INSUFFICIENT_STOCK',
+          requested: error.requested,
+          available: error.available,
+        },
+        { status: 409 }
+      );
+    }
+    
+    const message = error instanceof Error ? error.message : "Failed to add estimate item";
     return NextResponse.json(
-      { error: error.message || "Failed to add estimate item" },
+      { error: message },
       { status: 400 }
     );
   }

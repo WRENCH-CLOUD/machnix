@@ -141,7 +141,7 @@ export default function TenantsPage() {
 
   const { toast } = useToast();
 
-  const handleLoginAsTenant = async (tenant: TenantWithStats) => {
+  const handleLoginAsTenant = async (tenant: TenantWithStats) => {// FIXME: This is a placeholder. Actual implementation would involve secure token exchange and redirection to tenant dashboard.
     try {
       const response = await fetch('/api/admin/impersonate', {
         method: 'POST',

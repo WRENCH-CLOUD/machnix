@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { JobDetailsDialog } from "@/components/tenant/jobs/job-details-dialog";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { toast } from "sonner";
@@ -15,8 +15,16 @@ import {
   useGenerateInvoice,
   useRecordPayment,
   useUpdateJobStatus,
+  useUpdateJobNotes,
+  useVehicleJobHistory,
+  useUpdateInvoice,
   transformTenantSettingsForJobDetails,
+  StockError,
 } from "@/hooks/queries";
+import { useInventorySnapshot } from "@/hooks/use-inventory-snapshot";
+import { useJobTasks } from "@/hooks/use-job-tasks";
+import { usePrintableFunctions } from "./printable-function";
+
 
 interface JobDetailsContainerProps {
   job: UIJob;
@@ -29,6 +37,7 @@ interface JobDetailsContainerProps {
     address: string;
     gstin: string;
   };
+  onViewJob?: (jobId: string) => void;
 }
 
 export function JobDetailsContainer({
@@ -38,9 +47,14 @@ export function JobDetailsContainer({
   onJobUpdate,
   currentUser,
   tenantDetails: tenantDetailsProp,
+  onViewJob,
 }: JobDetailsContainerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // GST and discount state for invoice generation
+  const [isGstBilled, setIsGstBilled] = useState(true);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   // Determine mechanic mode based on user role
   const isMechanicMode = currentUser?.role === "mechanic";
@@ -49,7 +63,16 @@ export function JobDetailsContainer({
   const { data: tenantSettings } = useTenantSettings();
   const tenantDetails = tenantDetailsProp || transformTenantSettingsForJobDetails(tenantSettings);
 
-  const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(
+  // Inventory snapshot with delta sync (efficient caching across session)
+  const {
+    items: inventoryItems,
+    isLoading: loadingInventory,
+    error: inventoryError,
+    searchItems,
+    refresh: refreshInventory,
+  } = useInventorySnapshot();
+
+  const { data: estimate, refetch: refetchEstimate } = useEstimateByJob(//FIXME: used to get estimate items, but should refactor to have a separate query for estimate items to avoid refetching entire estimate when items change
     job.id,
     {
       jobNumber: job.jobNumber,
@@ -61,6 +84,12 @@ export function JobDetailsContainer({
 
   const { data: invoice, isLoading: loadingInvoice, refetch: refetchInvoice } = useInvoiceByJob(job.id);
 
+  // Service history for print
+  const { data: serviceHistoryData } = useVehicleJobHistory(job.vehicle.id, job.id);
+
+  // Job tasks for print
+  const { data: tasks = [] } = useJobTasks(job.id);
+
   // Mutations
   const addItemMutation = useAddEstimateItem(job.id);
   const removeItemMutation = useRemoveEstimateItem(job.id);
@@ -68,9 +97,81 @@ export function JobDetailsContainer({
   const generateInvoiceMutation = useGenerateInvoice(job.id);
   const recordPaymentMutation = useRecordPayment(job.id);
   const updateStatusMutation = useUpdateJobStatus(job.id);
+  const updateNotesMutation = useUpdateJobNotes(job.id);
+  const updateInvoiceMutation = useUpdateInvoice(job.id);
+
+  // Debounce ref for rate-limiting invoice updates (500ms)
+  const updateInvoiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced function to update invoice GST/discount
+  const debouncedUpdateInvoice = useCallback(
+    (newIsGstBilled: boolean, newDiscountPercentage: number) => {
+      if (!invoice) return;
+
+      // Clear previous timeout
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+
+      // Set new timeout
+      updateInvoiceTimeoutRef.current = setTimeout(() => {
+        updateInvoiceMutation.mutate({
+          invoiceId: invoice.id,
+          isGstBilled: newIsGstBilled,
+          discountPercentage: newDiscountPercentage,
+        });
+      }, 500);
+    },
+    [invoice, updateInvoiceMutation]
+  );
+
+  // GST toggle handler - updates local state immediately, debounces API call
+  const handleGstToggle = useCallback(
+    (value: boolean) => {
+      setIsGstBilled(value);
+      debouncedUpdateInvoice(value, discountPercentage);
+    },
+    [discountPercentage, debouncedUpdateInvoice]
+  );
+
+  // Discount change handler - updates local state immediately, debounces API call
+  const handleDiscountChange = useCallback(
+    (value: number) => {
+      setDiscountPercentage(value);
+      debouncedUpdateInvoice(isGstBilled, value);
+    },
+    [isGstBilled, debouncedUpdateInvoice]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateInvoiceTimeoutRef.current) {
+        clearTimeout(updateInvoiceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Local state for notes (optimistic updates)
+  const [localNotes, setLocalNotes] = useState<string>(job.complaints || "");
+
+
+  // Sync local state when job changes
+  useEffect(() => {
+    setLocalNotes(job.complaints || "");
+  }, [job.id]);
+
+  // Sync GST and discount state from existing invoice
+  useEffect(() => {
+    if (invoice) {
+      setIsGstBilled(invoice.isGstBilled ?? true);
+      setDiscountPercentage(invoice.discountPercentage ?? 0);
+    }
+  }, [invoice]);
 
   // Handlers
   const handleAddEstimateItem = async (part: {
+    inventoryItemId?: string;
     name: string;
     partNumber?: string;
     quantity: number;
@@ -82,12 +183,23 @@ export function JobDetailsContainer({
     try {
       await addItemMutation.mutateAsync({
         estimateId: estimate.id,
-        item: part,
+        item: {
+          ...part,
+          partId: part.inventoryItemId,
+        },
       });
       toast.success("Item added to estimate");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding item:", error);
-      toast.error("Failed to add item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} units available. Cannot add ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to add item");
+      }
     }
   };
 
@@ -108,355 +220,39 @@ export function JobDetailsContainer({
     try {
       await updateItemMutation.mutateAsync({ itemId, updates });
       toast.success("Item updated");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating item:", error);
-      toast.error("Failed to update item");
+      // Check by property instead of instanceof (works better with bundlers)
+      if (error?.code === 'INSUFFICIENT_STOCK' || error instanceof StockError) {
+        toast.error(`Insufficient Stock`, {
+          description: `Only ${error.available} additional units available. Cannot increase to ${error.requested} units.`,
+          duration: 5000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to update item");
+      }
     }
-  };
-
-  const handleGenerateInvoicePdf = () => {
-    if (!invoice) return;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const partsSubtotal = estimateItems.reduce(
-      (acc: number, item: { qty: number; unit_price: number }) => acc + item.qty * item.unit_price,
-      0
-    );
-    const laborSubtotal = estimateItems.reduce(
-      (acc: number, item: { labor_cost?: number }) => acc + (item.labor_cost || 0),
-      0
-    );
-    const subtotal = partsSubtotal + laborSubtotal;
-    const tax = subtotal * 0.18;
-    const total = subtotal + tax;
-
-    const customerName = job.customer?.name ?? "";
-    const customerPhone = job.customer?.phone ?? "";
-    const customerEmail = job.customer?.email ?? "";
-    const vehicleTitle = `${job.vehicle?.year ?? ""} ${
-      job.vehicle?.make ?? ""
-    } ${job.vehicle?.model ?? ""}`.trim();
-    const vehicleReg = job.vehicle?.regNo ?? "";
-
-    const pdfContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Invoice - ${job.jobNumber}</title>
-        <style>
-          @media print {
-            @page { margin: 1cm; }
-            body { margin: 0; }
-          }
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
-          .header-left .title { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
-          .header-right { text-align: right; }
-          .info { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
-          .section-title { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 12px; text-transform: uppercase; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th, td { border-bottom: 1px solid #ddd; padding: 12px 8px; text-align: left; }
-          th { background-color: #f8f8f8; font-weight: bold; border-bottom: 2px solid #333; }
-          .text-right { text-align: right; }
-          .totals { margin-left: auto; width: 350px; }
-          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
-          .total-final { font-weight: bold; font-size: 22px; border-top: 2px solid #000; padding-top: 15px; margin-top: 10px; }
-          .paid { color: #059669; }
-          .balance { color: #d97706; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="header-left">
-            <div class="title">INVOICE</div>
-            <div>${invoice.invoice_number || job.jobNumber}</div>
-            <div style="font-size: 12px; color: #666;">Date: ${
-              invoice.invoice_date 
-                ? new Date(invoice.invoice_date).toLocaleDateString() 
-                : new Date().toLocaleDateString()
-            }</div>
-          </div>
-          <div class="header-right">
-            <div style="font-weight: bold; font-size: 18px;">${tenantDetails.name || 'Garage'}</div>
-            <div style="font-size: 12px;">${tenantDetails.address || ''}</div>
-            ${tenantDetails.gstin ? `<div style="font-size: 12px;">GSTIN: ${tenantDetails.gstin}</div>` : ''}
-          </div>
-        </div>
-        
-        <div class="info">
-          <div>
-            <div class="section-title">Bill To</div>
-            <div style="font-weight: bold; font-size: 16px;">${customerName}</div>
-            <div style="font-size: 14px;">${customerPhone}</div>
-            <div style="font-size: 14px;">${customerEmail}</div>
-          </div>
-          <div>
-            <div class="section-title">Vehicle</div>
-            <div style="font-weight: bold; font-size: 16px;">${vehicleTitle}</div>
-            <div style="font-size: 14px; font-family: monospace;">${vehicleReg}</div>
-          </div>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th class="text-right">Qty</th>
-              <th class="text-right">Rate</th>
-              <th class="text-right">Labor</th>
-              <th class="text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${estimateItems
-              .map((item: { custom_name: string; custom_part_number?: string; qty: number; unit_price: number; labor_cost?: number }) => {
-                const partsAmount = item.qty * item.unit_price;
-                const laborAmount = item.labor_cost || 0;
-                const lineTotal = partsAmount + laborAmount;
-                const partNumber =
-                  item.custom_part_number && item.custom_part_number !== ""
-                    ? `<div style="font-size: 11px; color: #666;">${item.custom_part_number}</div>`
-                    : "";
-
-                return `
-                  <tr>
-                    <td>
-                      <div style="font-weight: 500;">${item.custom_name}</div>
-                      ${partNumber}
-                    </td>
-                    <td class="text-right">${item.qty}</td>
-                    <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
-                    <td class="text-right">${
-                      laborAmount > 0
-                        ? "₹" + laborAmount.toLocaleString()
-                        : "-"
-                    }</td>
-                    <td class="text-right" style="font-weight: 500;">₹${lineTotal.toLocaleString()}</td>
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
-        </table>
-        
-        <div class="totals">
-          <div class="totals-row">
-            <span>Parts:</span>
-            <span>₹${partsSubtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row">
-            <span>Labor:</span>
-            <span>₹${laborSubtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row" style="padding-top: 10px; border-top: 1px solid #ddd;">
-            <span>Subtotal:</span>
-            <span>₹${subtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row">
-            <span>GST (18%):</span>
-            <span>₹${tax.toLocaleString()}</span>
-          </div>
-          <div class="totals-row total-final">
-            <span>Total:</span>
-            <span>₹${total.toLocaleString()}</span>
-          </div>
-          ${
-            invoice.paid_amount > 0
-              ? `
-            <div class="totals-row paid" style="padding-top: 10px; border-top: 1px solid #ddd;">
-              <span>Paid:</span>
-              <span>₹${Number(invoice.paid_amount).toLocaleString()}</span>
-            </div>
-            <div class="totals-row balance" style="font-weight: bold; font-size: 18px;">
-              <span>Balance Due:</span>
-              <span>₹${(total - invoice.paid_amount).toLocaleString()}</span>
-            </div>
-          `
-              : ""
-          }
-        </div>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            window.onafterprint = function() {
-              window.close();
-            }
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.write(pdfContent);
-    printWindow.document.close();
-  };
-
-  const handleGenerateEstimatePdf = () => {
-    if (!estimate || estimateItems.length === 0) return;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const partsSubtotal =
-      estimate.parts_total ??
-      estimateItems.reduce(
-        (acc: number, item: { qty: number; unit_price: number }) => acc + item.qty * item.unit_price,
-        0
-      );
-    const laborSubtotal =
-      estimate.labor_total ??
-      estimateItems.reduce(
-        (acc: number, item: { labor_cost?: number }) => acc + (item.labor_cost || 0),
-        0
-      );
-    const subtotal = estimate.subtotal ?? partsSubtotal + laborSubtotal;
-    const tax = estimate.tax_amount ?? subtotal * 0.18;
-    const total = estimate.total_amount ?? subtotal + tax;
-
-    const customerName = job.customer?.name ?? "";
-    const customerPhone = job.customer?.phone ?? "";
-    const customerEmail = job.customer?.email ?? "";
-    const vehicleTitle = `${job.vehicle?.year ?? ""} ${
-      job.vehicle?.make ?? ""
-    } ${job.vehicle?.model ?? ""}`.trim();
-    const vehicleReg = job.vehicle?.regNo ?? "";
-
-    const pdfContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Estimate - ${job.jobNumber}</title>
-        <style>
-          @media print {
-            @page { margin: 1cm; }
-            body { margin: 0; }
-          }
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          .header { margin-bottom: 30px; }
-          .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-          .info { margin-bottom: 30px; }
-          .section { margin-bottom: 20px; }
-          .section-title { font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-          .text-right { text-align: right; }
-          .totals { margin-left: auto; width: 350px; margin-top: 20px; }
-          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
-          .total-final { font-weight: bold; font-size: 20px; border-top: 2px solid #000; padding-top: 10px; margin-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">ESTIMATE</div>
-          <div>Estimate #: ${estimate.estimate_number || job.jobNumber}</div>
-          <div>Date: ${new Date().toLocaleDateString()}</div>
-        </div>
-        
-        <div class="info">
-          <div class="section">
-            <div class="section-title">Customer Information</div>
-            <div>Name: ${customerName}</div>
-            <div>Phone: ${customerPhone}</div>
-            <div>Email: ${customerEmail}</div>
-          </div>
-          
-          <div class="section">
-            <div class="section-title">Vehicle Information</div>
-            <div>${vehicleTitle}</div>
-            <div>Registration: ${vehicleReg}</div>
-          </div>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Part Number</th>
-              <th class="text-right">Qty</th>
-              <th class="text-right">Unit Price</th>
-              <th class="text-right">Labor</th>
-              <th class="text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${estimateItems
-              .map((item: { custom_name: string; custom_part_number?: string; qty: number; unit_price: number; labor_cost?: number }) => {
-                const partsAmount = item.qty * item.unit_price;
-                const laborAmount = item.labor_cost || 0;
-                const lineTotal = partsAmount + laborAmount;
-                const partNumber =
-                  item.custom_part_number && item.custom_part_number !== ""
-                    ? item.custom_part_number
-                    : "-";
-                return `
-                  <tr>
-                    <td>${item.custom_name}</td>
-                    <td>${partNumber}</td>
-                    <td class="text-right">${item.qty}</td>
-                    <td class="text-right">₹${item.unit_price.toLocaleString()}</td>
-                    <td class="text-right">${
-                      laborAmount > 0
-                        ? "₹" + laborAmount.toLocaleString()
-                        : "-"
-                    }</td>
-                    <td class="text-right">₹${lineTotal.toLocaleString()}</td>
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
-        </table>
-        
-        <div class="totals">
-          <div class="totals-row">
-            <span>Parts Subtotal:</span>
-            <span>₹${partsSubtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row">
-            <span>Labor Subtotal:</span>
-            <span>₹${laborSubtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row">
-            <span>Subtotal:</span>
-            <span>₹${subtotal.toLocaleString()}</span>
-          </div>
-          <div class="totals-row">
-            <span>GST (18%):</span>
-            <span>₹${tax.toLocaleString()}</span>
-          </div>
-          <div class="totals-row total-final">
-            <span>Total:</span>
-            <span>₹${total.toLocaleString()}</span>
-          </div>
-        </div>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            window.onafterprint = function() {
-              window.close();
-            }
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.write(pdfContent);
-    printWindow.document.close();
   };
 
   const handleRetryInvoice = () => {
     refetchInvoice();
   };
 
-  const handleMarkPaid = () => {
+  const handleMarkPaid = async () => {
+    // If already paid, direct completion (bypass payment modal)
+    if (invoice?.status === "paid") {
+
+      try {
+        await updateStatusMutation.mutateAsync("completed");
+        toast.success("Job completed successfully");
+        onJobUpdate?.();
+      } catch (error) {
+        console.error("Error completing job:", error);
+        toast.error("Failed to complete job");
+      }
+      return;
+    }
+
     setShowPaymentModal(true);
   };
 
@@ -476,6 +272,28 @@ export function JobDetailsContainer({
     }
   };
 
+  const {
+    handleGenerateInvoicePdf,
+    handleGenerateEstimatePdf,
+    handleGenerateJobPdf,
+  } = usePrintableFunctions({
+    job,
+    estimateItems,
+    invoice,
+    tenantDetails,
+    estimate,
+    notes: localNotes,
+    tasks: tasks.map(t => ({
+      id: t.id,
+      taskName: t.taskName,
+      actionType: t.actionType,
+      taskStatus: t.taskStatus,
+    })),
+    serviceHistory: serviceHistoryData,
+    isGstBilled,
+    discountPercentage,
+  });
+
   const handleGenerateInvoice = async () => {
     if (!estimate) {
       toast.error("Cannot generate invoice: Estimate not found");
@@ -483,10 +301,51 @@ export function JobDetailsContainer({
     }
 
     try {
-      await generateInvoiceMutation.mutateAsync({ estimateId: estimate.id });
+      await generateInvoiceMutation.mutateAsync({
+        estimateId: estimate.id,
+        isGstBilled,
+        discountPercentage,
+      });
       toast.success("Invoice generated");
     } catch (error) {
       console.error("Error generating invoice:", error);
+    }
+  };
+
+
+  // Notes handler
+  const handleUpdateNotes = async (notes: string) => {
+    const previousNotes = localNotes;
+    setLocalNotes(notes);
+
+    try {
+      await updateNotesMutation.mutateAsync(notes);
+      onJobUpdate?.();
+    } catch (error) {
+      console.error("Error updating notes:", error);
+      setLocalNotes(previousNotes);
+      toast.error("Failed to update notes");
+    }
+  };
+
+  // Mechanic assignment handler
+  const handleMechanicChange = async (mechanicId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/assign-mechanic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mechanicId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign mechanic');
+      }
+
+      toast.success('Mechanic assigned');
+      onJobUpdate?.();
+    } catch (error) {
+      console.error('Error assigning mechanic:', error);
+      toast.error('Failed to assign mechanic');
     }
   };
 
@@ -497,7 +356,7 @@ export function JobDetailsContainer({
       // 1. Record Payment
       await recordPaymentMutation.mutateAsync({
         invoiceId: invoice.id,
-        amount: invoice.totalAmount || invoice.total_amount || 0,
+        amount: invoice.totalAmount || 0,
         method,
       });
 
@@ -538,7 +397,23 @@ export function JobDetailsContainer({
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}
+      onGenerateJobPdf={handleGenerateJobPdf}
       tenantDetails={tenantDetails}
+
+      notes={localNotes}
+      onUpdateNotes={handleUpdateNotes}
+      onViewJob={onViewJob}
+      onMechanicChange={handleMechanicChange}
+      isGstBilled={isGstBilled}
+      onGstToggle={handleGstToggle}
+      discountPercentage={discountPercentage}
+      onDiscountChange={handleDiscountChange}
+      // Inventory props (using delta-sync snapshot for efficient caching)
+      inventoryItems={inventoryItems}
+      loadingInventory={loadingInventory}
+      inventoryError={inventoryError}
+      searchInventory={searchItems}
+      onRefreshInventory={refreshInventory}
     />
   );
 }

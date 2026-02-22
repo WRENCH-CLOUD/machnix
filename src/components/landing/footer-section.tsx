@@ -1,6 +1,6 @@
 "use client"
 
-import { Twitter, Github, Linkedin } from "lucide-react"
+import { Linkedin,  Instagram} from "lucide-react"
 
 export function FooterSection() {
   return (
@@ -11,14 +11,11 @@ export function FooterSection() {
           <div className="text-center text-foreground text-xl font-semibold leading-4">Wrench Cloud</div>
         </div>
         <div className="flex justify-start items-start gap-3">
-          <a href="#" aria-label="Twitter" className="w-4 h-4 flex items-center justify-center">
-            <Twitter className="w-full h-full text-muted-foreground" />
-          </a>
-          <a href="#" aria-label="GitHub" className="w-4 h-4 flex items-center justify-center">
-            <Github className="w-full h-full text-muted-foreground" />
-          </a>
-          <a href="#" aria-label="LinkedIn" className="w-4 h-4 flex items-center justify-center">
+          <a href="https://www.linkedin.com/company/wrenchcloud" aria-label="LinkedIn" className="w-4 h-4 flex items-center justify-center">
             <Linkedin className="w-full h-full text-muted-foreground" />
+          </a>
+          <a href="https://www.instagram.com/wrenchcloud.in" aria-label="Instagram" className="w-4 h-4 flex items-center justify-center">
+            <Instagram className="w-full h-full text-muted-foreground" />
           </a>
         </div>
       </div>
@@ -84,6 +81,12 @@ export function FooterSection() {
             </a>
           </div>
         </div> */}
+        <div>
+          <h3 className="text-muted-foreground text-sm font-medium leading-5">Contact and feedback</h3>
+          <p className="text-foreground text-sm font-normal leading-5 mt-2">
+            We’d love to hear from you! If you have any questions, feedback, or just want to say hi, feel free to reach out to us at <a href="mailto:info@wrenchcloud.com" className="text-primary hover:underline">info@wrenchcloud.com</a>
+          </p>
+        </div>
       </div>
     </footer>
   )

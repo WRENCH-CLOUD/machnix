@@ -8,6 +8,8 @@ import {
   ChevronDown,
   AlertTriangle,
   RefreshCw,
+  Printer,
+  CheckCircle2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,46 @@ import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
+import { JobTasks } from "./job-tasks";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
+import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+
+// Using compatible types that match what child components expect
+interface EstimatePartial {
+  id?: string;
+  parts_total?: number;
+  labor_total?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  estimate_items?: unknown[];
+}
+
+/** Minimal estimate item - only fields actually used */
+interface EstimateItemPartial {
+  id: string;
+  custom_name: string | null;
+  custom_part_number?: string | null;
+  qty: number;
+  unit_price: number;
+  labor_cost?: number | null;
+}
+
+interface InvoicePartial {
+  id?: string;
+  status?: string;
+  totalAmount?: number;
+  total_amount?: number;
+  is_gst_billed?: boolean;
+  isGstBilled?: boolean;
+  discount_percentage?: number;
+  discountPercentage?: number;
+  tax_amount?: number;
+  paid_amount?: number;
+  parts_total?: number;
+  labor_total?: number;
+  discount_amount?: number;
+}
 
 interface JobDetailsDialogProps {
   job: UIJob;
@@ -39,32 +80,54 @@ interface JobDetailsDialogProps {
   isRefreshing?: boolean;
 
   // Estimate props
-  estimate: any;
-  estimateItems: any[];
+  estimate: EstimatePartial | null | undefined;
+  estimateItems: EstimateItemPartial[];
   onAddEstimateItem: (part: Part) => Promise<void>;
   onRemoveEstimateItem: (itemId: string) => Promise<void>;
   onUpdateEstimateItem?: (itemId: string, updates: { qty?: number; unitPrice?: number; laborCost?: number }) => Promise<void>;
   onGenerateEstimatePdf: () => void;
 
   // Invoice props
-  invoice: any;
+  invoice: InvoicePartial | null | undefined;
   loadingInvoice: boolean;
   onRetryInvoice: () => void;
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
   onGenerateInvoice: () => void;
-  
+  // GST and discount props
+  isGstBilled?: boolean;
+  onGstToggle?: (value: boolean) => void;
+  discountPercentage?: number;
+  onDiscountChange?: (value: number) => void;
+
+  // Inventory props
+  inventoryItems?: InventorySnapshotItem[];
+  loadingInventory?: boolean;
+  inventoryError?: Error | null;
+  /** Optimized search function from inventory snapshot */
+  searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
+  /** Function to refresh inventory from server */
+  onRefreshInventory?: () => void;
+
   // Payment Modal props
   showPaymentModal: boolean;
   setShowPaymentModal: (show: boolean) => void;
   onPaymentComplete: (method: string, ref?: string) => Promise<void>;
-  
+
   // Tenant props
   tenantDetails: {
     name: string;
     address: string;
     gstin: string;
   };
+  onGenerateJobPdf?: () => void;
+
+  // Notes props
+  notes?: string;
+  onUpdateNotes?: (notes: string) => void;
+  onViewJob?: (jobId: string) => void;
+
+  maxTodos?: number;
 }
 
 export function JobDetailsDialog({
@@ -93,6 +156,20 @@ export function JobDetailsDialog({
   setShowPaymentModal,
   onPaymentComplete,
   tenantDetails,
+  onGenerateJobPdf,
+  notes,
+  onUpdateNotes,
+  onViewJob,
+  onMechanicChange,
+  isGstBilled = true,
+  onGstToggle,
+  discountPercentage = 0,
+  onDiscountChange,
+  inventoryItems,
+  loadingInventory,
+  inventoryError,
+  searchInventory,
+  onRefreshInventory,
 }: JobDetailsDialogProps) {
   if (!isOpen) return null;
 
@@ -162,9 +239,9 @@ export function JobDetailsDialog({
 
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-xl font-bold text-foreground">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <h2 className="text-xl font-bold text-foreground warp-break-word">
                   {job.jobNumber}
                 </h2>
                 {!isMechanicMode && onStatusChange ? (
@@ -228,7 +305,7 @@ export function JobDetailsDialog({
                     {statusInfo.label}
                   </Badge>
                 )}
-                {job.dviPending && (
+                {/* {job.dviPending && (
                   <Badge
                     variant="outline"
                     className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs gap-1"
@@ -236,16 +313,29 @@ export function JobDetailsDialog({
                     <AlertTriangle className="w-3 h-3" />
                     DVI Pending
                   </Badge>
-                )}
+                )} */}
               </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Car className="w-4 h-4" />
-                  {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1 warp-break-words">
+                  <Car className="w-4 h-4 flex-shrink-0" />
+                  <span className="warp-break-words">
+                    {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+                  </span>
                 </span>
-                <span className="font-mono">{job.vehicle.regNo}</span>
+                <span className="font-mono break-all">{job.vehicle.regNo}</span>
               </div>
             </div>
+            {onGenerateJobPdf && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onGenerateJobPdf}
+                title="Print Job Card"
+                className="mr-2"
+              >
+                <Printer className="w-5 h-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-5 h-5" />
             </Button>
@@ -266,6 +356,16 @@ export function JobDetailsDialog({
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Overview
+                  </TabsTrigger>
+                )}
+
+                {!isMechanicMode && (
+                  <TabsTrigger
+                    value="tasks"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Tasks
                   </TabsTrigger>
                 )}
 
@@ -298,7 +398,7 @@ export function JobDetailsDialog({
                       Invoice
                       {job.status !== "ready" && job.status !== "completed" && (
                         <span className="ml-2 text-xs text-muted-foreground">
-                          (Available when Ready for Payment)
+                          (Available when Ready for Delivery)
                         </span>
                       )}
                     </TabsTrigger>
@@ -309,18 +409,44 @@ export function JobDetailsDialog({
 
             <div className="flex-1 overflow-hidden relative">
               <TabsContent value="overview" className="m-0 h-full">
-                <JobOverview job={job} />
+                <JobOverview
+                  job={job}
+                  notes={notes}
+                  onUpdateNotes={onUpdateNotes}
+                  onViewJob={onViewJob}
+                  onMechanicChange={onMechanicChange}
+                  isEditable={job.status !== "completed" && job.status !== "cancelled"}
+                  estimate={estimate}
+                  searchInventory={searchInventory}
+                />
+              </TabsContent>
+
+              <TabsContent value="tasks" className="m-0 h-full">
+                <ScrollArea className="h-[calc(100vh-280px)]">
+                  <div className="p-4 md:p-6">
+                    <JobTasks
+                      jobId={job.id}
+                      disabled={job.status === "completed" || job.status === "cancelled"}
+                      searchInventory={searchInventory as any}
+                    />
+                  </div>
+                </ScrollArea>
               </TabsContent>
 
               <TabsContent value="parts" className="m-0 h-full">
                 <JobParts
-                  estimate={estimate}
+                  estimate={estimate ?? null}
                   estimateItems={estimateItems}
                   jobStatus={currentStatus}
                   onAddItem={onAddEstimateItem}
                   onRemoveItem={onRemoveEstimateItem}
                   onUpdateItem={onUpdateEstimateItem}
                   onGenerateEstimatePdf={onGenerateEstimatePdf}
+                  inventoryItems={inventoryItems}
+                  loadingInventory={loadingInventory}
+                  inventoryError={inventoryError}
+                  searchInventory={searchInventory}
+                  onRefreshInventory={onRefreshInventory}
                 />
               </TabsContent>
 
@@ -331,6 +457,10 @@ export function JobDetailsDialog({
                   invoice={invoice}
                   estimateItems={estimateItems}
                   loading={loadingInvoice}
+                  isGstBilled={isGstBilled}
+                  onGstToggle={onGstToggle}
+                  discountPercentage={discountPercentage}
+                  onDiscountChange={onDiscountChange}
                   onRetry={onRetryInvoice}
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}

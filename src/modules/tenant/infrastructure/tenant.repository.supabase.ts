@@ -87,20 +87,19 @@ export class SupabaseTenantRepository implements TenantRepository {
       businessPhone: row.business_phone,
       businessEmail: row.business_email,
       website: row.website,
-      
+
       taxRate: row.tax_rate,
       currency: row.currency,
       timezone: row.timezone,
-      
+
       smsEnabled: row.sms_enabled,
       emailEnabled: row.email_enabled,
-      whatsappEnabled: row.whatsapp_enabled,
-      
+
       invoicePrefix: row.invoice_prefix,
       jobPrefix: row.job_prefix,
       estimatePrefix: row.estimate_prefix,
       invoiceFooter: row.invoice_footer,
-      
+
       logoUrl: row.logo_url,
       updatedAt: new Date(row.updated_at)
     };
@@ -120,7 +119,7 @@ export class SupabaseTenantRepository implements TenantRepository {
 
   async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
     const dbSettings: any = {};
-    
+
     // Map domain fields to DB columns
     if (settings.legalName !== undefined) dbSettings.legal_name = settings.legalName;
     if (settings.gstNumber !== undefined) dbSettings.gst_number = settings.gstNumber;
@@ -132,11 +131,11 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (settings.businessPhone !== undefined) dbSettings.business_phone = settings.businessPhone;
     if (settings.businessEmail !== undefined) dbSettings.business_email = settings.businessEmail;
     if (settings.website !== undefined) dbSettings.website = settings.website;
-    
+
     if (settings.taxRate !== undefined) dbSettings.tax_rate = settings.taxRate;
     if (settings.currency !== undefined) dbSettings.currency = settings.currency;
     if (settings.timezone !== undefined) dbSettings.timezone = settings.timezone;
-    
+
     if (settings.invoicePrefix !== undefined) dbSettings.invoice_prefix = settings.invoicePrefix;
     if (settings.jobPrefix !== undefined) dbSettings.job_prefix = settings.jobPrefix;
     if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
@@ -146,7 +145,6 @@ export class SupabaseTenantRepository implements TenantRepository {
     // Notification toggle fields
     if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;
     if (settings.emailEnabled !== undefined) dbSettings.email_enabled = settings.emailEnabled;
-    if (settings.whatsappEnabled !== undefined) dbSettings.whatsapp_enabled = settings.whatsappEnabled;
     if (Object.keys(dbSettings).length > 0) {
       // Include tenant_id for upsert
       dbSettings.tenant_id = tenantId;
@@ -183,7 +181,7 @@ export class SupabaseTenantRepository implements TenantRepository {
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
         .eq("status", "received"),
-      
+
       // Ready jobs (ready status)
       this.supabase
         .schema("tenant")
@@ -191,7 +189,7 @@ export class SupabaseTenantRepository implements TenantRepository {
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
         .eq("status", "ready"),
-      
+
       // Jobs created this week
       this.supabase
         .schema("tenant")
@@ -243,7 +241,7 @@ export class SupabaseTenantRepository implements TenantRepository {
       .from('vehicles')
       .select('id, reg_no')
       .in('id', vehicleIds);
-    
+
     const vehicleMap = new Map((vehicles || []).map(v => [v.id, v]));
 
     return data.map(job => {
@@ -310,4 +308,5 @@ export class SupabaseTenantRepository implements TenantRepository {
       .eq("id", id);
     if (error) throw error;
   }
+
 }

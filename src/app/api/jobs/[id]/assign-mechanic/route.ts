@@ -28,6 +28,23 @@ export async function POST(
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 403 });
     }
 
+    // Validate mechanic exists and is active
+    const { data: mechanic, error: mechanicError } = await supabase
+      .schema('tenant')
+      .from('mechanics')
+      .select('id, name, is_active')
+      .eq('id', mechanicId)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (mechanicError || !mechanic) {
+      return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 });
+    }
+
+    if (mechanic.is_active === false) {
+      return NextResponse.json({ error: 'Cannot assign inactive mechanic' }, { status: 400 });
+    }
+
     const repository = new SupabaseJobRepository(supabase, tenantId);
     const useCase = new AssignMechanicUseCase(repository);
 

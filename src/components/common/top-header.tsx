@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import ProfileDropdown from "@/components/ui/profileDropdown"
 import { useAuth } from "@/providers/auth-provider"
@@ -45,7 +44,7 @@ export function TopHeader({ tenantName, onCreateJob }: TopHeaderProps) {
 
   return (
     <>
-      <header className="h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-4 lg:px-6 gap-2">
+      <header className="sticky top-0 z-50 h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-4 lg:px-6 gap-2">
         {/* Left Section - Sidebar Trigger, Tenant & Search */}
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6 flex-shrink min-w-0">
           {/* Mobile Sidebar Trigger */}

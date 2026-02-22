@@ -22,7 +22,7 @@ export class CreateTenantWithOwnerUseCase {
     private readonly jwtClaims: JwtClaimsService,
     private readonly tenantUserRepo: TenantUserRepository,
     private readonly supabaseAdmin: SupabaseClient
-  ) {}
+  ) { }
 
   async execute(input: CreateTenantWithOwnerInput) {
     const {
@@ -34,21 +34,21 @@ export class CreateTenantWithOwnerUseCase {
       subscription,
     } = input;
 
-    // 1. Validate
-    if (!tenantName || !tenantSlug || !adminEmail || !adminName) {
-      throw new Error('Missing required fields')
+    // 1. Validate required fields
+    if (!tenantName?.trim() || !tenantSlug?.trim() || !adminEmail?.trim() || !adminName?.trim()) {
+      throw new Error('Missing required fields: tenantName, tenantSlug, adminEmail, and adminName are required')
     }
 
     // 2. Slug uniqueness
     const slugAvailable = await this.tenantRepo.isSlugAvailable(tenantSlug)
     if (!slugAvailable) {
-      throw new Error('Tenant slug already exists')
+      throw new Error(`Tenant slug "${tenantSlug}" already exists`)
     }
 
     // 3. Email uniqueness
     const emailExists = await this.authRepo.emailExists(adminEmail)
     if (emailExists) {
-      throw new Error('Admin email already registered')
+      throw new Error(`Admin email "${adminEmail}" already registered`)
     }
 
     // Rollback handles
