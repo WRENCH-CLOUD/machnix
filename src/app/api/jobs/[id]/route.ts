@@ -47,3 +47,42 @@ export async function GET(
         )
     }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string } } | { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await (context.params as any)
+    const id = (resolvedParams as { id: string }).id
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
+
+    const repository = new SupabaseJobRepository(supabase, tenantId)
+
+    const existingJob = await repository.findById(id)
+    if (!existingJob) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+
+    await repository.delete(id)
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('Error deleting job:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
