@@ -180,7 +180,7 @@ function TaskItem({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-6 px-2 gap-1 text-xs shrink-0",
+                  "h-6 px-2 gap-1 text-sm shrink-0",
                   actionConfig.color
                 )}
               >
@@ -209,7 +209,7 @@ function TaskItem({
                     <TypeIcon className={cn("h-3 w-3 mr-2", isSelected && "text-primary")} />
                     {config.label}
                     {needsInventory && (
-                      <span className="ml-auto text-xs text-muted-foreground">
+                      <span className="ml-auto text-sm text-muted-foreground">
                         + select part
                       </span>
                     )}
@@ -221,7 +221,7 @@ function TaskItem({
         ) : (
           <Badge
             variant="outline"
-            className={cn("shrink-0 gap-1 text-xs", actionConfig.color)}
+            className={cn("shrink-0 gap-1 text-sm", actionConfig.color)}
           >
             <ActionIcon className="h-3 w-3" />
             {actionConfig.label}
@@ -239,7 +239,7 @@ function TaskItem({
             </p>
           </div>
           {task.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
               {task.description}
             </p>
           )}
@@ -275,7 +275,7 @@ function TaskItem({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-7 px-2 gap-1 text-xs",
+                    "h-7 px-2 gap-1 text-sm",
                     statusConfig.bgColor,
                     statusConfig.color
                   )}
@@ -300,7 +300,7 @@ function TaskItem({
                     >
                       <div className={cn("w-2 h-2 rounded-full mr-2", config.bgColor)} />
                       {config.label}
-                      <span className="ml-auto text-xs text-muted-foreground">
+                      <span className="ml-auto text-sm text-muted-foreground">
                         {config.description}
                       </span>
                     </DropdownMenuItem>
@@ -309,7 +309,7 @@ function TaskItem({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Badge className={cn(statusConfig.bgColor, statusConfig.color, "text-xs")}>
+            <Badge className={cn(statusConfig.bgColor, statusConfig.color, "text-sm")}>
               {statusConfig.label}
             </Badge>
           )}
@@ -331,7 +331,7 @@ function TaskItem({
 
       {/* Inventory Info Row - Only for REPLACED tasks with linked item */}
       {task.actionType === "REPLACED" && task.inventoryItem && (
-        <div className="mt-2 ml-0 p-2 rounded bg-muted/50 text-xs flex items-center justify-between">
+        <div className="mt-2 ml-0 p-2 rounded bg-muted/50 text-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="h-3 w-3 text-muted-foreground" />
             <span className="font-medium">{task.inventoryItem.name}</span>
@@ -349,7 +349,7 @@ function TaskItem({
 
       {/* Labor cost if set */}
       {task.laborCostSnapshot !== undefined && task.laborCostSnapshot > 0 && (
-        <div className="mt-1 ml-0 text-xs text-muted-foreground">
+        <div className="mt-1 ml-0 text-sm text-muted-foreground">
           Labor: ₹{task.laborCostSnapshot.toFixed(2)}
         </div>
       )}
@@ -522,7 +522,7 @@ export function JobTasks({
               Tasks
             </div>
             {tasks.length > 0 && (
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-sm font-normal text-muted-foreground">
                 {totals.completedCount}/{totals.taskCount} done
               </span>
             )}
@@ -555,7 +555,7 @@ export function JobTasks({
 
           {/* Totals Summary */}
           {tasks.length > 0 && totals.total > 0 && (
-            <div className="pt-2 border-t text-xs space-y-1">
+            <div className="pt-2 border-t text-sm space-y-1">
               <div className="flex justify-between text-muted-foreground">
                 <span>Parts Total</span>
                 <span>₹{totals.partsTotal.toFixed(2)}</span>

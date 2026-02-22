@@ -72,7 +72,7 @@ interface JobPartsProps {
   onRemoveItem: (itemId: string) => Promise<void>;
   onUpdateItem?: (
     itemId: string,
-    updates: { qty?: number; unitPrice?: number; laborCost?: number }
+    updates: { qty?: number; unitPrice?: number; laborCost?: number },
   ) => Promise<void>;
   onGenerateEstimatePdf: () => void;
   // Inventory props
@@ -113,7 +113,7 @@ export function JobParts({
 
   // Combobox state per part row (keyed by part.id)
   const [openComboboxes, setOpenComboboxes] = useState<Record<string, boolean>>(
-    {}
+    {},
   );
 
   const isEstimateLocked = jobStatus === "completed";
@@ -145,34 +145,31 @@ export function JobParts({
   const updatePart = <K extends keyof Part>(
     partId: string,
     field: K,
-    value: Part[K]
+    value: Part[K],
   ) => {
     setParts((prev) =>
       prev.map((part) =>
-        part.id === partId ? { ...part, [field]: value } : part
-      )
+        part.id === partId ? { ...part, [field]: value } : part,
+      ),
     );
   };
 
   // Special handler to update multiple fields at once (e.g. from inventory selection)
-  const updatePartFromInventory = (
-    partId: string,
-    inventoryItem: any
-  ) => {
+  const updatePartFromInventory = (partId: string, inventoryItem: any) => {
     setParts((prev) =>
       prev.map((part) =>
         part.id === partId
           ? {
-            ...part,
-            inventoryItemId: inventoryItem.id,
-            name: inventoryItem.name,
-            partNumber: inventoryItem.stockKeepingUnit || "",
-            unitPrice: Number(inventoryItem.sellPrice),
-            // Reset quantity to 1 when selecting new item
-            quantity: 1,
-          }
-          : part
-      )
+              ...part,
+              inventoryItemId: inventoryItem.id,
+              name: inventoryItem.name,
+              partNumber: inventoryItem.stockKeepingUnit || "",
+              unitPrice: Number(inventoryItem.sellPrice),
+              // Reset quantity to 1 when selecting new item
+              quantity: 1,
+            }
+          : part,
+      ),
     );
   };
 
@@ -191,7 +188,7 @@ export function JobParts({
       const item = inventoryItems.find((i) => i.id === part.inventoryItemId);
       if (item && item.stockOnHand <= item.reorderLevel) {
         toast.warning(
-          `${item.name} is low on stock (Only ${item.stockOnHand} left)`
+          `${item.name} is low on stock (Only ${item.stockOnHand} left)`,
         );
       }
     }
@@ -267,7 +264,7 @@ export function JobParts({
             <CardContent>
               <div className="space-y-3">
                 {/* Header */}
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+                <div className="grid grid-cols-12 gap-3 text-sm font-medium text-muted-foreground px-2">
                   <div className="col-span-3">Item</div>
                   <div className="col-span-2">Part Identity.</div>
                   <div className="col-span-1">Qty</div>
@@ -283,17 +280,20 @@ export function JobParts({
                   return (
                     <div
                       key={item.id}
-                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${isEditing
-                        ? "bg-blue-500/5 border border-blue-500/20"
-                        : "bg-emerald-500/5 border border-emerald-500/20"
-                        }`}
+                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${
+                        isEditing
+                          ? "bg-blue-500/5 border border-blue-500/20"
+                          : "bg-emerald-500/5 border border-emerald-500/20"
+                      }`}
                     >
                       <div className="col-span-3">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
+                            <p className="font-medium text-sm warp-break-words">
+                              {item.custom_name}
+                            </p>
                             {item.custom_part_number && (
-                              <p className="text-xs text-muted-foreground font-mono break-all">
+                              <p className="text-sm text-muted-foreground font-mono break-all">
                                 #{item.custom_part_number}
                               </p>
                             )}
@@ -326,7 +326,7 @@ export function JobParts({
                       <div className="col-span-2">
                         {isEditing && editValues ? (
                           <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                               ₹
                             </span>
                             <Input
@@ -350,7 +350,7 @@ export function JobParts({
                       <div className="col-span-2">
                         {isEditing && editValues ? (
                           <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                               ₹
                             </span>
                             <Input
@@ -439,8 +439,14 @@ export function JobParts({
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold">
               Add New Items
-              <span className="text-xs font-normal text-muted-foreground ml-2">
-                ({loadingInventory ? "Loading..." : inventoryError ? "Error loading" : `${inventoryItems?.length || 0} items available`})
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                {loadingInventory
+                  ? "Loading..."
+                  : inventoryError
+                    ? "Error loading"
+                    : `${inventoryItems?.length || 0} ${
+                        inventoryItems?.length === 1 ? "item" : "items"
+                      } available`}
               </span>
             </CardTitle>
             <Button
@@ -461,7 +467,7 @@ export function JobParts({
           <CardContent>
             <div className="space-y-3">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+              <div className="grid grid-cols-12 gap-3 text-sm font-medium text-muted-foreground px-2">
                 <div className="col-span-3">Item</div>
                 <div className="col-span-2">Part Identity.</div>
                 <div className="col-span-1">Qty</div>
@@ -494,7 +500,7 @@ export function JobParts({
                                   updatePart(
                                     part.id,
                                     "inventoryItemId",
-                                    undefined
+                                    undefined,
                                   );
                                 }
                                 toggleCombobox(part.id, true);
@@ -508,7 +514,7 @@ export function JobParts({
                               className={cn(
                                 "h-9",
                                 part.inventoryItemId &&
-                                "border-emerald-500 pr-8 ring-emerald-500/20"
+                                  "border-emerald-500 pr-8 ring-emerald-500/20",
                               )}
                               disabled={isEstimateLocked}
                             />
@@ -529,10 +535,10 @@ export function JobParts({
                               {(() => {
                                 // Use optimized search function if available (from inventory snapshot)
                                 // Falls back to client-side filter if not
-                                const filteredInventory = searchInventory 
+                                const filteredInventory = searchInventory
                                   ? searchInventory(part.name || "", 50)
-                                  : inventoryItems?.filter(
-                                      (item) => {
+                                  : inventoryItems
+                                      ?.filter((item) => {
                                         if (!part.name) return true;
                                         const search = part.name.toLowerCase();
                                         return (
@@ -543,51 +549,47 @@ export function JobParts({
                                             ?.toLowerCase()
                                             .includes(search)
                                         );
-                                      }
-                                    ).slice(0, 50);
+                                      })
+                                      .slice(0, 50);
 
                                 if (filteredInventory?.length === 0) {
                                   return (
-                                    <CommandEmpty>
-                                      No parts found.
-                                    </CommandEmpty>
+                                    <CommandEmpty>No parts found.</CommandEmpty>
                                   );
                                 }
 
                                 return (
                                   <CommandGroup heading="Inventory">
-                                    {filteredInventory
-                                      ?.map((item) => (
-                                        <CommandItem
-                                          key={item.id}
-                                          value={`${item.name} ${item.stockKeepingUnit || ""}`}
-                                          onSelect={() => {
-                                            updatePartFromInventory(
-                                              part.id,
-                                              item
-                                            );
-                                            toggleCombobox(part.id, false);
-                                          }}
-                                        >
-                                          <div className="flex flex-col">
-                                            <span>{item.name}</span>
-                                            {item.stockKeepingUnit && (
-                                              <span className="text-xs text-muted-foreground">
-                                                SKU: {item.stockKeepingUnit}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <Check
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              part.inventoryItemId ===
-                                                item.id
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
+                                    {filteredInventory?.map((item) => (
+                                      <CommandItem
+                                        key={item.id}
+                                        value={`${item.name} ${item.stockKeepingUnit || ""}`}
+                                        onSelect={() => {
+                                          updatePartFromInventory(
+                                            part.id,
+                                            item,
+                                          );
+                                          toggleCombobox(part.id, false);
+                                        }}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{item.name}</span>
+                                          {item.stockKeepingUnit && (
+                                            <span className="text-sm text-muted-foreground">
+                                              SKU: {item.stockKeepingUnit}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <Check
+                                          className={cn(
+                                            "ml-auto h-4 w-4",
+                                            part.inventoryItemId === item.id
+                                              ? "opacity-100"
+                                              : "opacity-0",
+                                          )}
+                                        />
+                                      </CommandItem>
+                                    ))}
                                   </CommandGroup>
                                 );
                               })()}
@@ -617,7 +619,7 @@ export function JobParts({
                         updatePart(
                           part.id,
                           "quantity",
-                          Number.parseInt(e.target.value) || 1
+                          Number.parseInt(e.target.value) || 1,
                         )
                       }
                       className="h-9"
@@ -626,7 +628,7 @@ export function JobParts({
                   </div>
                   <div className="col-span-2">
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                         ₹
                       </span>
                       <Input
@@ -637,7 +639,7 @@ export function JobParts({
                           updatePart(
                             part.id,
                             "unitPrice",
-                            Number.parseFloat(e.target.value) || 0
+                            Number.parseFloat(e.target.value) || 0,
                           )
                         }
                         placeholder="0.00"
@@ -647,7 +649,7 @@ export function JobParts({
                   </div>
                   <div className="col-span-2">
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                         ₹
                       </span>
                       <Input
@@ -658,7 +660,7 @@ export function JobParts({
                           updatePart(
                             part.id,
                             "laborCost",
-                            Number.parseFloat(e.target.value) || 0
+                            Number.parseFloat(e.target.value) || 0,
                           )
                         }
                         placeholder="0.00"
@@ -692,9 +694,35 @@ export function JobParts({
                 </div>
               ))}
 
-              {parts.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Click "Add Item" to add parts to this job
+              {parts.length > 0 ? (
+                <div className="relative flex items-center py-3">
+                  <div className="flex-1 border-t border-border" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => addPart()}
+                    disabled={isEstimateLocked}
+                    className="mx-2 h-8 px-3 text-sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Item
+                  </Button>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => addPart()}
+                    disabled={isEstimateLocked}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Click on Add Item to add parts
+                  </Button>
                 </div>
               )}
             </div>
