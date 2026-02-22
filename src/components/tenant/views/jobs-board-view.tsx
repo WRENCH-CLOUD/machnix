@@ -38,14 +38,6 @@ import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-
 interface JobBoardProps {
   jobs: UIJob[];
   loading?: boolean;
