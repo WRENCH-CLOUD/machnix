@@ -27,6 +27,7 @@ import { ItemFormModal } from "@/components/inventory/ItemFormModal";
 import { StockAdjustmentModal } from "@/components/inventory/StockAdjustmentModal";
 import { TransactionHistory } from "@/components/inventory/TransactionHistory";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface AllocationWithRelations {
   id: string;
@@ -131,7 +132,7 @@ export default function InventoryPage() {
       fetchItems();
     } else {
         const error = await res.json();
-        alert(error.error || "Failed to create item");
+        toast.error(error.error || "Failed to create item");
     }
   };
 
@@ -147,7 +148,7 @@ export default function InventoryPage() {
       setEditingItem(null);
     } else {
          const error = await res.json();
-         alert(error.error || "Failed to update item");
+         toast.error(error.error || "Failed to update item");
     }
   };
 
@@ -174,15 +175,15 @@ export default function InventoryPage() {
       setAdjustingItem(null);
     } else {
          const error = await res.json();
-         alert(error.error || "Failed to adjust stock");
+         toast.error(error.error || "Failed to adjust stock");
     }
   };
 
-  const refreshAll = () => {
-    fetchItems();
-    fetchAllocations();
-    fetchTransactions();
-  };
+  // const refreshAll = () => { // Utility function to refresh all data after any operation
+  //   fetchItems();
+  //   fetchAllocations();
+  //   fetchTransactions();
+  // }; 
 
   const getTransactionBadgeVariant = (type: string) => {
     switch (type) {
