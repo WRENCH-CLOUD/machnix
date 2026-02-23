@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const meta = user.app_metadata;
   const isPlatformAdmin = meta?.role === 'platform_admin';
-  
+
   // Check for impersonation cookie (only valid for platform admins)
   let impersonatedTenantId: string | null = null;
   if (isPlatformAdmin) {

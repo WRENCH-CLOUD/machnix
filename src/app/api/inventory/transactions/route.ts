@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { RecordTransactionUseCase } from '@/modules/inventory/application/record-transaction.use-case'
 import { ReferenceType, TransactionType } from '@/modules/inventory/domain/inventory.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const transactionSchema = z.object({
   itemId: z.string().uuid(),
@@ -21,17 +22,11 @@ export async function GET(request: Request) {
     const referenceId = searchParams.get('referenceId')
     const limit = searchParams.get('limit')
 
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
 
@@ -62,17 +57,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const json = await request.json()
     const result = transactionSchema.safeParse(json)
@@ -91,7 +80,7 @@ export async function POST(request: Request) {
         unitCost: result.data.unitCost,
         referenceType: result.data.referenceType as ReferenceType | undefined,
         referenceId: result.data.referenceId,
-        createdBy: user.id
+        createdBy: userId
     }
 
     const transaction = await useCase.execute(input)

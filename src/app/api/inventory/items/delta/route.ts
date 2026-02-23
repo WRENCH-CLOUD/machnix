@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
-import { 
-  InventoryDeltaResponse, 
+import {
+  InventoryDeltaResponse,
   InventorySnapshotItem,
-  DELTA_SYNC_THRESHOLD_PERCENT 
+  DELTA_SYNC_THRESHOLD_PERCENT
 } from '@/modules/inventory/domain/inventory.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 /**
  * GET /api/inventory/items/delta?since=<ISO timestamp>
@@ -22,19 +23,14 @@ import {
  * - syncedAt: New timestamp for next delta request
  * - requiresFullSync: If true, client should discard cache and fetch full snapshot
  */
+
 export async function GET(request: NextRequest) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     // Parse 'since' parameter
     const { searchParams } = new URL(request.url)
@@ -42,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     if (!since) {
       return NextResponse.json(
-        { error: 'Missing required parameter: since (ISO timestamp)' }, 
+        { error: 'Missing required parameter: since (ISO timestamp)' },
         { status: 400 }
       )
     }
@@ -51,7 +47,7 @@ export async function GET(request: NextRequest) {
     const sinceDate = new Date(since)
     if (isNaN(sinceDate.getTime())) {
       return NextResponse.json(
-        { error: 'Invalid timestamp format. Use ISO 8601 format.' }, 
+        { error: 'Invalid timestamp format. Use ISO 8601 format.' },
         { status: 400 }
       )
     }

@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { StockAdjustmentUseCase } from '@/modules/inventory/application/stock-adjustment.use-case'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const adjustSchema = z.object({
   quantity: z.number().int().positive(),
@@ -15,17 +16,11 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const json = await request.json()
     const result = adjustSchema.safeParse(json)
@@ -41,7 +36,7 @@ export async function POST(
       itemId: id,
       quantity: result.data.quantity,
       type: result.data.type,
-      createdBy: user.id
+      createdBy: userId
     })
 
     return NextResponse.json({ success: true })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { GetEstimateByJobIdUseCase } from "@/modules/estimate/application/get-estimate-by-job-id.use-case";
-import { createClient } from "@/lib/supabase/server";
+import { apiGuardRead, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function GET(
   request: NextRequest,
@@ -13,23 +13,12 @@ export async function GET(
     const resolvedParams = await (context.params as any);
     const { jobId } = resolvedParams as { jobId: string };
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const idError = validateRouteId(jobId, 'job');
+    if (idError) return idError;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
+    const guard = await apiGuardRead(request);
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId } = guard;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new GetEstimateByJobIdUseCase(repository);

@@ -72,6 +72,7 @@ function getHttpStatus(errorCode: ChangePasswordErrorCode): number {
 // REQUEST HANDLER
 // ============================================================================
 
+
 export async function POST(request: NextRequest) {
   try {
     // Step 1: Get authenticated user
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
     // Step 4: Execute use case with repository injection
     const authRepository = new SupabaseAuthRepository()
     const changePasswordUseCase = new ChangePasswordUseCase(authRepository)
-    
+
     const result = await changePasswordUseCase.execute(
       { userId: user.id, email: user.email! },
       {
@@ -211,7 +212,8 @@ export async function POST(request: NextRequest) {
 /**
  * Only POST is allowed for password changes
  */
-export async function GET() {
+
+export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       success: false,
@@ -224,7 +226,8 @@ export async function GET() {
   )
 }
 
-export async function PUT() {
+
+export async function PUT(request: NextRequest) {
   return NextResponse.json(
     {
       success: false,
@@ -237,7 +240,8 @@ export async function PUT() {
   )
 }
 
-export async function DELETE() {
+
+export async function DELETE(request: NextRequest) {
   return NextResponse.json(
     {
       success: false,
@@ -250,7 +254,8 @@ export async function DELETE() {
   )
 }
 
-export async function PATCH() {
+
+export async function PATCH(request: NextRequest) {
   return NextResponse.json(
     {
       success: false,
