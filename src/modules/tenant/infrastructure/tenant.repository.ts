@@ -1,7 +1,6 @@
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
-import { GupshupSettings } from '../domain/gupshup-settings.entity'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>
