@@ -46,7 +46,7 @@ export class UpdateJobStatusUseCase {
 
     // GUARDRAIL: Validate status transition
     const currentStatus = job.status as JobStatus
-    JobLifecycleRules.ensureNotTerminal(currentStatus)
+    JobLifecycleRules.ensureNotTerminal(currentStatus, status)
     JobLifecycleRules.ensureValidTransition(currentStatus, status)
 
     // Guardrail: completion requires paid invoice copied from estimate

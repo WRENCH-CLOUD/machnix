@@ -8,6 +8,7 @@ import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invo
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
 import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
+import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 export async function POST(
   request: NextRequest,
@@ -49,13 +50,15 @@ export async function POST(
     const invoiceRepository = new SupabaseInvoiceRepository(supabase, tenantId)
     const customerRepository = new SupabaseCustomerRepository(supabase, tenantId) // Works because it extends BaseSupabaseRepository which takes context
     const tenantRepository = new SupabaseTenantRepository(supabase) // Doesn't take tenantId context in constructor
+    const allocationService = new InventoryAllocationService()
 
     const useCase = new UpdateJobStatusUseCase(
       repository,
       estimateRepository,
       invoiceRepository,
       customerRepository,
-      tenantRepository
+      tenantRepository,
+      allocationService
     )
 
     const cmd: jobStatusCommand = {
