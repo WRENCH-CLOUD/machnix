@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ConfirmDialog } from "@/components/ui/confirmDialog";
 interface JobBoardProps {
   jobs: UIJob[];
   loading?: boolean;
@@ -101,6 +102,10 @@ function JobCardBody({
   onDelete?: (jobId: string) => Promise<void>;
 }) {
   const config = statusConfig[status] || statusConfig.received;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<UIJob | null>(null);
+  const [deleteTimeout, setDeleteTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
 
   return (
     <div className={cn("space-y-2", isMobile ? "p-3" : "p-4 space-y-3")}>
@@ -159,17 +164,23 @@ function JobCardBody({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => {
-                   if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
-                     onDelete?.(job.id);
-                   }
-                }}
+                onClick={() => {setConfirmDelete(true)}}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Job
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <ConfirmDialog
+            open={confirmDelete}
+            title="Delete Job?"
+            description="This action cannot be undone."
+            onConfirm={async () => {
+              await onDelete?.(job.id);
+              setConfirmDelete(false);
+            }}
+            onCancel={() => setConfirmDelete(false)}
+          />
           <Button
             variant="ghost"
             size="icon"
