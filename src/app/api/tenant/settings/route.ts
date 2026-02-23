@@ -4,21 +4,22 @@ import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant
 import { GetTenantSettingsUseCase } from '@/modules/tenant/application/get-tenant-settings.usecase'
 import { UpdateTenantSettingsUseCase } from '@/modules/tenant/application/update-tenant-settings.usecase'
 import { createClient } from '@/lib/supabase/server'
+import { getRouteUser } from '@/lib/auth/get-route-user'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
+    // Read user from middleware-injected headers (avoids redundant getUser() call)
+    const user = getRouteUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tenantId = user.app_metadata?.tenant_id
+    const tenantId = user.tenantId
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
     }
 
+    const supabase = await createClient()
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new GetTenantSettingsUseCase(repository)
     
@@ -40,19 +41,19 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
+    // Read user from middleware-injected headers (avoids redundant getUser() call)
+    const user = getRouteUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tenantId = user.app_metadata?.tenant_id
+    const tenantId = user.tenantId
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
     }
 
     const body = await request.json()
+    const supabase = await createClient()
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new UpdateTenantSettingsUseCase(repository)
     

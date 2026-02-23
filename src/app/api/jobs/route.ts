@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { GetAllJobsUseCase } from '@/modules/job/application/get-all-jobs.use-case'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { getRouteUser } from '@/lib/auth/get-route-user'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
+    // Read user from middleware-injected headers (avoids redundant getUser() call)
+    const user = getRouteUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -21,10 +21,12 @@ export async function GET() {
       return createRateLimitResponse(rateLimitResult)
     }
 
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    const tenantId = user.tenantId
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
+
+    const supabase = await createClient()
 
     const repository = new SupabaseJobRepository(supabase, tenantId)
     const useCase = new GetAllJobsUseCase(repository)
@@ -33,7 +35,7 @@ export async function GET() {
     
     return NextResponse.json(jobs, {
       headers: {
-        'Cache-Control': 'no-store, max-age=0',
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
       },
     })
   } catch (error: any) {

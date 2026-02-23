@@ -36,6 +36,18 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Forward authenticated user context to API routes via request headers.
+  // This eliminates the need for each API route to call getUser() again (~200-500ms savings per request).
+  if (user) {
+    request.headers.set('x-authenticated-user-id', user.id)
+    request.headers.set('x-authenticated-user-email', user.email || '')
+    request.headers.set('x-authenticated-user-role', user.app_metadata?.role || '')
+    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id || ''
+    request.headers.set('x-authenticated-tenant-id', tenantId)
+    // Re-create the response with the updated request headers
+    response = NextResponse.next({ request })
+  }
+
   const pathname = request.nextUrl.pathname;
 
   // ---------------------------

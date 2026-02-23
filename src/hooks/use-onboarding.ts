@@ -65,7 +65,9 @@ export function useOnboardingStatus() {
   return useQuery({
     queryKey: ['onboarding-status'],
     queryFn: fetchOnboardingStatus,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Once onboarded, status never changes mid-session — cache indefinitely
+    staleTime: Infinity,
+    gcTime: 30 * 60 * 1000, // Keep in memory for 30 minutes
     retry: 1
   })
 }

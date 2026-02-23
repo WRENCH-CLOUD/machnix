@@ -8,18 +8,17 @@ export class GetTenantWithStatsUseCase {
   constructor(private readonly tenantRepository: TenantRepository) {}
 
   async execute(tenantId: string): Promise<any | null> {
-    // Fetch tenant
-    const tenant = await this.tenantRepository.findById(tenantId)
+    // Fetch tenant, stats, and recent jobs in parallel (not serial)
+    // This saves ~500-800ms by avoiding 3 sequential round-trips to Supabase
+    const [tenant, stats, recentJobs] = await Promise.all([
+      this.tenantRepository.findById(tenantId),
+      this.tenantRepository.getStats(tenantId),
+      this.tenantRepository.getRecentJobs(tenantId),
+    ])
 
     if (!tenant) {
       return null
     }
-
-    // Fetch stats
-    const stats = await this.tenantRepository.getStats(tenantId)
-    
-    // Fetch recent jobs
-    const recentJobs = await this.tenantRepository.getRecentJobs(tenantId)
 
     return {
       ...tenant,

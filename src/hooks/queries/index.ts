@@ -120,7 +120,7 @@ export function useJobs(tenantId: string | null) {
   return useQuery({
     queryKey: queryKeys.jobs.list(tenantId || ""),
     queryFn: async () => {
-      const res = await api.get("/api/jobs", { cache: "no-store" });
+      const res = await api.get("/api/jobs");
       if (!res.ok) {
         throw new Error("Failed to fetch jobs");
       }

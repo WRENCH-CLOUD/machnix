@@ -33,7 +33,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
-import { useInventoryItems } from "@/hooks/queries";
 
 /** Minimal estimate item type - only fields actually used by this component */
 interface EstimateItemMinimal {
@@ -529,22 +528,22 @@ export function JobParts({
                               {(() => {
                                 // Use optimized search function if available (from inventory snapshot)
                                 // Falls back to client-side filter if not
-                                const filteredInventory = searchInventory 
+                                const filteredInventory = searchInventory
                                   ? searchInventory(part.name || "", 50)
                                   : inventoryItems?.filter(
-                                      (item) => {
-                                        if (!part.name) return true;
-                                        const search = part.name.toLowerCase();
-                                        return (
-                                          item.name
-                                            .toLowerCase()
-                                            .includes(search) ||
-                                          item.stockKeepingUnit
-                                            ?.toLowerCase()
-                                            .includes(search)
-                                        );
-                                      }
-                                    ).slice(0, 50);
+                                    (item) => {
+                                      if (!part.name) return true;
+                                      const search = part.name.toLowerCase();
+                                      return (
+                                        item.name
+                                          .toLowerCase()
+                                          .includes(search) ||
+                                        item.stockKeepingUnit
+                                          ?.toLowerCase()
+                                          .includes(search)
+                                      );
+                                    }
+                                  ).slice(0, 50);
 
                                 if (filteredInventory?.length === 0) {
                                   return (

@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { 
   InventorySnapshotResponse, 
   InventorySnapshotItem 
 } from '@/modules/inventory/domain/inventory.entity'
+import { getRouteUser } from '@/lib/auth/get-route-user'
 
 /**
  * GET /api/inventory/items/snapshot
@@ -12,19 +13,20 @@ import {
  * Returns full inventory snapshot for initial client-side cache
  * Use this on first load or when delta sync indicates full resync is needed
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    // Read user from middleware-injected headers (avoids redundant getUser() call)
+    const user = getRouteUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
+    const tenantId = user.tenantId
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
+
+    const supabase = await createClient()
 
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
     const { items, syncedAt } = await repository.getSnapshot()
