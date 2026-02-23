@@ -1,6 +1,7 @@
 // app/api/invoices/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 
 const BUCKET = "invoices";
@@ -8,32 +9,30 @@ const SIGN_EXPIRES = 60 * 60; // 1 hour
 
 /** Helper: authorize request and check tenant access */
 async function authorizeRequest(req: NextRequest, invoiceId: string) {
-  // Get tenant-id from header (set by client)
-  const tenantId = req.headers.get("x-tenant-id");
+  const auth = requireAuth(req);
+  if (isAuthError(auth)) {
+    return { ok: false as const, code: 401, message: "Unauthenticated" };
+  }
+  const { userId, tenantId } = auth;
+
   if (!tenantId) {
-    return { ok: false, code: 400, message: "Missing tenant-id header" };
+    return { ok: false as const, code: 400, message: "Missing tenant context" };
   }
 
   // Create Supabase client (uses cookies for auth)
   const supabase = await createClient();
-
-  // Get current user from session
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !user) {
-    return { ok: false, code: 401, message: "Unauthenticated" };
-  }
 
   // Check if user has access to this tenant
   const { data: userAccess, error: accessErr } = await supabase
     .schema('tenant')
     .from("users")
     .select("id, tenant_id, role")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", userId)
     .eq("tenant_id", tenantId)
     .single();
 
   if (accessErr || !userAccess) {
-    return { ok: false, code: 403, message: "No access to this tenant" };
+    return { ok: false as const, code: 403, message: "No access to this tenant" };
   }
 
   // Fetch invoice and verify it belongs to the tenant
@@ -46,10 +45,10 @@ async function authorizeRequest(req: NextRequest, invoiceId: string) {
     .single();
 
   if (invErr || !invoiceRow) {
-    return { ok: false, code: 404, message: "Invoice not found" };
+    return { ok: false as const, code: 404, message: "Invoice not found" };
   }
 
-  return { ok: true, user, invoice: invoiceRow, tenantId };
+  return { ok: true as const, userId, invoice: invoiceRow, tenantId };
 }
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -85,73 +84,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   });
 }
 
-// export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-//   // POST will send the invoice over WhatsApp to a phone number
-//   const invoiceId = params.id;
-//   const body = await req.json();
-//   const { toPhone, message } = body; // e.g. "+919812345678"
-
-//   if (!toPhone) {
-//     return NextResponse.json({ error: "Missing toPhone" }, { status: 400 });
-//   }
-
-//   const auth = await authorizeRequest(req, invoiceId);
-//   if (!auth.ok) {
-//     return NextResponse.json({ error: auth.message }, { status: auth.code });
-//   }
-
-//   const key = auth.invoice.file_key as string;
-//   if (!key) {
-//     return NextResponse.json({ error: "Invoice file not found" }, { status: 404 });
-//   }
-
-//   // Create a fresh signed URL for WhatsApp
-//   const supabase = createClient();
-//   const { data: signedData, error: signedError } = await supabase.storage
-//     .from(BUCKET)
-//     .createSignedUrl(key, SIGN_EXPIRES);
-
-//   if (signedError) {
-//     console.error("Signed URL error:", signedError);
-//     return NextResponse.json({ error: "Unable to generate signed URL" }, { status: 500 });
-//   }
-
-//   const signedUrl = signedData.signedUrl;
-
-//   // Use Twilio to send WhatsApp message with invoice PDF
-//   try {
-//     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-//       return NextResponse.json({ error: "Twilio not configured" }, { status: 500 });
-//     }
-
-//     const twilioClient = new Twilio(
-//       process.env.TWILIO_ACCOUNT_SID, 
-//       process.env.TWILIO_AUTH_TOKEN
-//     );
-//     const from = `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`; // e.g. whatsapp:+14155238886
-//     const to = `whatsapp:${toPhone}`;
-
-//     const msg = await twilioClient.messages.create({
-//       from,
-//       to,
-//       body: message || "Here is your invoice from our garage",
-//       mediaUrl: [signedUrl], // Twilio will fetch the PDF from this signed URL
-//     });
-
-//     return NextResponse.json({ 
-//       ok: true, 
-//       sid: msg.sid,
-//       status: msg.status 
-//     });
-//   } catch (err) {
-//     console.error("Twilio send error:", err);
-//     return NextResponse.json({ 
-//       error: "Failed to send WhatsApp message",
-//       details: err instanceof Error ? err.message : "Unknown error"
-//     }, { status: 500 });
-//   }
-// }
-
 /**
  * PATCH /api/invoices/[id]
  * Update invoice GST and discount settings immediately with recalculation
@@ -162,17 +94,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     const body = await req.json();
     const { isGstBilled, discountPercentage } = body;
 
+    const auth = requireAuth(req);
+    if (isAuthError(auth)) return auth;
+    const { tenantId } = auth;
+
     const supabase = await createClient();
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-
-    if (userErr || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
-    }
 
     // Fetch current invoice to get subtotal for recalculation
     const { data: invoice, error: fetchError } = await supabase

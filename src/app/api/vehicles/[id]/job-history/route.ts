@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 interface Task {
     id: string
@@ -40,17 +41,11 @@ export async function GET(
             return NextResponse.json({ error: 'Invalid vehicle ID format' }, { status: 400 })
         }
 
+        const auth = requireAuth(request)
+        if (isAuthError(auth)) return auth
+        const { tenantId } = auth
+
         const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
 
         // Get all job cards for this vehicle (count)
         const { count, error: countError } = await supabase

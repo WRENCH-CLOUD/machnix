@@ -4,6 +4,7 @@ import { CreateJobUseCase } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Input validation schema
 const createJobSchema = z.object({
@@ -20,20 +21,12 @@ const createJobSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     const rawBody = await request.json()
-    
+
     // Validate input
     const parseResult = createJobSchema.safeParse(rawBody)
     if (!parseResult.success) {
@@ -43,16 +36,15 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = parseResult.data
-    
-    // Use user ID from auth session
-    const createdBy = user.id
-    
+
+    const supabase = await createClient()
+
     // Create the job
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
-    const job = await createJobUseCase.execute(body, tenantId, createdBy)
-    
+    const job = await createJobUseCase.execute(body, tenantId, userId)
+
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
     console.error('Error creating job:', {

@@ -3,6 +3,7 @@ import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant
 import { CompleteOnboardingUseCase } from '@/modules/tenant/application/complete-onboarding.usecase'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Validation schema for onboarding data
 const onboardingSchema = z.object({
@@ -24,20 +25,13 @@ const onboardingSchema = z.object({
 })
 
 // GET /api/tenant/onboarding - Get onboarding status
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-    }
-
     const repository = new SupabaseTenantRepository(supabase)
     const tenant = await repository.findById(tenantId)
 
@@ -66,20 +60,14 @@ export async function GET() {
 // POST /api/tenant/onboarding - Complete onboarding
 export async function POST(request: NextRequest) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
-    }
 
     const body = await request.json()
-    
+
     // Validate input
     const validationResult = onboardingSchema.safeParse(body)
     if (!validationResult.success) {
@@ -96,7 +84,7 @@ export async function POST(request: NextRequest) {
       const { error: passwordError } = await supabase.auth.updateUser({
         password: newPassword
       })
-      
+
       if (passwordError) {
         console.error('Error updating password:', passwordError)
         return NextResponse.json(
@@ -108,12 +96,12 @@ export async function POST(request: NextRequest) {
 
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new CompleteOnboardingUseCase(repository)
-    
+
     const result = await useCase.execute({
       tenantId,
       ...onboardingData
     })
-    
+
     return NextResponse.json(result)
   } catch (error: unknown) {
     console.error('Error completing onboarding:', error)

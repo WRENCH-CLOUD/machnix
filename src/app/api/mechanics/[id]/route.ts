@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/mechanic.repository.supabase'
 import { UpdateMechanicUseCase } from '@/modules/mechanic/application/update-mechanic.use-case'
 import { DeleteMechanicUseCase } from '@/modules/mechanic/application/delete-mechanic.use-case'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 type RouteContext = { params: { id: string } | Promise<{ id: string }> }
 
@@ -15,18 +16,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
         const resolvedParams = await context.params
         const id = resolvedParams.id
 
+        const auth = requireAuth(request)
+        if (isAuthError(auth)) return auth
+        const { tenantId } = auth
+
         const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
-
         const repository = new SupabaseMechanicRepository(supabase, tenantId)
         const mechanic = await repository.findById(id)
 
@@ -53,20 +47,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         const resolvedParams = await context.params
         const id = resolvedParams.id
 
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
+        const auth = requireAuth(request)
+        if (isAuthError(auth)) return auth
+        const { tenantId } = auth
 
         const body = await request.json()
 
+        const supabase = await createClient()
         const repository = new SupabaseMechanicRepository(supabase, tenantId)
         const useCase = new UpdateMechanicUseCase(repository)
 
@@ -101,18 +88,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         const resolvedParams = await context.params
         const id = resolvedParams.id
 
+        const auth = requireAuth(request)
+        if (isAuthError(auth)) return auth
+        const { tenantId } = auth
+
         const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
-
         const repository = new SupabaseMechanicRepository(supabase, tenantId)
         const useCase = new DeleteMechanicUseCase(repository)
 

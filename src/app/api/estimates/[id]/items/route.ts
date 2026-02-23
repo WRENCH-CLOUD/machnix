@@ -4,6 +4,7 @@ import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estim
 import { createClient } from "@/lib/supabase/server";
 import { createInventoryAllocationService } from "@/modules/inventory/application/inventory-allocation.service";
 import { InsufficientStockError } from "@/modules/inventory/domain/allocation.entity";
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -14,23 +15,11 @@ export async function POST(
   try {
     const { id: estimateId } = await context.params;
 
+    const auth = requireAuth(request);
+    if (isAuthError(auth)) return auth;
+    const { userId, tenantId } = auth;
+
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
 
     const raw = await request.json();
 
@@ -47,7 +36,7 @@ export async function POST(
       qty: raw.qty,
       unitPrice: raw.unit_price,
       laborCost: raw.labor_cost,
-      createdBy: user.id,
+      createdBy: userId,
     });
 
     const item = result.item;
@@ -70,11 +59,11 @@ export async function POST(
     return NextResponse.json(apiItem, { status: 201 });
   } catch (error: unknown) {
     console.error("Error adding estimate item:", error);
-    
+
     // Handle insufficient stock error specifically
     if (error instanceof InsufficientStockError) {
       return NextResponse.json(
-        { 
+        {
           error: error.message,
           code: 'INSUFFICIENT_STOCK',
           requested: error.requested,
@@ -83,7 +72,7 @@ export async function POST(
         { status: 409 }
       );
     }
-    
+
     const message = error instanceof Error ? error.message : "Failed to add estimate item";
     return NextResponse.json(
       { error: message },

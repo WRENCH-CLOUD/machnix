@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,23 +14,17 @@ export async function GET(
         const resolvedParams = await (context.params as any)
         const id = (resolvedParams as { id: string }).id
 
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        const auth = requireAuth(request)
+        if (isAuthError(auth)) return auth
+        const { userId, tenantId } = auth
 
         // Rate limit
-        const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.READ, 'get-job-detail')
+        const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.READ, 'get-job-detail')
         if (!rateLimitResult.success) {
             return createRateLimitResponse(rateLimitResult)
         }
 
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
+        const supabase = await createClient()
 
         const repository = new SupabaseJobRepository(supabase, tenantId)
         const job = await repository.findById(id)

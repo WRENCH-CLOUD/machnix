@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { GetEstimateByJobIdUseCase } from "@/modules/estimate/application/get-estimate-by-job-id.use-case";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
@@ -13,24 +14,11 @@ export async function GET(
     const resolvedParams = await (context.params as any);
     const { jobId } = resolvedParams as { jobId: string };
 
+    const auth = requireAuth(request);
+    if (isAuthError(auth)) return auth;
+    const { tenantId } = auth;
+
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
-
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new GetEstimateByJobIdUseCase(repository);
 
@@ -91,12 +79,12 @@ export async function GET(
         total:
           item.total ??
           item.qty * (item.unit_price ?? item.unitPrice ?? 0) +
-            (item.labor_cost ?? item.laborCost ?? 0),
+          (item.labor_cost ?? item.laborCost ?? 0),
         created_at: item.created_at
           ? item.created_at
           : item.createdAt
-          ? item.createdAt.toISOString()
-          : null,
+            ? item.createdAt.toISOString()
+            : null,
       })),
     };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { ApproveEstimateUseCase } from '@/modules/estimate/application/approve-estimate.use-case'
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function POST(
   request: NextRequest,
@@ -9,17 +10,11 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const body = await request.json()
     const { approvedBy } = body as { approvedBy: string }

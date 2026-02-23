@@ -5,30 +5,25 @@ import { UpdateEstimateItemUseCase } from "@/modules/estimate/application/update
 import { createClient } from "@/lib/supabase/server";
 import { createInventoryAllocationService } from "@/modules/inventory/application/inventory-allocation.service";
 import { InsufficientStockError } from "@/modules/inventory/domain/allocation.entity";
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    const auth = requireAuth(request);
+    if (isAuthError(auth)) return auth;
+    const { userId, tenantId } = auth;
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
-    }
 
     const { itemId } = await context.params;
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const allocationService = createInventoryAllocationService(supabase, tenantId);
     const useCase = new RemoveEstimateItemUseCase(repository, allocationService, supabase, tenantId);
 
-    const result = await useCase.execute(itemId, user.id);
+    const result = await useCase.execute(itemId, userId);
 
     return NextResponse.json({
       success: true,
@@ -48,17 +43,11 @@ export async function PATCH(
   context: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    const auth = requireAuth(request);
+    if (isAuthError(auth)) return auth;
+    const { userId, tenantId } = auth;
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
-    }
 
     const body = await request.json();
     const { itemId } = await context.params;
@@ -75,7 +64,7 @@ export async function PATCH(
       qty: body.qty,
       unitPrice: body.unit_price,
       laborCost: body.labor_cost,
-      createdBy: user.id,
+      createdBy: userId,
     });
 
     return NextResponse.json({

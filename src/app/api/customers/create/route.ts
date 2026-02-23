@@ -4,6 +4,7 @@ import { CreateCustomerUseCase } from '@/modules/customer/application/create-cus
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const createCustomerSchema = z.object({
   name: z.string().min(1, "Name is required").max(200, "Name too long"),
@@ -15,32 +16,25 @@ const createCustomerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     // Rate limit write operations
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'create-customer')
+    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'create-customer')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
     }
 
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
-
     const body = await request.json()
     const validatedBody = createCustomerSchema.parse(body)
-    
+
+    const supabase = await createClient()
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new CreateCustomerUseCase(repository)
-    
+
     const result = await useCase.execute(validatedBody, tenantId)
-    
+
     if (!result.success) {
       // Return 409 Conflict with existing customer info
       return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 /**
  * GET /api/transactions
@@ -7,17 +8,11 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
+    const supabase = await createClient()
 
         // Fetch transactions with related invoice, customer, vehicle, jobcard data
         const { data: transactions, error } = await supabase

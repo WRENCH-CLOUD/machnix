@@ -3,6 +3,7 @@ import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invo
 import { RecordPaymentUseCase } from '@/modules/invoice/application/record-payment.use-case'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function POST(
   request: NextRequest,
@@ -17,23 +18,17 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid invoice ID format' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     // Rate limit payment operations strictly
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.PAYMENT, 'record-payment')
+    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.PAYMENT, 'record-payment')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
     }
 
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const supabase = await createClient()
 
     const body = await request.json()
 
@@ -51,9 +46,9 @@ export async function POST(
     const repository = new SupabaseInvoiceRepository(supabase, tenantId)
     const useCase = new RecordPaymentUseCase(repository)
 
-    const result = await useCase.execute(id, { 
-      amount: body.amount, 
-      mode: body.method 
+    const result = await useCase.execute(id, {
+      amount: body.amount,
+      mode: body.method
     }, tenantId)
 
     return NextResponse.json(result, { status: 200 })

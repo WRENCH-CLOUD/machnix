@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase';
 import { AssignMechanicUseCase } from '@/modules/job/application/assign-mechanic.usecase';
+import { requireAuth, isAuthError } from '@/lib/auth-helpers';
 
 export async function POST(
   request: Request,
@@ -16,17 +17,11 @@ export async function POST(
       return NextResponse.json({ error: 'Mechanic ID is required' }, { status: 400 });
     }
 
+    const auth = requireAuth(request);
+    if (isAuthError(auth)) return auth;
+    const { tenantId } = auth;
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 403 });
-    }
 
     // Validate mechanic exists and is active
     const { data: mechanic, error: mechanicError } = await supabase

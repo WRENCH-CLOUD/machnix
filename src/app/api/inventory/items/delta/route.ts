@@ -22,19 +22,15 @@ import {
  * - syncedAt: New timestamp for next delta request
  * - requiresFullSync: If true, client should discard cache and fetch full snapshot
  */
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+
 export async function GET(request: NextRequest) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     // Parse 'since' parameter
     const { searchParams } = new URL(request.url)

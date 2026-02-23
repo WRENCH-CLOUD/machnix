@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseAllocationRepository } from '@/modules/inventory/infrastructure/allocation.repository.supabase'
 import { AllocationStatus } from '@/modules/inventory/domain/allocation.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const validStatuses: AllocationStatus[] = ['reserved', 'consumed', 'released']
 
@@ -16,17 +17,11 @@ function isValidAllocationStatus(status: string): status is AllocationStatus {
  */
 export async function GET(request: Request) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const { searchParams } = new URL(request.url)
     const jobcardId = searchParams.get('jobcard_id')
