@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
-import { 
-  InventorySnapshotResponse, 
-  InventorySnapshotItem 
+import {
+  InventorySnapshotResponse,
+  InventorySnapshotItem
 } from '@/modules/inventory/domain/inventory.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 /**
  * GET /api/inventory/items/snapshot
@@ -12,7 +13,6 @@ import {
  * Returns full inventory snapshot for initial client-side cache
  * Use this on first load or when delta sync indicates full resync is needed
  */
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
