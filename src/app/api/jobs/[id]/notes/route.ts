@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
 
 export async function PATCH(
   request: NextRequest,
@@ -11,23 +9,12 @@ export async function PATCH(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!id || !uuidRegex.test(id)) {
-      return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
-    }
+    const idError = validateRouteId(id, 'job')
+    if (idError) return idError
 
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    // Rate limit by user
-    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'update-job-notes')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const supabase = await createClient()
+    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.WRITE, rateLimitAction: 'update-job-notes' })
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
     const { notes } = body as { notes: string }

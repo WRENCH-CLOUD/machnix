@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuard, TENANT_MANAGER_ROLES } from '@/lib/auth/api-guard'
 
 /**
  * GET /api/transactions
@@ -8,11 +7,9 @@ import { requireAuth, isAuthError } from '@/lib/auth-helpers'
  */
 export async function GET(request: NextRequest) {
     try {
-        const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+        const guard = await apiGuard(request, { requiredRoles: TENANT_MANAGER_ROLES })
+        if (!guard.ok) return guard.response
+        const { supabase, tenantId } = guard
 
         // Fetch transactions with related invoice, customer, vehicle, jobcard data
         const { data: transactions, error } = await supabase

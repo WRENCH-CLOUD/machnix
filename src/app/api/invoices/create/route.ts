@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { CreateInvoiceUseCase } from '@/modules/invoice/application/create-invoice.use-case'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const createInvoiceSchema = z.object({
   customerId: z.string().uuid("Invalid customer ID"),
@@ -20,11 +19,9 @@ const createInvoiceSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+    const guard = await apiGuardWrite(request, 'create-invoice')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 

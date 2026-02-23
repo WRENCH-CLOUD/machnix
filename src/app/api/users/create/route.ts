@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseUserRepository } from '@/modules/user/infrastructure/user.repository.supabase'
 import { CreateUserUseCase } from '@/modules/user/application/create-user.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardAdmin } from '@/lib/auth/api-guard'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    // SECURITY: Only tenant owners and admins can create users
+    const guard = await apiGuardAdmin(request, 'create-user')
+    if (!guard.ok) return guard.response
 
-    const supabase = await createClient()
+    const {tenantId, supabase } = guard
 
     const body = await request.json()
 

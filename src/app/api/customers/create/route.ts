@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { CreateCustomerUseCase } from '@/modules/customer/application/create-customer.use-case'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const createCustomerSchema = z.object({
   name: z.string().min(1, "Name is required").max(200, "Name too long"),
@@ -16,25 +14,18 @@ const createCustomerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    // Rate limit write operations
-    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'create-customer')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
+    const guard = await apiGuardWrite(request, 'create-customer')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
     const validatedBody = createCustomerSchema.parse(body)
-
-    const supabase = await createClient()
+    
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new CreateCustomerUseCase(repository)
-
+    
     const result = await useCase.execute(validatedBody, tenantId)
-
+    
     if (!result.success) {
       // Return 409 Conflict with existing customer info
       return NextResponse.json({

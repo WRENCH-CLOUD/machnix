@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { GetCustomerByIdUseCase } from '@/modules/customer/application/get-customer-by-id.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardRead, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function GET(
   request: NextRequest,
@@ -10,23 +9,25 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { tenantId } = auth
+    const idError = validateRouteId(id, 'customer')
+    if (idError) return idError
 
-    const supabase = await createClient()
+    const guard = await apiGuardRead(request)
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
+
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new GetCustomerByIdUseCase(repository)
-
+    
     const customer = await useCase.execute(id)
-
+    
     if (!customer) {
       return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
       )
     }
-
+    
     return NextResponse.json(customer)
   } catch (error: any) {
     console.error('Error fetching customer:', error)

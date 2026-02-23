@@ -1,81 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
-import { createClient } from "@/lib/supabase/server";
-import { createInventoryAllocationService } from "@/modules/inventory/application/inventory-allocation.service";
-import { InsufficientStockError } from "@/modules/inventory/domain/allocation.entity";
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
-
-type RouteContext = { params: Promise<{ id: string }> };
+import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function POST(
   request: NextRequest,
-  context: RouteContext
+  context:
+    | { params: { id: string } }
+    | { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: estimateId } = await context.params;
+    const resolvedParams = await (context.params as any);
+    const { id: estimateId } = resolvedParams as { id: string };
 
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
-    const { userId, tenantId } = auth;
+    const idError = validateRouteId(estimateId, 'estimate');
+    if (idError) return idError;
 
-    const supabase = await createClient();
+    const guard = await apiGuardWrite(request, 'add-estimate-item');
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId } = guard;
 
     const raw = await request.json();
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
-    const allocationService = createInventoryAllocationService(supabase, tenantId);
-    const useCase = new AddEstimateItemUseCase(repository, allocationService);
+    const useCase = new AddEstimateItemUseCase(repository);
 
-    const result = await useCase.execute({
+    const item = await useCase.execute({
       estimateId,
-      partId: raw.part_id,
       customName: raw.custom_name,
       customPartNumber: raw.custom_part_number,
       description: raw.description,
       qty: raw.qty,
       unitPrice: raw.unit_price,
       laborCost: raw.labor_cost,
-      createdBy: userId,
     });
 
-    const item = result.item;
     const apiItem = {
-      id: item.id,
-      estimate_id: item.estimateId,
-      part_id: item.partId ?? null,
-      custom_name: item.customName,
-      custom_part_number: item.customPartNumber,
-      description: item.description,
-      qty: item.qty,
-      unit_price: item.unitPrice,
-      labor_cost: item.laborCost ?? 0,
-      total: item.total ?? item.qty * item.unitPrice + (item.laborCost ?? 0),
-      created_at: item.createdAt ? item.createdAt.toISOString() : null,
-      allocation_id: result.allocationId ?? null,
-      stock_reserved: result.stockReserved ?? null,
+      id: (item as any).id,
+      estimate_id: (item as any).estimateId,
+      part_id: (item as any).partId ?? null,
+      custom_name: (item as any).customName,
+      custom_part_number: (item as any).customPartNumber,
+      description: (item as any).description,
+      qty: (item as any).qty,
+      unit_price: (item as any).unitPrice,
+      labor_cost: (item as any).laborCost ?? 0,
+      total:
+        (item as any).total ??
+        (item as any).qty * (item as any).unitPrice +
+          ((item as any).laborCost ?? 0),
+      created_at: (item as any).createdAt
+        ? (item as any).createdAt.toISOString()
+        : null,
     };
 
     return NextResponse.json(apiItem, { status: 201 });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Error adding estimate item:", error);
-
-    // Handle insufficient stock error specifically
-    if (error instanceof InsufficientStockError) {
-      return NextResponse.json(
-        {
-          error: error.message,
-          code: 'INSUFFICIENT_STOCK',
-          requested: error.requested,
-          available: error.available,
-        },
-        { status: 409 }
-      );
-    }
-
-    const message = error instanceof Error ? error.message : "Failed to add estimate item";
     return NextResponse.json(
-      { error: message },
+      { error: error.message || "Failed to add estimate item" },
       { status: 400 }
     );
   }

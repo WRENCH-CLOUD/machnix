@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { DeleteCustomerUseCase } from '@/modules/customer/application/delete-customer.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function DELETE(
   request: NextRequest,
@@ -10,16 +9,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { tenantId } = auth
+    const idError = validateRouteId(id, 'customer')
+    if (idError) return idError
 
-    const supabase = await createClient()
+    const guard = await apiGuardWrite(request, 'delete-customer')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
+
     const repository = new SupabaseCustomerRepository(supabase, tenantId)
     const useCase = new DeleteCustomerUseCase(repository)
-
+    
     await useCase.execute(id)
-
+    
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error deleting customer:', error)

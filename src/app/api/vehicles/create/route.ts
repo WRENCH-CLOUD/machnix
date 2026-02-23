@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { CreateVehicleUseCase } from '@/modules/vehicle/application/create-vehicle.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+    const guard = await apiGuardWrite(request, 'create-vehicle')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 

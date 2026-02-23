@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseInvoiceRepository } from "@/modules/invoice/infrastructure/invoice.repository.supabase";
 import { GetInvoiceByJobIdUseCase } from "@/modules/invoice/application/get-invoice-by-job-id.use-case";
-import { createClient } from "@/lib/supabase/server";
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardRead, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
-    const { tenantId } = auth;
-
     const { jobId } = await context.params;
 
-    const supabase = await createClient();
+    const idError = validateRouteId(jobId, 'job');
+    if (idError) return idError;
+
+    const guard = await apiGuardRead(request);
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId } = guard;
+
     const repository = new SupabaseInvoiceRepository(supabase, tenantId);
     const useCase = new GetInvoiceByJobIdUseCase(repository);
 

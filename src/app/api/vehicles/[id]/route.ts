@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { GetVehicleByIdUseCase } from '@/modules/vehicle/application/get-vehicle-by-id.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardRead, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function GET(
   request: NextRequest,
@@ -10,23 +9,25 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { tenantId } = auth
+    const idError = validateRouteId(id, 'vehicle')
+    if (idError) return idError
 
-    const supabase = await createClient()
+    const guard = await apiGuardRead(request)
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
+
     const repository = new SupabaseVehicleRepository(supabase, tenantId)
     const useCase = new GetVehicleByIdUseCase(repository)
-
+    
     const vehicle = await useCase.execute(id)
-
+    
     if (!vehicle) {
       return NextResponse.json(
         { error: 'Vehicle not found' },
         { status: 404 }
       )
     }
-
+    
     return NextResponse.json(vehicle)
   } catch (error: unknown) {
     console.error('Error fetching vehicle:', error)

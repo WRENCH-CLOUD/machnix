@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { CreateEstimateUseCase } from "@/modules/estimate/application/create-estimate.use-case";
-import { createClient } from "@/lib/supabase/server";
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardWrite } from '@/lib/auth/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
-    const { userId, tenantId } = auth;
+    const guard = await apiGuardWrite(request, 'create-estimate');
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId, userId } = guard;
 
-    const supabase = await createClient();
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new CreateEstimateUseCase(repository);
 

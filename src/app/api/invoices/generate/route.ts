@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/application/generate-from-estimate.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const generateInvoiceSchema = z.object({
   estimateId: z.string().uuid("Invalid estimate ID"),
@@ -12,11 +11,9 @@ const generateInvoiceSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+    const guard = await apiGuardWrite(request, 'generate-invoice')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
     const { estimateId, isGstBilled = true, discountPercentage = 0 } = body

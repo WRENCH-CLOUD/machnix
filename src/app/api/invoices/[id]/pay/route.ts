@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { RecordPaymentUseCase } from '@/modules/invoice/application/record-payment.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { validateRouteId, apiGuardWrite } from '@/lib/auth/api-guard'
 
 export async function POST(
   request: NextRequest,
@@ -12,23 +10,12 @@ export async function POST(
   try {
     const { id } = await context.params
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!id || !uuidRegex.test(id)) {
-      return NextResponse.json({ error: 'Invalid invoice ID format' }, { status: 400 })
-    }
+    const idError = validateRouteId(id, 'invoice')
+    if (idError) return idError
 
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    // Rate limit payment operations strictly
-    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.PAYMENT, 'record-payment')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const supabase = await createClient()
+    const guard = await apiGuardWrite(request, 'record-payment')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 
@@ -46,9 +33,9 @@ export async function POST(
     const repository = new SupabaseInvoiceRepository(supabase, tenantId)
     const useCase = new RecordPaymentUseCase(repository)
 
-    const result = await useCase.execute(id, {
-      amount: body.amount,
-      mode: body.method
+    const result = await useCase.execute(id, { 
+      amount: body.amount, 
+      mode: body.method 
     }, tenantId)
 
     return NextResponse.json(result, { status: 200 })

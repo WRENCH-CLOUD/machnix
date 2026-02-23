@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { GetEstimateByJobIdUseCase } from "@/modules/estimate/application/get-estimate-by-job-id.use-case";
-import { createClient } from "@/lib/supabase/server";
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardRead, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function GET(
   request: NextRequest,
@@ -14,11 +13,13 @@ export async function GET(
     const resolvedParams = await (context.params as any);
     const { jobId } = resolvedParams as { jobId: string };
 
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
-    const { tenantId } = auth;
+    const idError = validateRouteId(jobId, 'job');
+    if (idError) return idError;
 
-    const supabase = await createClient();
+    const guard = await apiGuardRead(request);
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId } = guard;
+
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new GetEstimateByJobIdUseCase(repository);
 
@@ -79,12 +80,12 @@ export async function GET(
         total:
           item.total ??
           item.qty * (item.unit_price ?? item.unitPrice ?? 0) +
-          (item.labor_cost ?? item.laborCost ?? 0),
+            (item.labor_cost ?? item.laborCost ?? 0),
         created_at: item.created_at
           ? item.created_at
           : item.createdAt
-            ? item.createdAt.toISOString()
-            : null,
+          ? item.createdAt.toISOString()
+          : null,
       })),
     };
 

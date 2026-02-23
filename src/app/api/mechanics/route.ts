@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/mechanic.repository.supabase'
 import { GetMechanicsUseCase } from '@/modules/mechanic/application/get-mechanics.use-case'
 import { CreateMechanicUseCase } from '@/modules/mechanic/application/create-mechanic.use-case'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardRead, apiGuardAdmin } from '@/lib/auth/api-guard'
 
 /**
  * GET /api/mechanics
@@ -11,11 +10,9 @@ import { requireAuth, isAuthError } from '@/lib/auth-helpers'
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+    const guard = await apiGuardRead(request)
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     // Check for activeOnly query param
     const { searchParams } = new URL(request.url)
@@ -42,11 +39,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
-
-    const supabase = await createClient()
+    const guard = await apiGuardAdmin(request, 'create-mechanic')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 

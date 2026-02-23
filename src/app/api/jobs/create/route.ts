@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { CreateJobUseCase } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+
+// Todo item schema for validation
+const todoItemSchema = z.object({
+  id: z.string(),
+  text: z.string().max(500, 'Task text too long'),
+  completed: z.boolean(),
+  createdAt: z.string(),
+  completedAt: z.string().optional(),
+})
 
 // Input validation schema
 const createJobSchema = z.object({
@@ -17,13 +25,14 @@ const createJobSchema = z.object({
   priority: z.enum(['low', 'normal', 'medium', 'high', 'urgent']).optional(),
   estimatedCompletion: z.string().optional(),
   details: z.record(z.unknown()).optional(),
+  todos: z.array(todoItemSchema).max(50, 'Too many tasks').optional(),
 })
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const guard = await apiGuardWrite(request, 'create-job')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId, userId } = guard
 
     const rawBody = await request.json()
 
@@ -37,13 +46,14 @@ export async function POST(request: NextRequest) {
     }
     const body = parseResult.data
 
-    const supabase = await createClient()
+    // Use user ID from auth session
+    const createdBy = userId
 
     // Create the job
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
-    const job = await createJobUseCase.execute(body, tenantId, userId)
+    const job = await createJobUseCase.execute(body, tenantId, createdBy)
 
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {

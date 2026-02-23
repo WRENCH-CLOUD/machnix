@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { UpdateVehicleUseCase } from '@/modules/vehicle/application/update-vehicle.use-case'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function PUT(
   request: NextRequest,
@@ -10,18 +9,20 @@ export async function PUT(
 ) {
   try {
     const { id } = await context.params
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { tenantId } = auth
+    const idError = validateRouteId(id, 'vehicle')
+    if (idError) return idError
+
+    const guard = await apiGuardWrite(request, 'update-vehicle')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
-
-    const supabase = await createClient()
+    
     const repository = new SupabaseVehicleRepository(supabase, tenantId)
     const useCase = new UpdateVehicleUseCase(repository)
-
+    
     const vehicle = await useCase.execute(id, body)
-
+    
     return NextResponse.json(vehicle)
   } catch (error: unknown) {
     console.error('Error updating vehicle:', error)
