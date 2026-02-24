@@ -151,7 +151,7 @@ export class UpdateJobStatusUseCase {
       throw new Error('Failed to reload invoice after sync')
     }
 
-    const payments = invoiceWithRelations.payments || []
+    // const payments = invoiceWithRelations.payments || []
     // Check if invoice is paid - status should be 'paid' OR balance should be 0 (or both)
     const isPaid = invoiceWithRelations.status === 'paid' ||
       (invoiceWithRelations.balance !== undefined && invoiceWithRelations.balance !== null && invoiceWithRelations.balance <= 0)

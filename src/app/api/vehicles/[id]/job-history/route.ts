@@ -35,7 +35,7 @@ export async function GET(
 
         const guard = await apiGuardRead(request)
         if (!guard.ok) return guard.response
-        const { supabase, tenantId } = guard
+        const { supabase } = guard
 
         // Get currentJobId from query params
         const { searchParams } = new URL(request.url)

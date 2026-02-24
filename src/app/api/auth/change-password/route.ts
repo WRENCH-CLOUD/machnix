@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
  * Only POST is allowed for password changes
  */
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json(
     {
       success: false,
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
 }
 
 
-export async function PUT(request: NextRequest) {
+export async function PUT() {
   return NextResponse.json(
     {
       success: false,
@@ -241,7 +241,7 @@ export async function PUT(request: NextRequest) {
 }
 
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   return NextResponse.json(
     {
       success: false,
@@ -255,7 +255,7 @@ export async function DELETE(request: NextRequest) {
 }
 
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH() {
   return NextResponse.json(
     {
       success: false,

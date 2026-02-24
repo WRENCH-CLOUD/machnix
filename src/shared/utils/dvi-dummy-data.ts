@@ -173,7 +173,7 @@ export function generateDummyDVIItems(templateType: string = 'full', jobId: stri
 /**
  * Generate dummy parts for a job
  */
-export function generateDummyParts(jobId: string = 'default'): DummyPart[] {
+export function generateDummyParts(): DummyPart[] {
   // Return empty array - parts should be added manually
   return []
 }
