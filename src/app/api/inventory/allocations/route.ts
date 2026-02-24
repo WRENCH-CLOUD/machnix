@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseAllocationRepository } from '@/modules/inventory/infrastructure/allocation.repository.supabase'
 import { AllocationStatus } from '@/modules/inventory/domain/allocation.entity'
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     const auth = requireAuth(request)
     if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const { tenantId } = auth
 
     const supabase = await createClient()
 

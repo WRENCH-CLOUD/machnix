@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
@@ -24,7 +24,7 @@ export async function GET(
     const { id } = await context.params
     const auth = requireAuth(request)
     if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const { tenantId } = auth
 
     const supabase = await createClient()
 
@@ -50,7 +50,7 @@ export async function PATCH(
     const { id } = await context.params
     const auth = requireAuth(request)
     if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const { tenantId } = auth
 
     const supabase = await createClient()
 

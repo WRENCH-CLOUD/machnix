@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   try {
     const auth = requireAuth(request)
     if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const { tenantId } = auth
 
     const supabase = await createClient()
 

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { ensurePlatformAdmin } from '@/lib/auth/is-platform-admin'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // SECURITY: This endpoint exposes cross-tenant financial data.
     // Must be restricted to platform admins only.
