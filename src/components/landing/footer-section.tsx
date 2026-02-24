@@ -1,6 +1,7 @@
 "use client"
 
-import { Linkedin,  Instagram} from "lucide-react"
+import { Linkedin, Instagram } from "lucide-react"
+import { FeedbackForm } from "@/components/landing/feedback-form"
 
 export function FooterSection() {
   return (
@@ -84,8 +85,11 @@ export function FooterSection() {
         <div>
           <h3 className="text-muted-foreground text-sm font-medium leading-5">Contact and feedback</h3>
           <p className="text-foreground text-sm font-normal leading-5 mt-2">
-            We’d love to hear from you! If you have any questions, feedback, or just want to say hi, feel free to reach out to us at <a href="mailto:info@wrenchcloud.com" className="text-primary hover:underline">info@wrenchcloud.com</a>
+            We’d love to hear from you! Reach out at <a href="mailto:info@wrenchcloud.com" className="text-primary hover:underline">info@wrenchcloud.com</a>
           </p>
+          <div className="mt-3">
+            <FeedbackForm />
+          </div> {/* TODO: the feedback form is expanding below and causes the footer to move down and is BUGGY must fix quick*/}
         </div>
       </div>
     </footer>

@@ -14,6 +14,7 @@ type PopoverFormProps = {
   height?: string
   showCloseButton?: boolean
   title: string
+  className?: string
 }
 
 export function PopoverForm({
@@ -26,6 +27,7 @@ export function PopoverForm({
   height = "192px",
   title = "Feedback",
   showCloseButton = false,
+  className,
 }: PopoverFormProps) {
   const ref = useRef<HTMLDivElement>(null)
   useClickOutside(ref, () => setOpen(false))
@@ -33,7 +35,7 @@ export function PopoverForm({
   return (
     <div
       key={title}
-      className="flex min-h-[300px] w-full items-center justify-center"
+      className={className || "flex min-h-[300px] w-full items-center justify-center"}
     >
       <motion.button
         layoutId={`${title}-wrapper`}
