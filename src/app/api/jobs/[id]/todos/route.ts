@@ -21,7 +21,7 @@ export async function PATCH(
     const idError = validateRouteId(id, 'job')
     if (idError) return idError
 
-    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.WRITE, rateLimitAction: 'update-job-todos' })
+    const guard = await apiGuard(request, { rateLimitAction: 'update-job-todos' })
     if (!guard.ok) return guard.response
     const { supabase, tenantId } = guard
 

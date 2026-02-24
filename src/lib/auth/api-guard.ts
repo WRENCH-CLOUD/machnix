@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { SupabaseClient, User } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   JWT_ROLES,
   TENANT_ADMIN_ROLES,
@@ -35,7 +35,7 @@ import {
 // UUID VALIDATION
 // ============================================================================
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i; //this is UUID v4 specific regex
 
 /**
  * Validate a string is a valid UUID v4 format
@@ -87,7 +87,7 @@ export interface ApiGuardOptions {
 
 export interface ApiGuardSuccess {
   ok: true
-  user: User
+  userId: string
   tenantId: string
   role: string
   supabase: SupabaseClient
@@ -97,7 +97,7 @@ export interface ApiGuardSuccess {
 export interface ApiGuardFailure {
   ok: false
   response: NextResponse
-  user?: never
+  userId?: never
   tenantId?: never
   role?: never
   supabase?: never
@@ -111,7 +111,7 @@ export type ApiGuardResult = ApiGuardSuccess | ApiGuardFailure
 
 /**
  * Unified API route guard. Handles:
- * 1. Authentication (getUser from JWT)
+ * 1. Authentication (reads pre-authenticated headers from proxy middleware)
  * 2. Tenant ID extraction (from app_metadata ONLY - never user_metadata)
  * 3. UUID format validation on tenant ID
  * 4. Role-based authorization
@@ -123,7 +123,7 @@ export type ApiGuardResult = ApiGuardSuccess | ApiGuardFailure
  *   const guard = await apiGuard(request, { requiredRoles: TENANT_ADMIN_ROLES })
  *   if (!guard.ok) return guard.response
  *   
- *   const { user, tenantId, supabase } = guard
+ *   const { userId, tenantId, supabase } = guard
  *   // ... safe to proceed
  * }
  * ```
@@ -134,11 +134,12 @@ export async function apiGuard(
 ): Promise<ApiGuardResult> {
   const { requiredRoles, rateLimit, rateLimitAction } = options
 
-  // 1. Create Supabase client and authenticate
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // 1. Read auth context from proxy middleware headers (already authenticated in proxy.ts)
+  const userId = request.headers.get('x-user-id')
+  const headerTenantId = request.headers.get('x-tenant-id')
+  const headerRole = request.headers.get('x-user-role')
 
-  if (error || !user) {
+  if (!userId) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -148,10 +149,13 @@ export async function apiGuard(
     }
   }
 
-  // 2. Extract tenant_id from app_metadata ONLY (server-controlled, not spoofable)
-  //    SECURITY: Never fall back to user_metadata — it can be set by the client
-  const tenantId = user.app_metadata?.tenant_id
-  const role = user.app_metadata?.role as string | undefined
+  // Create Supabase client for DB queries (not for auth)
+  const supabase = await createClient()
+
+  // 2. Extract tenant_id and role from proxy headers (set from app_metadata in proxy.ts)
+  //    SECURITY: These headers are set by proxy.ts from JWT app_metadata, not spoofable by client
+  const tenantId = headerTenantId
+  const role = headerRole || undefined
 
   if (!tenantId) {
     return {
@@ -165,7 +169,7 @@ export async function apiGuard(
 
   // 3. Validate tenant_id is a valid UUID
   if (!isValidUUID(tenantId)) {
-    console.error(`[API Guard] Invalid tenant_id format in JWT: ${tenantId} for user ${user.id}`)
+    console.error(`[API Guard] Invalid tenant_id format in JWT: ${tenantId} for user ${userId}`)
     return {
       ok: false,
       response: NextResponse.json(
@@ -190,9 +194,14 @@ export async function apiGuard(
 
   // 5. Rate limiting
   if (rateLimit !== false) {
-    const config = rateLimit || RATE_LIMITS.STANDARD
+    // Detect HTTP method and use appropriate default
+    const method = request.method.toUpperCase()
+    const isReadMethod = method === 'GET' || method === 'HEAD'
+    const defaultRateLimit = isReadMethod ? RATE_LIMITS.READ : RATE_LIMITS.WRITE
+
+    const config = rateLimit || defaultRateLimit
     const action = rateLimitAction || request.nextUrl.pathname
-    const rateLimitResult = checkUserRateLimit(user.id, config, action)
+    const rateLimitResult = checkUserRateLimit(userId, config, action)
 
     if (!rateLimitResult.success) {
       return {
@@ -204,7 +213,7 @@ export async function apiGuard(
 
   return {
     ok: true,
-    user,
+    userId,
     tenantId,
     role: role || 'unknown',
     supabase,

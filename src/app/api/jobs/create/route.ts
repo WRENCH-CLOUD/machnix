@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
   try {
     const guard = await apiGuardWrite(request, 'create-job')
     if (!guard.ok) return guard.response
-    const { supabase, tenantId, user } = guard
+    const { supabase, tenantId, userId } = guard
 
     const rawBody = await request.json()
-    
+
     // Validate input
     const parseResult = createJobSchema.safeParse(rawBody)
     if (!parseResult.success) {
@@ -45,16 +45,16 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = parseResult.data
-    
+
     // Use user ID from auth session
-    const createdBy = user.id
-    
+    const createdBy = userId
+
     // Create the job
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
     const job = await createJobUseCase.execute(body, tenantId, createdBy)
-    
+
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
     console.error('Error creating job:', {

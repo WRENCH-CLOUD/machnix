@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const guard = await apiGuardWrite(request, 'create-estimate');
     if (!guard.ok) return guard.response;
-    const { supabase, tenantId, user } = guard;
+    const { supabase, tenantId, userId } = guard;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new CreateEstimateUseCase(repository);
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       validUntil: raw.valid_until ? new Date(raw.valid_until) : undefined,
     };
 
-    const estimate = await useCase.execute(dto, tenantId, user.id);
+    const estimate = await useCase.execute(dto, tenantId, userId);
 
     const apiEstimate = {
       id: (estimate as any).id,

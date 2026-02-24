@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const guard = await apiGuardAdmin(request, 'create-user')
     if (!guard.ok) return guard.response
 
-    const { user, tenantId, supabase } = guard
+    const {tenantId, supabase } = guard
 
     const body = await request.json()
 

@@ -4,8 +4,10 @@ interface OneClickIntegrationsIllustrationProps {
   className?: string
 }
 
+type CSSPropertiesWithVars = React.CSSProperties & Record<`--${string}`, string>
+
 const OneClickIntegrationsIllustration: React.FC<OneClickIntegrationsIllustrationProps> = ({ className = "" }) => {
-  const themeVars = {
+  const themeVars: Record<string, string> = {
     "--oci-primary-color": "hsl(var(--primary))",
     "--oci-background-color": "hsl(var(--background))",
     "--oci-foreground-color": "hsl(var(--foreground))",
@@ -21,7 +23,7 @@ const OneClickIntegrationsIllustration: React.FC<OneClickIntegrationsIllustratio
     logoSvg?: React.ReactNode
     isGradientBg?: boolean
   }> = ({ logoSvg, isGradientBg }) => {
-    const boxStyle: React.CSSProperties = {
+    const boxStyle: CSSPropertiesWithVars = {
       width: "60px",
       height: "60px",
       position: "relative",
