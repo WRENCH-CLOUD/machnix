@@ -32,6 +32,8 @@ export default[
       // test config
       "**/jest.config.js",
       "**/jest.setup.js",
+      "**/playwright.config.ts",
+      "**/e2e/**",
 
       // misc
       "**/.DS_Store",
