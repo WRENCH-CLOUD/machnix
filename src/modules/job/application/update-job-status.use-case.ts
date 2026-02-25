@@ -1,13 +1,11 @@
-import { JobCard, JobStatus } from '../domain/job.entity'
 import { JobRepository } from '../domain/job.repository'
+import { JobCard, JobStatus } from '../domain/job.entity'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
-import { JobLifecycleRules } from '@/processes/job-lifecycle/job-lifecycle.rules'
 import { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import { InvoiceRepository } from '@/modules/invoice/domain/invoice.repository'
 import { GenerateInvoiceFromEstimateUseCase } from '@/modules/invoice/application/generate-from-estimate.use-case'
 import { CustomerRepository } from '@/modules/customer/infrastructure/customer.repository'
 import { TenantRepository } from '@/modules/tenant/infrastructure/tenant.repository'
-import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 /**
  * Result types for UpdateJobStatusUseCase
@@ -15,6 +13,26 @@ import { InventoryAllocationService } from '@/modules/inventory/application/inve
 export type UpdateJobStatusResult =
   | { success: true; job: JobCard }
   | { success: false; paymentRequired: true; invoiceId: string; balance: number; jobNumber: string }
+
+/**
+ * Valid status transitions for job lifecycle
+ * received <-> working <-> ready -> completed
+ * Any status can go to cancelled (except completed)
+ */
+const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  'received': ['received', 'working', 'cancelled'],
+  'working': ['received', 'working', 'ready', 'cancelled'],
+  'ready': ['working', 'ready', 'completed', 'cancelled'],
+  'completed': ['completed'], // Locked - cannot change
+  'cancelled': ['cancelled'], // Locked - cannot change
+}
+
+/**
+ * Validates if a status transition is allowed
+ */
+function isValidTransition(fromStatus: JobStatus, toStatus: JobStatus): boolean {
+  return VALID_TRANSITIONS[fromStatus]?.includes(toStatus) ?? false
+}
 
 /**
  * Update Job Status Use Case
@@ -27,7 +45,6 @@ export class UpdateJobStatusUseCase {
     private readonly invoiceRepository?: InvoiceRepository,
     private readonly customerRepository?: CustomerRepository,
     private readonly tenantRepository?: TenantRepository,
-    private readonly allocationService?: InventoryAllocationService,
   ) { }
 
   async execute(jobStatusCommand: jobStatusCommand): Promise<UpdateJobStatusResult> {
@@ -46,36 +63,23 @@ export class UpdateJobStatusUseCase {
 
     // GUARDRAIL: Validate status transition
     const currentStatus = job.status as JobStatus
-    JobLifecycleRules.ensureNotTerminal(currentStatus, status)
-    JobLifecycleRules.ensureValidTransition(currentStatus, status)
+    if (!isValidTransition(currentStatus, status)) {
+      throw new Error(`Invalid status transition: Cannot change from '${currentStatus}' to '${status}'`)
+    }
+
+    // GUARDRAIL: Completed/Cancelled jobs are locked
+    if (currentStatus === 'completed') {
+      throw new Error('Cannot modify a completed job')
+    }
+    if (currentStatus === 'cancelled') {
+      throw new Error('Cannot modify a cancelled job')
+    }
 
     // Guardrail: completion requires paid invoice copied from estimate
     if (status === 'completed') {
       const completionCheck = await this.ensureCompletionRequirements(job)
       if (!completionCheck.success) {
         return completionCheck
-      }
-
-      // Consume all reserved inventory allocations when job is completed
-      if (this.allocationService) {
-        try {
-          const consumeResult = await this.allocationService.consumeAllForJob(jobId)
-          console.log(`[UpdateJobStatusUseCase] Consumed ${consumeResult.totalQuantityConsumed} units for completed job ${jobId}`)
-        } catch (error) {
-          console.error('[UpdateJobStatusUseCase] Failed to consume allocations:', error)
-          // Don't block completion if consumption fails - log and continue
-        }
-      }
-    }
-
-    // Release all inventory allocations when job is cancelled
-    if (status === 'cancelled' && this.allocationService) {
-      try {
-        const releaseResult = await this.allocationService.releaseForJob(jobId)
-        console.log(`[UpdateJobStatusUseCase] Released ${releaseResult.totalQuantityReleased} units for cancelled job ${jobId}`)
-      } catch (error) {
-        console.error('[UpdateJobStatusUseCase] Failed to release allocations:', error)
-        // Don't block cancellation if release fails
       }
     }
 
@@ -151,7 +155,7 @@ export class UpdateJobStatusUseCase {
       throw new Error('Failed to reload invoice after sync')
     }
 
-    // const payments = invoiceWithRelations.payments || []
+    const payments = invoiceWithRelations.payments || []
     // Check if invoice is paid - status should be 'paid' OR balance should be 0 (or both)
     const isPaid = invoiceWithRelations.status === 'paid' ||
       (invoiceWithRelations.balance !== undefined && invoiceWithRelations.balance !== null && invoiceWithRelations.balance <= 0)
@@ -169,6 +173,4 @@ export class UpdateJobStatusUseCase {
     return { success: true }
   }
 }
-
-
 

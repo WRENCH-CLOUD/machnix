@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
 import { CompleteOnboardingUseCase } from '@/modules/tenant/application/complete-onboarding.usecase'
-import { apiGuardRead, apiGuardOwner } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Validation schema for onboarding data
@@ -24,12 +24,19 @@ const onboardingSchema = z.object({
 })
 
 // GET /api/tenant/onboarding - Get onboarding status
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const guard = await apiGuardRead(request)
-    if (!guard.ok) return guard.response
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const { tenantId, supabase } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
+    }
 
     const repository = new SupabaseTenantRepository(supabase)
     const tenant = await repository.findById(tenantId)
@@ -59,11 +66,17 @@ export async function GET(request: NextRequest) {
 // POST /api/tenant/onboarding - Complete onboarding
 export async function POST(request: NextRequest) {
   try {
-    // SECURITY: Only tenant owners can complete onboarding
-    const guard = await apiGuardOwner(request, 'complete-onboarding')
-    if (!guard.ok) return guard.response
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const { tenantId, supabase } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
+    }
 
     const body = await request.json()
     

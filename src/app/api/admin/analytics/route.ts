@@ -1,19 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { ensurePlatformAdmin } from '@/lib/auth/is-platform-admin'
+import { TIER_PRICING, normalizeTier, type SubscriptionTier } from '@/config/plan-features'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // SECURITY: This endpoint exposes cross-tenant financial data.
-    // Must be restricted to platform admins only.
-    const adminCheck = await ensurePlatformAdmin()
-    if (!adminCheck.ok) {
-      return NextResponse.json(
-        { error: adminCheck.message || 'Forbidden' },
-        { status: adminCheck.status || 403 }
-      )
-    }
-
     const supabaseAdmin = getSupabaseAdmin()
 
     // =============================================

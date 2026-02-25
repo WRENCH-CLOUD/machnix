@@ -182,16 +182,6 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                 </div>
               </div>
             )}
-            {/* No alerts state */}
-            {(dynamicStats?.pending_jobs ?? 0) === 0 && (dynamicStats?.ready_jobs ?? 0) === 0 && (
-              <div className="flex gap-3 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
-                <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
-                <div>
-                  <div className="text-sm font-medium">All Clear</div>
-                  <div className="text-xs text-muted-foreground">No pending jobs or vehicles waiting</div>
-                </div>
-              </div>
-            )}
 
             {/* Weekly Summary */}
             <div className="pt-4">
@@ -212,6 +202,16 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
               </div>
             </div>
 
+            {/* No alerts state */}
+            {(dynamicStats?.pending_jobs ?? 0) === 0 && (dynamicStats?.ready_jobs ?? 0) === 0 && (
+              <div className="flex gap-3 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">All Clear</div>
+                  <div className="text-xs text-muted-foreground">No pending jobs or vehicles waiting</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

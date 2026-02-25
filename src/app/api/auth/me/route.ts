@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   const {
@@ -16,7 +16,7 @@ export async function GET() {
   const meta = user.app_metadata;
   const userMeta = user.user_metadata;
   const isPlatformAdmin = meta?.role === 'platform_admin';
-
+  
   // Check for impersonation cookie (only valid for platform admins)
   let impersonatedTenantId: string | null = null;
   if (isPlatformAdmin) {

@@ -12,6 +12,9 @@ import {
   ChevronRight,
   Sparkles,
   CreditCard,
+  Lock,
+  Zap,
+  Crown,
   Package,
 } from "lucide-react";
 import {
@@ -84,12 +87,6 @@ const navItems: NavItemConfig[] = [
     label: "Vehicles",
     icon: Car,
     description: "Vehicle inventory"
-  },
-  {
-    id: "inventory",
-    label: "Inventory",
-    icon: Package,
-    description: "Parts & Items"
   },
   {
     id: "team",

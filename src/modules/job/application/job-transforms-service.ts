@@ -52,6 +52,14 @@ export interface UIJob {
   updated_at?: Date | string
   estimatedCompletion?: Date | string
   complaints: string
+  todos?: {
+    id: string
+    text: string
+    completed: boolean
+    status: "changed" | "repaired" | "no_change" | null
+    createdAt: string
+    completedAt?: string
+  }[]
 }
 
 /**
@@ -96,6 +104,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     } : null,
     status: dbJob.status,
     complaints: extractComplaints(dbJob.details),
+    todos: extractTodos(dbJob.details),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
     // Keep legacy snake_case fields for compatibility if needed, otherwise remove them
@@ -149,6 +158,21 @@ function extractComplaints(details: any): string {
 }
 
 /**
+ * Extract todos from job details JSONB field
+ */
+function extractTodos(details: any): { id: string; text: string; completed: boolean; status: "changed" | "repaired" | "no_change" | null; createdAt: string; completedAt?: string }[] {
+  if (!details || typeof details !== 'object') return []
+
+  if (Array.isArray(details.todos)) {
+    return details.todos.map((todo: any) => ({
+      ...todo,
+      status: todo.status || null
+    }))
+  }
+
+  return []
+}
+
 /**
  * Transform UI job data back to database format for updates
  */

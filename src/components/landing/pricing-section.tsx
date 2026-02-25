@@ -187,21 +187,38 @@ export function PricingSection() {
 
       {/* Pricing Cards */}
       <div className="self-stretch px-4 md:px-8 flex flex-col md:flex-row justify-center items-stretch gap-6 md:gap-8 mt-8 max-w-[1200px] mx-auto">
-        {pricingPlans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`flex-1 p-6 md:p-8 overflow-hidden rounded-xl flex flex-col justify-start items-start gap-6 ${plan.popular ? "bg-primary shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.10)]" : "bg-gradient-to-b from-gray-50/5 to-gray-50/0"}`}
-            style={plan.popular ? {} : { outline: "1px solid hsl(var(--border))", outlineOffset: "-1px" }}
-          >
-            <div className="self-stretch flex flex-col justify-start items-start gap-6">
-              <div className="self-stretch flex flex-col justify-start items-start gap-8">
-                <div
-                  className={`w-full h-5 text-sm font-medium leading-tight ${plan.popular ? "text-primary-foreground" : "text-zinc-200"}`}
-                >
-                  {plan.name}
-                  {plan.popular && (
-                    <div className="ml-2 px-2 overflow-hidden rounded-full justify-center items-center gap-2.5 inline-flex mt-0 py-0.5 bg-gradient-to-b from-primary-light/50 to-primary-light bg-white">
-                      <div className="text-center text-primary-foreground text-xs font-normal leading-tight warp-break-words">
+        {plans.map((plan) => {
+          const Icon = plan.icon
+          return (
+            <div
+              key={plan.name}
+              className={cn(
+                "flex-1 p-6 md:p-8 overflow-hidden rounded-xl flex flex-col justify-start items-start gap-6 transition-all duration-300",
+                plan.popular
+                  ? "bg-primary shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.10)] ring-1 ring-primary/50"
+                  : "bg-gradient-to-b from-gray-50/5 to-gray-50/0",
+                !plan.popular && "outline outline-1 outline-border outline-offset-[-1px]"
+              )}
+            >
+              <div className="self-stretch flex flex-col justify-start items-start gap-6">
+                <div className="self-stretch flex flex-col justify-start items-start gap-8">
+                  {/* Plan name + badge */}
+                  <div className={cn(
+                    "w-full flex items-center gap-2",
+                    plan.popular ? "text-primary-foreground" : "text-zinc-200"
+                  )}>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm font-semibold leading-tight">{plan.name}</span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      plan.popular
+                        ? "bg-white/20 text-primary-foreground/80"
+                        : "bg-zinc-800 text-zinc-400"
+                    )}>
+                      {plan.tagline}
+                    </span>
+                    {plan.popular && (
+                      <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-primary-foreground">
                         Popular
                       </span>
                     )}

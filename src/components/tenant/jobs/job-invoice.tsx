@@ -45,8 +45,7 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
-
-
+  
   // Check if editing is allowed (only locked when job is completed)
   const isCompleted = job.status === "completed";
   const canEdit = !isCompleted;
@@ -401,7 +400,7 @@ export function JobInvoice({
               </Button>
               <Button
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                disabled={!invoice || loading || (invoice.status === "paid" && job.status === "completed")}
+                disabled={loading || (invoice.status === "paid" && job.status === "completed")}
                 onClick={onMarkPaid}
               >
                 <Check className="w-4 h-4" />

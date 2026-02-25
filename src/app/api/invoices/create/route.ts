@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { CreateInvoiceUseCase } from '@/modules/invoice/application/create-invoice.use-case'
-import { apiGuardWrite } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 const createInvoiceSchema = z.object({
@@ -19,9 +19,17 @@ const createInvoiceSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const guard = await apiGuardWrite(request, 'create-invoice')
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const body = await request.json()
 

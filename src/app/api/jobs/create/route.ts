@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
 import { CreateJobUseCase, JobLimitError } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { apiGuardWrite } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { EntitlementService } from '@/lib/entitlements'
 import { z } from 'zod'
 import { normalizeTier } from '@/config/plan-features'
 
@@ -31,12 +33,20 @@ const createJobSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const guard = await apiGuardWrite(request, 'create-job')
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId, userId } = guard
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const rawBody = await request.json()
-
+    
     // Validate input
     const parseResult = createJobSchema.safeParse(rawBody)
     if (!parseResult.success) {
@@ -46,16 +56,43 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = parseResult.data
-
+    
     // Use user ID from auth session
-    const createdBy = userId
+    const createdBy = user.id
 
-    // Create the job
+    // =============================================
+    // FETCH TENANT CONTEXT FOR SUBSCRIPTION LIMITS
+    // =============================================
+    const tier = normalizeTier(user.app_metadata.subscription_tier || user.user_metadata.subscription_tier)
+
+    // Use Entitlement Service for robust check (including overrides)
+    // We use admin client to ensure access to usage views and overrides
+    const supabaseAdmin = getSupabaseAdmin()
+    const entitlementService = new EntitlementService(supabaseAdmin)
+    
+    const check = await entitlementService.canCreateJob(tenantId, tier)
+
+    if (!check.allowed) {
+      // Re-throw as JobLimitError to be caught below
+      throw new JobLimitError(
+        'Subscription job limit reached', 
+        tier, 
+        check.current, 
+        check.effectiveLimit
+      )
+    }
+
+    const tenantContext = {
+      tier,
+      currentMonthJobCount: check.current,
+    }
+    
+    // Create the job (Use Case still checks locally but we double-checked above)
     const jobRepository = new SupabaseJobRepository(supabase, tenantId)
     const estimateRepository = new SupabaseEstimateRepository(supabase, tenantId)
     const createJobUseCase = new CreateJobUseCase(jobRepository, estimateRepository)
-    const job = await createJobUseCase.execute(body, tenantId, createdBy)
-
+    const job = await createJobUseCase.execute(body, tenantId, createdBy, tenantContext)
+    
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
     // Handle subscription limit errors with specific status
