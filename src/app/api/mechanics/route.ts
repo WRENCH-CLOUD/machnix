@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/mechanic.repository.supabase'
 import { GetMechanicsUseCase } from '@/modules/mechanic/application/get-mechanics.use-case'
 import { CreateMechanicUseCase } from '@/modules/mechanic/application/create-mechanic.use-case'
-import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
-import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { EntitlementService } from '@/lib/entitlements'
+import { apiGuardRead, apiGuardAdmin } from '@/lib/auth/api-guard'
 
 /**
  * GET /api/mechanics
@@ -13,17 +10,9 @@ import { EntitlementService } from '@/lib/entitlements'
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuardRead(request)
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     // Check for activeOnly query param
     const { searchParams } = new URL(request.url)
@@ -50,43 +39,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
-
-    // Check module access
-    const tier = normalizeTier(user.app_metadata.subscription_tier)
-    if (!isModuleAccessible(tier, 'mechanics')) {
-        return NextResponse.json({ 
-            error: 'Mechanics module not available on your plan.',
-            required_tier: 'pro'
-        }, { status: 403 })
-    }
-
-    // Check staff count limit via EntitlementService
-    const supabaseAdmin = getSupabaseAdmin()
-    const entitlementService = new EntitlementService(supabaseAdmin)
-    
-    // Usage snapshot includes staff_count
-    const usage = await entitlementService.getUsageSnapshot(tenantId)
-    const check = await entitlementService.checkEntitlement(tenantId, tier, 'staffCount', usage.staffCount)
-
-    if (!check.allowed) {
-        return NextResponse.json({ 
-            error: `Limit reached: You can only add ${check.effectiveLimit} mechanics on the ${tier} plan.`,
-            code: 'LIMIT_REACHED',
-            current: check.current,
-            limit: check.effectiveLimit
-        }, { status: 429 })
-    }
+    const guard = await apiGuardAdmin(request, 'create-mechanic')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
 

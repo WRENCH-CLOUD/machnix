@@ -3,7 +3,6 @@ import { TenantRepository } from "./tenant.repository";
 import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { TenantSettings } from "../domain/tenant-settings.entity";
-// import { GupshupSettings } from "../domain/gupshup-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeTier } from "@/config/plan-features";
 import type {
@@ -329,82 +328,4 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (error) throw error;
   }
 
-  // ============================================
-  // Gupshup Settings Methods
-  // ============================================
-  // TODO: implement and will fix this errors
-  // private toGupshupSettingsDomain(row: any): GupshupSettings {
-  //   return {
-  //     id: row.id,
-  //     tenantId: row.tenant_id,
-  //     sourceNumber: row.source_number,
-  //     isActive: row.is_active,
-  //     triggerMode: (row.trigger_mode || 'manual') as 'manual',
-  //     createdAt: new Date(row.created_at),
-  //     updatedAt: new Date(row.updated_at),
-  //   };
-  // }
-
-  // async getGupshupSettings(tenantId: string): Promise<GupshupSettings | null> {
-  //   const { data, error } = await this.supabase
-  //     .schema("tenant")
-  //     .from("gupshup_settings")
-  //     .select("*")
-  //     .eq("tenant_id", tenantId)
-  //     .maybeSingle();
-
-  //   if (error) throw error;
-  //   return data ? this.toGupshupSettingsDomain(data) : null;
-  // }
-
-  // async upsertGupshupSettings(tenantId: string, settings: Partial<GupshupSettings>): Promise<void> {
-  //   const dbSettings: any = { tenant_id: tenantId };
-
-  //   if (settings.sourceNumber !== undefined) dbSettings.source_number = settings.sourceNumber;
-  //   if (settings.isActive !== undefined) dbSettings.is_active = settings.isActive;
-  //   if (settings.triggerMode !== undefined) dbSettings.trigger_mode = settings.triggerMode;
-
-  //   const { error } = await this.supabase
-  //     .schema("tenant")
-  //     .from("gupshup_settings")
-  //     .upsert(dbSettings, { onConflict: 'tenant_id' });
-
-  //   if (error) throw error;
-  // }
-
-  // ==========================================================================
-  // SUBSCRIPTION MANAGEMENT (Admin-only — stubs for interface compliance)
-  // ==========================================================================
-
-  // async getSubscriptionOverrides(_tenantId: string): Promise<SubscriptionOverride[]> {
-  //   return []
-  // }
-
-  // async addSubscriptionOverride(_tenantId: string, _input: CreateOverrideInput): Promise<SubscriptionOverride> {
-  //   throw new Error('Subscription override management is admin-only')
-  // }
-
-  // async updateSubscription(_tenantId: string, _input: UpdateSubscriptionInput): Promise<Tenant> {
-  //   throw new Error('Subscription updates are admin-only')
-  // }
-
-  // async getUsageSnapshot(tenantId: string): Promise<UsageSnapshot> {
-  //   const tenant = await this.findById(tenantId)
-  //   if (!tenant) throw new Error('Tenant not found')
-
-  //   return {
-  //     jobsThisMonth: tenant.usageCounters?.job_count || 0,
-  //     whatsappThisMonth: tenant.usageCounters?.whatsapp_count || 0,
-  //     staffCount: tenant.usageCounters?.staff_count || 0,
-  //     inventoryCount: 0,
-  //   }
-  // }
-
-  // async createSubscriptionInvoice(_tenantId: string, _input: CreateSubscriptionInvoiceInput): Promise<SubscriptionInvoice> {
-  //   throw new Error('Subscription invoice creation is admin-only')
-  // }
-
-  // async getSubscriptionInvoices(_tenantId: string): Promise<SubscriptionInvoice[]> {
-  //   return []
-  // }
 }

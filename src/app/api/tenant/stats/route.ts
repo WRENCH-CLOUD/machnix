@@ -3,36 +3,33 @@ import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant
 import { GetTenantWithStatsUseCase } from '@/modules/tenant/application/get-tenant-with-stats.usecase'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { role } = auth
+    let { tenantId } = auth
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const isPlatformAdmin = role === 'platform_admin'
 
-    const isPlatformAdmin = user.app_metadata?.role === 'platform_admin'
-    
-    // Get tenantId from app_metadata, or from impersonation cookie for platform admins
-    let tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    
     if (!tenantId && isPlatformAdmin) {
       // Check for impersonation cookie
       const cookieStore = await cookies()
-      tenantId = cookieStore.get('impersonate_tenant_id')?.value
+      tenantId = cookieStore.get('impersonate_tenant_id')?.value || ''
     }
 
     if (!tenantId) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 400 })
     }
 
+    const supabase = await createClient()
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new GetTenantWithStatsUseCase(repository)
-    
+
     const stats = await useCase.execute(tenantId)
-    
+
     if (!stats) {
       return NextResponse.json({ error: 'Tenant stats not found' }, { status: 404 })
     }

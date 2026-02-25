@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardRead, validateRouteId, isValidUUID } from '@/lib/auth/api-guard'
 
 interface TodoItem {
     id: string
@@ -30,27 +30,16 @@ export async function GET(
         const resolvedParams = await (context.params as any)
         const vehicleId = (resolvedParams as { id: string }).id
 
+        const idError = validateRouteId(vehicleId, 'vehicle')
+        if (idError) return idError
+
+        const guard = await apiGuardRead(request)
+        if (!guard.ok) return guard.response
+        const { supabase } = guard
+
         // Get currentJobId from query params
         const { searchParams } = new URL(request.url)
         const currentJobId = searchParams.get('currentJobId')
-
-        // Validate ID format (UUID)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (!vehicleId || !uuidRegex.test(vehicleId)) {
-            return NextResponse.json({ error: 'Invalid vehicle ID format' }, { status: 400 })
-        }
-
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
 
         // Get all job cards for this vehicle (count)
         const { count, error: countError } = await supabase
@@ -67,7 +56,7 @@ export async function GET(
         let recentJob: JobHistoryResponse['recentJob'] = null
 
         // If we have a currentJobId, find the job created BEFORE this one
-        if (currentJobId && uuidRegex.test(currentJobId)) {
+        if (currentJobId && isValidUUID(currentJobId)) {
             // First get the current job's created_at
             const { data: currentJob, error: currentJobError } = await supabase
                 .schema('tenant')

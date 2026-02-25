@@ -55,7 +55,7 @@ export class RecordPaymentUseCase {
       razorpayOrderId: dto.razorpayOrderId,
       razorpayPaymentId: dto.razorpayPaymentId,
       razorpaySignature: dto.razorpaySignature,
-      status: 'success',
+      status: 'completed',
       paidAt: new Date(),
     }
 

@@ -72,7 +72,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     handleSubmit,
     formState: { errors },
     trigger,
-    watch
+    // watch
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     mode: 'onChange',
@@ -96,8 +96,6 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     }
   })
 
-  const newPassword = watch('newPassword')
-
   const onSubmit = async (data: OnboardingFormData) => {
     try {
       setPasswordError(null)
@@ -116,7 +114,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
 
   const handleNext = async () => {
     let fieldsToValidate: (keyof OnboardingFormData)[] = []
-    
+
     if (step === 1) {
       fieldsToValidate = ['garageName', 'gstNumber']
     } else if (step === 2) {
@@ -141,7 +139,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
 
   return (
     <Dialog open modal>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
         showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -157,15 +155,14 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
           <DialogDescription>
             Let&apos;s set up your garage profile. This will only take a moment.
           </DialogDescription>
-          
+
           {/* Progress indicator */}
           <div className="flex gap-2 pt-2">
             {Array.from({ length: totalSteps }).map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i + 1 <= step ? 'bg-primary' : 'bg-muted'
-                }`}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= step ? 'bg-primary' : 'bg-muted'
+                  }`}
               />
             ))}
           </div>
@@ -179,7 +176,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                 <Building2 className="h-4 w-4" />
                 <span>Business Details</span>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="garageName">
@@ -240,7 +237,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                 <MapPin className="h-4 w-4" />
                 <span>Location & Contact</span>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="address">
@@ -279,9 +276,8 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                     <select
                       id="state"
                       {...register('state')}
-                      className={`flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                        errors.state ? 'border-destructive' : ''
-                      }`}
+                      className={`flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${errors.state ? 'border-destructive' : ''
+                        }`}
                     >
                       <option value="" className="bg-background text-foreground">Select state</option>
                       {INDIAN_STATES.map((state) => (
@@ -346,7 +342,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                 <FileText className="h-4 w-4" />
                 <span>Document Preferences (Optional)</span>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -409,7 +405,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                 <Lock className="h-4 w-4" />
                 <span>Set Your Password</span>
               </div>
-              
+
               <div className="rounded-lg bg-muted/50 p-4">
                 <p className="text-sm text-muted-foreground">
                   We recommend setting a new password for your account. You can skip this step and change it later from your profile settings.
@@ -489,8 +485,8 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                 Continue
               </Button>
             ) : (
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={completeOnboarding.isPending}
                 className="min-w-35"
               >
