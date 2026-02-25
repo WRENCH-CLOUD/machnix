@@ -8,7 +8,11 @@ export { GetAllTenantsWithStatsUseCase } from './application/get-all-tenants-wit
 export { GetTenantWithStatsUseCase } from './application/get-tenant-with-stats.usecase'
 export { UpdateTenantUseCase } from './application/update-tenant.usecase'// TODO: to be implemented
 export { DeleteTenantUseCase } from './application/delete-tenant.usecase'// TODO: to be implemented
+export { UpdateSubscriptionUseCase } from './application/update-subscription.usecase'
+export { AddSubscriptionOverrideUseCase } from './application/add-subscription-override.usecase'
 
 // Infrastructure exports
 export type { TenantRepository } from './infrastructure/tenant.repository'
 export { SupabaseTenantRepository } from './infrastructure/tenant.repository.supabase'
+export { AdminSupabaseTenantRepository } from './infrastructure/tenant.repository.admin'
+

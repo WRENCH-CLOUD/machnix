@@ -91,7 +91,7 @@ Integrated payments and automated tenant management.
 
 | Feature | Status |
 |---------|--------|
-| Subscription Plans (Starter, Pro, Enterprise) | 🔲 Planned |
+| Subscription Plans (Basic, Pro, Enterprise) | 🔲 Planned |
 | Razorpay Auto-Pay Integration | 🔲 Planned |
 | Subscription Management UI | 🔲 Planned |
 | Payment Reminders | 🔲 Planned |

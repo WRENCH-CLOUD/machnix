@@ -2,12 +2,14 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import {
   JWT_CLAIM_ROLE,
   JWT_CLAIM_TENANT_ID,
+  JWT_CLAIM_SUBSCRIPTION_TIER,
   JwtAppMetadata,
   JwtRole,
   JWT_ROLES,
   isValidRole,
   isTenantRole,
 } from './jwt-claims'
+import { type SubscriptionTier, normalizeTier } from '@/config/plan-features'
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -16,6 +18,7 @@ import {
 interface SetJwtClaimsParams {
   role: JwtRole
   tenant_id?: string
+  subscription_tier?: SubscriptionTier
 }
 
 interface SetJwtClaimsResult {
@@ -56,6 +59,10 @@ export class JwtClaimsService {
       appMetadata[JWT_CLAIM_TENANT_ID] = claims.tenant_id
     }
 
+    if (claims.subscription_tier) {
+      appMetadata[JWT_CLAIM_SUBSCRIPTION_TIER] = claims.subscription_tier
+    }
+
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       app_metadata: appMetadata,
     })
@@ -76,15 +83,34 @@ export class JwtClaimsService {
     supabaseAdmin: SupabaseClient,
     userId: string,
     role: JwtRole,
-    tenantId: string
+    tenantId: string,
+    subscriptionTier?: SubscriptionTier
   ): Promise<SetJwtClaimsResult> {
     if (!tenantId) {
       return { success: false, error: 'tenant_id is required' }
     }
 
+    // If tier not provided, look it up from the tenants table
+    let tier = subscriptionTier ? normalizeTier(subscriptionTier) : null
+    if (!tier) {
+      try {
+        const { data: tenantData } = await supabaseAdmin
+          .schema('tenant')
+          .from('tenants')
+          .select('subscription')
+          .eq('id', tenantId)
+          .maybeSingle()
+
+        tier = normalizeTier(tenantData?.subscription)
+      } catch {
+        tier = 'basic'
+      }
+    }
+
     return this.setUserJwtClaims(supabaseAdmin, userId, {
       role,
       tenant_id: tenantId,
+      subscription_tier: tier,
     })
   }
 
@@ -161,6 +187,7 @@ export class JwtClaimsService {
     const cleaned = { ...(data.user.app_metadata ?? {}) }
     delete cleaned[JWT_CLAIM_ROLE]
     delete cleaned[JWT_CLAIM_TENANT_ID]
+    delete cleaned[JWT_CLAIM_SUBSCRIPTION_TIER]
     delete cleaned.user_type
 
     const { error: updateError } =
@@ -202,8 +229,7 @@ function validateJwtClaims(
       }
     }
 
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
     if (!uuidRegex.test(claims.tenant_id)) {
       return {

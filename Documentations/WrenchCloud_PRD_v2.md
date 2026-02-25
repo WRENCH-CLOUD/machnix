@@ -795,7 +795,7 @@ Every invoice must contain:
 
 ### Subscription Tiers
 
-#### Starter Plan (Existing v1 users)
+#### Basic Plan (Existing v1 users)
 - ₹1,999/month
 - All v1 features
 - **NEW:** Basic GST reports (view only)
@@ -804,7 +804,7 @@ Every invoice must contain:
 
 #### Professional Plan (NEW)
 - ₹3,999/month
-- Everything in Starter
+- Everything in Basic
 - **NEW:** Full GST filing automation
 - **NEW:** Unlimited WhatsApp notifications
 - **NEW:** Digital payments (Cashfree)

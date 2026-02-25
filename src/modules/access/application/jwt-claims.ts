@@ -26,6 +26,12 @@ export const JWT_CLAIM_ROLE = 'role' as const
  */
 export const JWT_CLAIM_TENANT_ID = 'tenant_id' as const
 
+/**
+ * The JWT claim key for subscription tier
+ * Used for client-side feature gating
+ */
+export const JWT_CLAIM_SUBSCRIPTION_TIER = 'subscription_tier' as const
+
 // ============================================================================
 // ROLE VALUES
 // ============================================================================
@@ -202,6 +208,11 @@ export interface JwtAppMetadata {
    * Tenant ID (UUID string) - only present for tenant-scoped roles
    */
   [JWT_CLAIM_TENANT_ID]?: string
+  
+  /**
+   * Subscription tier - only present for tenant-scoped roles
+   */
+  [JWT_CLAIM_SUBSCRIPTION_TIER]?: 'basic' | 'pro' | 'enterprise'
   
   /**
    * User type - 'tenant' or 'platform'

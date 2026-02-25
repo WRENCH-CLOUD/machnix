@@ -68,7 +68,7 @@ END$$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_tier' AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname='tenant')) THEN
-    CREATE TYPE tenant.subscription_tier AS ENUM ('starter', 'pro', 'enterprise');
+    CREATE TYPE tenant.subscription_tier AS ENUM ('basic', 'pro', 'enterprise');
   END IF;
 END$$;
 
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS tenant.tenants (
   name text NOT NULL,
   slug text UNIQUE,
   status tenant.tenant_status DEFAULT 'active' NOT NULL,
-  subscription tenant.subscription_tier DEFAULT 'pro' NOT NULL,
+  subscription tenant.subscription_tier DEFAULT 'basic' NOT NULL,
   subscription_status text DEFAULT 'trial',
   is_onboarded boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),

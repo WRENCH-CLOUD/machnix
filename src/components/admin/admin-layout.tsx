@@ -12,6 +12,7 @@ import {
   BarChart3,
   Shield,
   Phone,
+  CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -29,7 +30,9 @@ interface AdminLayoutProps {
 const adminNavItems = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "tenants", label: "Tenants", icon: Building2 },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "leads", label: "Leads", icon: Phone },
+  { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
   { id: "mechanics", label: "Mechanics", icon: HardHat, disabled: true, comingSoon: true },
   { id: "settings", label: "Settings", icon: Settings },
 ]
@@ -83,7 +86,7 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
             const isActive = activeView === item.id
             const isDisabled = 'disabled' in item && item.disabled
             const isComingSoon = 'comingSoon' in item && item.comingSoon
-            
+
             return (
               <button
                 key={item.id}
@@ -91,10 +94,10 @@ export function AdminLayout({ children, activeView, onViewChange, title }: Admin
                 disabled={isDisabled}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                  isDisabled 
-                    ? "text-zinc-600 cursor-not-allowed opacity-50" 
-                    : isActive 
-                      ? "bg-primary text-primary-foreground" 
+                  isDisabled
+                    ? "text-zinc-600 cursor-not-allowed opacity-50"
+                    : isActive
+                      ? "bg-primary text-primary-foreground"
                       : "text-zinc-400 hover:text-white hover:bg-zinc-800",
                 )}
               >

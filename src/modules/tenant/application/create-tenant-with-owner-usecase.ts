@@ -4,6 +4,7 @@ import { JwtClaimsService } from '../../access/application/jwt-claim.service'
 import { TenantUserRepository } from '../../access/infrastructure/tenant-user.repository'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { JWT_ROLES } from '../../access/application/jwt-claims'
+import { type SubscriptionTier, normalizeTier } from '@/config/plan-features'
 
 interface CreateTenantWithOwnerInput {
   tenantName: string
@@ -11,7 +12,7 @@ interface CreateTenantWithOwnerInput {
   adminName: string
   adminEmail: string
   adminPhone?: string
-  subscription: 'starter' | 'pro' | 'enterprise'
+  subscription: SubscriptionTier | string  // accepts legacy values like 'basic'
   notes?: string
 }
 
@@ -60,7 +61,7 @@ export class CreateTenantWithOwnerUseCase {
       const tenant = await this.tenantRepo.create({
         name: tenantName,
         slug: tenantSlug,
-        subscription,
+        subscription: normalizeTier(subscription), // Normalize 'basic' → 'basic'
         status: 'active',
       })
       tenantId = tenant.id

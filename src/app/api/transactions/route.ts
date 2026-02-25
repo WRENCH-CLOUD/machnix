@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiGuard, TENANT_MANAGER_ROLES } from '@/lib/auth/api-guard'
 
+import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
+
 /**
  * GET /api/transactions
  * List all payment transactions for the current tenant with related data
@@ -10,6 +12,15 @@ export async function GET(request: NextRequest) {
         const guard = await apiGuard(request, { requiredRoles: TENANT_MANAGER_ROLES })
         if (!guard.ok) return guard.response
         const { supabase, tenantId } = guard
+
+        // Check subscription access
+        const tier = normalizeTier(user.app_metadata.subscription_tier)
+        if (!isModuleAccessible(tier, 'transactions')) {
+            return NextResponse.json({ 
+                error: 'Upgrade required to access transactions',
+                required_tier: 'pro'
+            }, { status: 403 })
+        }
 
         // Fetch transactions with related invoice, customer, vehicle, jobcard data
         const { data: transactions, error } = await supabase

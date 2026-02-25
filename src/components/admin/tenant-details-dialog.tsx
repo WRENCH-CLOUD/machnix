@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Activity,
 } from "lucide-react"
+import { SubscriptionManagementPanel } from "./subscription-management-panel"
 
 interface TenantDetailsDialogProps {
   tenant: TenantWithStats | null
@@ -38,7 +39,7 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
   }
 
   const subscriptionColors: Record<string, string> = {
-    starter: "bg-slate-500/10 text-slate-400",
+    basic: "bg-slate-500/10 text-slate-400",
     pro: "bg-primary/10 text-primary",
     enterprise: "bg-purple-500/10 text-purple-500",
   }
@@ -175,8 +176,8 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       ₹
                       {tenant.completed_jobs
                         ? Math.round((tenant.total_revenue || 0) / tenant.completed_jobs).toLocaleString(
-                            "en-IN",
-                          )
+                          "en-IN",
+                        )
                         : "0"}
                     </span>
                   </div>
@@ -186,14 +187,22 @@ export function TenantDetailsDialog({ tenant, loading, error, open, onOpenChange
                       ₹
                       {tenant.customer_count
                         ? Math.round((tenant.total_revenue || 0) / tenant.customer_count).toLocaleString(
-                            "en-IN",
-                          )
+                          "en-IN",
+                        )
                         : "0"}
                     </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            <Separator />
+
+            {/* Subscription Management */}
+            <SubscriptionManagementPanel
+              tenantId={tenant.id}
+              tenantName={tenant.name}
+            />
           </div>
         ) : (
           <p className="text-muted-foreground">No tenant data available</p>

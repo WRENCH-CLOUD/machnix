@@ -55,7 +55,7 @@ export function TenantsView({
   }
 
   const subscriptionColors: Record<string, string> = {
-    starter: "bg-slate-500/10 text-slate-400",
+    basic: "bg-slate-500/10 text-slate-400",
     pro: "bg-primary/10 text-primary",
     enterprise: "bg-purple-500/10 text-purple-500",
   }
@@ -158,9 +158,9 @@ export function TenantsView({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={subscriptionColors[tenant.subscription || "pro"]}>
-                        {(tenant.subscription || "pro").charAt(0).toUpperCase() +
-                          (tenant.subscription || "pro").slice(1)}
+                      <Badge className={subscriptionColors[tenant.subscription || "basic"] || subscriptionColors.basic}>
+                        {(tenant.subscription === 'basic' || !tenant.subscription) ? 'Basic' :
+                          tenant.subscription.charAt(0).toUpperCase() + tenant.subscription.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell>

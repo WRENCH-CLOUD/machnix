@@ -79,7 +79,7 @@ flowchart TD
 
 | Plan | Features | Limits |
 |------|----------|--------|
-| Starter | Basic CRUD, 1 user | 100 jobs/month |
+| Basic | Basic CRUD, 1 user | 100 jobs/month |
 | Pro | + Reports, 5 users | 500 jobs/month |
 | Enterprise | + API, Unlimited | Unlimited |
 
@@ -276,7 +276,7 @@ flowchart LR
 
 | Tier | Requests/min | Burst |
 |------|-------------|-------|
-| Starter | 60 | 10 |
+| Basic | 60 | 10 |
 | Pro | 300 | 50 |
 | Enterprise | 1000 | 200 |
 

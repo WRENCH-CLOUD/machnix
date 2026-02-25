@@ -43,6 +43,32 @@ export async function POST(request: NextRequest) {
     if (!guard.ok) return guard.response
     const { supabase, tenantId } = guard
 
+    // Check module access
+    const tier = normalizeTier(user.app_metadata.subscription_tier)
+    if (!isModuleAccessible(tier, 'mechanics')) {
+        return NextResponse.json({ 
+            error: 'Mechanics module not available on your plan.',
+            required_tier: 'pro'
+        }, { status: 403 })
+    }
+
+    // Check staff count limit via EntitlementService
+    const supabaseAdmin = getSupabaseAdmin()
+    const entitlementService = new EntitlementService(supabaseAdmin)
+    
+    // Usage snapshot includes staff_count
+    const usage = await entitlementService.getUsageSnapshot(tenantId)
+    const check = await entitlementService.checkEntitlement(tenantId, tier, 'staffCount', usage.staffCount)
+
+    if (!check.allowed) {
+        return NextResponse.json({ 
+            error: `Limit reached: You can only add ${check.effectiveLimit} mechanics on the ${tier} plan.`,
+            code: 'LIMIT_REACHED',
+            current: check.current,
+            limit: check.effectiveLimit
+        }, { status: 429 })
+    }
+
     const body = await request.json()
 
     const repository = new SupabaseMechanicRepository(supabase, tenantId)

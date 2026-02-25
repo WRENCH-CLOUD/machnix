@@ -58,7 +58,7 @@ async function checkAndSeedTenants() {
       name: 'Quick Fix Garage',
       slug: 'quick-fix',
       status: 'active',
-      subscription: 'starter',
+      subscription: 'basic',
     },
     {
       name: 'Premium Auto Service',

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
-import { CreateJobUseCase } from '@/modules/job/application/create-job.use-case'
+import { CreateJobUseCase, JobLimitError } from '@/modules/job/application/create-job.use-case'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
+import { normalizeTier } from '@/config/plan-features'
 
 // Todo item schema for validation
 const todoItemSchema = z.object({
@@ -57,6 +58,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(job, { status: 201 })
   } catch (error: any) {
+    // Handle subscription limit errors with specific status
+    if (error instanceof JobLimitError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'LIMIT_REACHED',
+          tier: error.tier,
+          currentCount: error.currentCount,
+          maxLimit: error.maxLimit,
+        },
+        { status: 429 }
+      )
+    }
+
     console.error('Error creating job:', {
       message: error.message,
       code: error.code,

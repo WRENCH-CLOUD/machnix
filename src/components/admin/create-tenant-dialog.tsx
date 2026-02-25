@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { Building2 } from "lucide-react";
 
 interface CreateTenantDialogProps {
   open: boolean;
@@ -93,7 +94,7 @@ export function CreateTenantDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              {/* Reuse legacy-style icon from admin create tenant dialog */}
+              <Building2 className="h-4 w-4 text-primary" />
             </span>
             <span>Create New Tenant</span>
           </DialogTitle>
@@ -151,9 +152,9 @@ export function CreateTenantDialog({
                   <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="starter">Starter - Basic features</SelectItem>
-                  <SelectItem value="pro">Pro - Advanced features</SelectItem>
-                  <SelectItem value="enterprise">Enterprise - Full access</SelectItem>
+                  <SelectItem value="basic">Basic - Solo/Starter features</SelectItem>
+                  <SelectItem value="pro">Pro - Growing Shop features</SelectItem>
+                  <SelectItem value="enterprise">Enterprise - Multi-branch features</SelectItem>
                 </SelectContent>
               </Select>
             </div>

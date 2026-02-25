@@ -4,6 +4,15 @@ import { Tenant, TenantStatus } from "../domain/tenant.entity";
 import { TenantStats } from "../domain/tenant-stats.entity";
 import { TenantSettings } from "../domain/tenant-settings.entity";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeTier } from "@/config/plan-features";
+import type {
+  SubscriptionOverride,
+  CreateOverrideInput,
+  SubscriptionInvoice,
+  CreateSubscriptionInvoiceInput,
+  UsageSnapshot,
+  UpdateSubscriptionInput,
+} from '@/lib/entitlements/types'
 
 export class SupabaseTenantRepository implements TenantRepository {
   private supabase: SupabaseClient;
@@ -22,9 +31,19 @@ export class SupabaseTenantRepository implements TenantRepository {
       name: row.name,
       slug: row.slug || '',
       status: row.status,
-      subscription: row.subscription,
+      subscription: normalizeTier(row.subscription),
+      subscriptionStatus: row.subscription_status || 'trial',
+      billingCycleAnchor: row.billing_cycle_anchor ? new Date(row.billing_cycle_anchor) : undefined,
+      usageCounters: row.usage_counters || { job_count: 0, staff_count: 0, whatsapp_count: 0 },
       isOnboarded: row.is_onboarded ?? false,
       createdAt: new Date(row.created_at),
+      // Subscription lifecycle fields
+      subscriptionStartAt: row.subscription_start_at ? new Date(row.subscription_start_at) : null,
+      subscriptionEndAt: row.subscription_end_at ? new Date(row.subscription_end_at) : null,
+      gracePeriodEndsAt: row.grace_period_ends_at ? new Date(row.grace_period_ends_at) : null,
+      trialEndsAt: row.trial_ends_at ? new Date(row.trial_ends_at) : null,
+      customPrice: row.custom_price ? Number(row.custom_price) : null,
+      billingPeriod: row.billing_period || 'monthly',
     };
   }
 
