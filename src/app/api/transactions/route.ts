@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuard, TENANT_MANAGER_ROLES } from '@/lib/auth/api-guard'
 
 import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
 
@@ -9,17 +9,9 @@ import { normalizeTier, isModuleAccessible } from '@/config/plan-features'
  */
 export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
+        const guard = await apiGuard(request, { requiredRoles: TENANT_MANAGER_ROLES })
+        if (!guard.ok) return guard.response
+        const { supabase, tenantId } = guard
 
         // Check subscription access
         const tier = normalizeTier(user.app_metadata.subscription_tier)
