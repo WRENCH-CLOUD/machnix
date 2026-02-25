@@ -9,7 +9,6 @@ import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/
 import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
-// import { toast } from "sonner"
 
 export default function AllJobsPage() {
   const { tenantId } = useAuth()

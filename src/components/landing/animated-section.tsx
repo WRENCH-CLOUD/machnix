@@ -1,9 +1,9 @@
 "use client"
 
-import { motion, type HTMLMotionProps } from "framer-motion"
-import type { ReactNode } from "react"
+import { motion } from "framer-motion"
+import type { HTMLAttributes, ReactNode } from "react"
 
-interface AnimatedSectionProps extends Omit<HTMLMotionProps<"div">, "children"> {
+interface AnimatedSectionProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
   delay?: number
 }

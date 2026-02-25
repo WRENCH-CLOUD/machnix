@@ -24,8 +24,8 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import * as fs from 'fs'
-import { setTenantUserClaims, getUserJwtClaims } from '../src/lib/auth/set-jwt-claims'
-import { JWT_ROLES } from "../src/lib/auth/set-jwt-claims"
+import { setTenantUserClaims, getUserJwtClaims } from '../lib/auth/set-jwt-claims'
+import { JWT_ROLES } from "../lib/auth/set-jwt-claims"
 
 // Load .env.local file
 const envPath = path.join(process.cwd(), '.env.local')
@@ -136,7 +136,7 @@ async function updateExistingUsers() {
         }
 
         // Set platform admin claims
-        const { setPlatformAdminClaims } = await import('../src/lib/auth/set-jwt-claims')
+        const { setPlatformAdminClaims } = await import('../lib/auth/set-jwt-claims')
         const result = await setPlatformAdminClaims(supabaseAdmin, admin.auth_user_id)
 
         if (result.success) {

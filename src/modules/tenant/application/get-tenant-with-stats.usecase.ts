@@ -5,19 +5,21 @@ import { TenantRepository } from '../infrastructure/tenant.repository'
  * Pure application logic - orchestrates repository calls
  */
 export class GetTenantWithStatsUseCase {
-  constructor(private readonly tenantRepository: TenantRepository) { }
+  constructor(private readonly tenantRepository: TenantRepository) {}
 
   async execute(tenantId: string): Promise<any | null> {
-    // Run all 3 independent queries in parallel (~600ms → ~200ms)
-    const [tenant, stats, recentJobs] = await Promise.all([
-      this.tenantRepository.findById(tenantId),
-      this.tenantRepository.getStats(tenantId),
-      this.tenantRepository.getRecentJobs(tenantId),
-    ])
+    // Fetch tenant
+    const tenant = await this.tenantRepository.findById(tenantId)
 
     if (!tenant) {
       return null
     }
+
+    // Fetch stats
+    const stats = await this.tenantRepository.getStats(tenantId)
+    
+    // Fetch recent jobs
+    const recentJobs = await this.tenantRepository.getRecentJobs(tenantId)
 
     return {
       ...tenant,

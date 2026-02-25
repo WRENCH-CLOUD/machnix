@@ -2,7 +2,7 @@
  * Test script to verify admin API functionality
  */
 
-import { getSupabaseAdmin } from '../src/lib/supabase/admin'
+import { getSupabaseAdmin } from '../lib/supabase/admin'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import * as fs from 'fs'

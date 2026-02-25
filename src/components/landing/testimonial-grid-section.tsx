@@ -112,7 +112,7 @@ const TestimonialCard = ({ quote, name, company, type }: TestimonialCardProps) =
   return (
     <div className={`${cardClasses} ${cardWidth} ${cardHeight}`}>
       {backgroundElements}
-      <div className={`relative z-10 font-normal warp-break-words ${quoteClasses}`}>{quote}</div>
+      <div className={`relative z-10 font-normal break-words ${quoteClasses}`}>{quote}</div>
       <div className="relative z-10 flex justify-start items-center gap-3">
         <div
           className={`flex items-center justify-center rounded-full font-semibold ${isLargeCard ? "w-12 h-12 text-lg" : "w-9 h-9 text-sm"} ${type === "large-teal" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/20 text-primary"}`}

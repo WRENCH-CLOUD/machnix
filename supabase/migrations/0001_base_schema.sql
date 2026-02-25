@@ -277,8 +277,9 @@ CREATE TABLE IF NOT EXISTS tenant.jobcards (
 CREATE TABLE IF NOT EXISTS tenant.parts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
-  stock_keeping_unit text,
+  sku text,
   name text NOT NULL,
+  description text,
   unit_cost numeric(12,2) DEFAULT 0,
   sell_price numeric(12,2) DEFAULT 0,
   stock_on_hand integer DEFAULT 0,
@@ -416,6 +417,7 @@ CREATE TABLE IF NOT EXISTS tenant.inventory_transactions (
   unit_cost numeric(10,2),
   reference_type text,
   reference_id uuid,
+  notes text,
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -500,6 +502,7 @@ CREATE TABLE IF NOT EXISTS tenant.dvi_items (
   checkpoint_id uuid NOT NULL,
   checkpoint_name text,
   status text DEFAULT 'pending',
+  notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

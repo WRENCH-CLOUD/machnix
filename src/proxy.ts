@@ -36,16 +36,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Forward verified user identity as headers for API routes
-  // This eliminates the need for each route to call getUser() again
-  if (user) {
-    response.headers.set('x-user-id', user.id)
-    response.headers.set('x-tenant-id',
-      user.app_metadata?.tenant_id || user.user_metadata?.tenant_id || ''
-    )
-    response.headers.set('x-user-role', user.app_metadata?.role || '')
-  }
-
   const pathname = request.nextUrl.pathname;
 
   // ---------------------------
@@ -55,7 +45,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  response.headers.set("Content-Security-Policy",
+  response.headers.set("Content-Security-Policy", 
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com; " +
     "style-src 'self' 'unsafe-inline'; " +
@@ -90,7 +80,7 @@ export async function proxy(request: NextRequest) {
     "/auth",       // Auth-related pages
   ];
 
-  const isPublicRoute = PUBLIC_ROUTES.some(route =>
+  const isPublicRoute = PUBLIC_ROUTES.some(route => 
     pathname === route || pathname.startsWith(route + "/")
   );
 

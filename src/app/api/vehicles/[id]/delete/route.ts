@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { DeleteVehicleUseCase } from '@/modules/vehicle/application/delete-vehicle.use-case'
-import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function DELETE(
   request: NextRequest,
@@ -9,12 +9,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params
-    const idError = validateRouteId(id, 'vehicle')
-    if (idError) return idError
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const guard = await apiGuardWrite(request, 'delete-vehicle')
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const repository = new SupabaseVehicleRepository(supabase, tenantId)
     const useCase = new DeleteVehicleUseCase(repository)

@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { CreateVehicleUseCase } from '@/modules/vehicle/application/create-vehicle.use-case'
-import { apiGuardWrite } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const guard = await apiGuardWrite(request, 'create-vehicle')
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const body = await request.json()
 

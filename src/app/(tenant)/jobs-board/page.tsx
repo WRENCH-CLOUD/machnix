@@ -12,7 +12,6 @@ import { statusConfig, type JobStatus } from '@/modules/job/domain/job.entity'
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
 import { queryKeys, useTenantSettings, transformTenantSettingsForJobDetails } from "@/hooks"
-import { toast } from "sonner"
 
 export default function JobsPage() {
   const { user, tenantId } = useAuth()
@@ -188,12 +187,12 @@ export default function JobsPage() {
       // 1. Validate status transition
       const isValidTransition = validateStatusTransition(oldStatus, newStatus)
       if (!isValidTransition) {
-        toast.error(`Cannot change status from ${statusConfig[oldStatus as JobStatus]?.label} to ${statusConfig[newStatus]?.label}`)
+        alert(`Cannot change status from ${statusConfig[oldStatus as JobStatus]?.label} to ${statusConfig[newStatus]?.label}`)
         return
       }
 
       if (oldStatus === 'completed') {
-        toast.error('Cannot change status of a completed job')
+        alert('Cannot change status of a completed job')
         return
       }
 
@@ -208,19 +207,19 @@ export default function JobsPage() {
           // No invoice exists - try to generate from estimate
           const estRes = await api.get(`/api/estimates/by-job/${jobId}`)
           if (!estRes.ok) {
-            toast.error('Cannot complete job: No estimate found for this job.')
+            alert('Cannot complete job: No estimate found for this job.')
             return
           }
 
           const estimate = await estRes.json()
           if (!estimate?.id) {
-            toast.error('Cannot complete job: Invalid estimate data.')
+            alert('Cannot complete job: Invalid estimate data.')
             return
           }
 
           const genRes = await api.post(`/api/invoices/generate`, { estimateId: estimate.id })
           if (!genRes.ok) {
-            toast.error('Failed to generate invoice from estimate before completing job.')
+            alert('Failed to generate invoice from estimate before completing job.')
             return
           }
 
@@ -287,7 +286,7 @@ export default function JobsPage() {
       await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
     } catch (err) {
       console.error('Error updating mechanic:', err)
-      toast.error('Failed to assign mechanic')
+      alert('Failed to assign mechanic')
     }
   }
 

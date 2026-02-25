@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { ensurePlatformAdmin } from "@/lib/auth/is-platform-admin"
 import { GetAllTenantsWithStatsUseCase } from "@/modules/tenant"
 import { AdminSupabaseTenantRepository } from "@/modules/tenant/infrastructure/tenant.repository.admin"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await ensurePlatformAdmin()
     if (!auth.ok) {

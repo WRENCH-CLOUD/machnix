@@ -1,7 +1,14 @@
 import { Tenant, TenantStatus } from '../domain/tenant.entity'
 import { TenantStats } from '../domain/tenant-stats.entity'
 import { TenantSettings } from '../domain/tenant-settings.entity'
-// import { GupshupSettings } from '../domain/gupshup-settings.entity'
+import type {
+  SubscriptionOverride,
+  CreateOverrideInput,
+  SubscriptionInvoice,
+  CreateSubscriptionInvoiceInput,
+  UsageSnapshot,
+  UpdateSubscriptionInput,
+} from '@/lib/entitlements/types'
 
 export interface TenantRepository {
   findById(id: string): Promise<Tenant | null>

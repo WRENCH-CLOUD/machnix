@@ -143,6 +143,83 @@ export default function Loader({
                     }}
                 />
             </motion.div>
+
+            {/* Enhanced Typography with Breathing Animation */}
+            <motion.div
+                className={cn("text-center", config.spacing, config.maxWidth)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{
+                    opacity: 1,
+                    y: 0,
+                }}
+                transition={{
+                    delay: 0.4,
+                    duration: 1,
+                    ease: [0.4, 0, 0.2, 1],
+                }}
+            >
+                {/* Clean title with subtle animation */}
+                <motion.h1
+                    className={cn(
+                        config.titleClass,
+                        "text-foreground font-medium tracking-[-0.02em] leading-[1.15] antialiased"
+                    )}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    transition={{
+                        delay: 0.6,
+                        duration: 0.8,
+                        ease: [0.4, 0, 0.2, 1],
+                    }}
+                >
+                    <motion.span
+                        animate={{
+                            opacity: [0.9, 0.7, 0.9],
+                        }}
+                        transition={{
+                            duration: 3,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: [0.4, 0, 0.6, 1],
+                        }}
+                    >
+                        {title}
+                    </motion.span>
+                </motion.h1>
+
+                {/* Clean subtitle with subtle animation */}
+                <motion.p
+                    className={cn(
+                        config.subtitleClass,
+                        "text-muted-foreground font-normal tracking-[-0.01em] leading-[1.45] antialiased"
+                    )}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    transition={{
+                        delay: 0.8,
+                        duration: 0.8,
+                        ease: [0.4, 0, 0.2, 1],
+                    }}
+                >
+                    <motion.span
+                        animate={{
+                            opacity: [0.6, 0.4, 0.6],
+                        }}
+                        transition={{
+                            duration: 4,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: [0.4, 0, 0.6, 1],
+                        }}
+                    >
+                        {subtitle}
+                    </motion.span>
+                </motion.p>
+            </motion.div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, Mail, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
+import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -10,25 +10,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
+import { JobTodos } from "./job-todos";
+import { type TodoItem, type TodoStatus } from "@/modules/job/domain/todo.types";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
 import { cn } from "@/lib/utils";
 
-
-/** Minimal inventory item shape for search function */
-type InventorySearchItem = {
-  id: string;
-  name: string;
-  sellPrice?: number;
-  unitCost?: number;
-  stockOnHand?: number;
-  stockReserved?: number;
-  stockAvailable?: number;
-  stockKeepingUnit?: string;
-};
-
 interface JobOverviewProps {
   job: UIJob;
+  todos?: TodoItem[];
+  onAddTodo?: (text: string) => void;
+  onToggleTodo?: (todoId: string) => void;
+  onRemoveTodo?: (todoId: string) => void;
+  onUpdateTodo?: (todoId: string, text: string) => void;
+  onUpdateTodoStatus?: (todoId: string, status: TodoStatus) => void;
   notes?: string;
   onUpdateNotes?: (notes: string) => void;
   onViewJob?: (jobId: string) => void;
@@ -41,13 +36,17 @@ interface JobOverviewProps {
     labor_total?: number;
     tax_amount?: number;
     total_amount?: number;
-  } | null;
-  // For task system: inventory search function (accepts both full items and snapshot items)
-  searchInventory?: (query: string, limit?: number) => InventorySearchItem[];
+  };
 }
 
 export function JobOverview({
   job,
+  todos = [],
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onUpdateTodo,
+  onUpdateTodoStatus,
   notes,
   onUpdateNotes,
   onViewJob,
@@ -103,56 +102,60 @@ export function JobOverview({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Customer Details */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Customer Information
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <User className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm warp-warp-break-words">{job.customer.name}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-mono break-all">{job.customer.phone}</span>
-                </div>
-                {job.customer.email && (
-                  <div className="flex items-start gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="text-sm break-all">{job.customer.email}</span>
-                  </div>
-                )}
-              </div>
+            <div>
+              <p className="font-medium text-foreground wrap-break-word">{job.customer.name}</p>
             </div>
-
-            {/* Vehicle Details */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Vehicle Information
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <Car className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm warp-break-words">
-                    {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-mono break-all">
-                    {job.vehicle.regNo}
-                  </span>
-                </div>
-                {job.vehicle.regNo && (
-                  <div className="flex items-start gap-2">
-                    <Hash className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="text-sm font-mono break-all">
-                      {job.vehicle.regNo}
-                    </span>
-                  </div>
-                )}
+            <a
+              href={`tel:${job.customer.phone}`}
+              className="flex items-center gap-2 text-sm text-primary hover:underline min-w-0"
+            >
+              <Phone className="w-4 h-4" />
+              <span className="truncate">{job.customer.phone}</span>
+            </a>
+            <a
+              href={`mailto:${job.customer.email}`}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground min-w-0"
+            >
+              <Mail className="w-4 h-4" />
+              <span className="truncate">{job.customer.email}</span>
+            </a>
+            {job.customer.address && (
+              <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
+                <MapPin className="w-4 h-4 mt-0.5" />
+                <span className="wrap-break-word">{job.customer.address}</span>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Vehicle Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Car className="w-4 h-4" />
+              Vehicle
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <span className="text-muted-foreground shrink-0">Make</span>
+              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.make}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <span className="text-muted-foreground shrink-0">Model</span>
+              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.model}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <span className="text-muted-foreground shrink-0">Year</span>
+              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.year}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <span className="text-muted-foreground shrink-0">Reg No</span>
+              <span className="font-mono font-medium min-w-0 text-right truncate">{job.vehicle.regNo}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <span className="text-muted-foreground shrink-0">Color</span>
+              <span className="font-medium min-w-0 text-right truncate">{job.vehicle.color || "N/A"}</span>
             </div>
           </CardContent>
         </Card>
@@ -231,6 +234,20 @@ export function JobOverview({
             )}
           </CardContent>
         </Card>
+
+        {/* Task List - Primary */}
+        {onAddTodo && onToggleTodo && onRemoveTodo && onUpdateTodo && (
+          <JobTodos
+            todos={todos}
+            onAddTodo={onAddTodo}
+            onToggleTodo={onToggleTodo}
+            onRemoveTodo={onRemoveTodo}
+            onUpdateTodo={onUpdateTodo}
+            onUpdateTodoStatus={onUpdateTodoStatus}
+            disabled={!isEditable}
+            className="md:col-span-2"
+          />
+        )}
 
         {/* Complaints / Notes */}
         <Card>
@@ -326,7 +343,7 @@ export function JobOverview({
           <CardContent>
             <div className="space-y-4">
               {enrichedJob.activities && enrichedJob.activities.length > 0 ? (
-                enrichedJob.activities.map((activity: { id: string; description: string; timestamp: string; user: string }, index: number) => (
+                enrichedJob.activities.map((activity: any, index: number) => (
                   <div key={activity.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="w-2 h-2 rounded-full bg-primary" />

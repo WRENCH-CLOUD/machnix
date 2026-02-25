@@ -5,10 +5,10 @@ import { JobStatus } from '@/modules/job/domain/job.entity'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
+import { createClient } from '@/lib/supabase/server'
+import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
-import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
-import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 
 export async function POST(
   request: NextRequest,
@@ -18,12 +18,29 @@ export async function POST(
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
 
-    const idError = validateRouteId(id, 'job')
-    if (idError) return idError
+    // Validate ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!id || !uuidRegex.test(id)) {
+      return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
+    }
 
-    const guard = await apiGuard(request, { rateLimit: RATE_LIMITS.WRITE, rateLimitAction: 'update-job-status' })
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit by user
+    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'update-job-status')
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const body = await request.json()
     const { status } = body as { status: JobStatus }
@@ -50,15 +67,13 @@ export async function POST(
     const invoiceRepository = new SupabaseInvoiceRepository(supabase, tenantId)
     const customerRepository = new SupabaseCustomerRepository(supabase, tenantId) // Works because it extends BaseSupabaseRepository which takes context
     const tenantRepository = new SupabaseTenantRepository(supabase) // Doesn't take tenantId context in constructor
-    const allocationService = new InventoryAllocationService()
 
     const useCase = new UpdateJobStatusUseCase(
       repository,
       estimateRepository,
       invoiceRepository,
       customerRepository,
-      tenantRepository,
-      allocationService
+      tenantRepository
     )
 
     const cmd: jobStatusCommand = {

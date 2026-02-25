@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-// import { useAuth } from "@/providers/auth-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 import { useTenantSettings, useInvalidateQueries } from "@/hooks/queries"
@@ -30,10 +30,10 @@ export default function TenantSettingsPage() {
   // const { tenantId } = useAuth()
   const { invalidateTenantSettings } = useInvalidateQueries()
   const [saving, setSaving] = useState(false)
-
+  
   // Use React Query for fetching tenant settings
   const { data: tenantSettings, isLoading } = useTenantSettings()
-
+  
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
     name: "",
@@ -73,7 +73,7 @@ export default function TenantSettingsPage() {
 
       await invalidateTenantSettings()
       toast.success("Your garage settings have been updated.")
-    } catch {
+    } catch (err) {
       toast.error("Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
@@ -102,7 +102,7 @@ export default function TenantSettingsPage() {
       {/* Garage Profile */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             Garage Profile
           </CardTitle>
@@ -113,7 +113,7 @@ export default function TenantSettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-bold" htmlFor="gstNumber">GST Number</Label>
+              <Label htmlFor="gstNumber">GST Number</Label>
               <Input
                 id="gstNumber"
                 value={profile.gstNumber}
@@ -124,7 +124,7 @@ export default function TenantSettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-2 font-bold">
+            <Label htmlFor="address" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Address (Garage Address)
             </Label>
@@ -137,8 +137,8 @@ export default function TenantSettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="font-bold" htmlFor="city">City</Label>
+             <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={profile.city}
@@ -146,8 +146,8 @@ export default function TenantSettingsPage() {
                 placeholder="City"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="font-bold" htmlFor="state">State</Label>
+             <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
               <Input
                 id="state"
                 value={profile.state}
@@ -155,8 +155,8 @@ export default function TenantSettingsPage() {
                 placeholder="State"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="font-bold" htmlFor="pincode">Pincode</Label>
+             <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode</Label>
               <Input
                 id="pincode"
                 value={profile.pincode}
@@ -168,7 +168,7 @@ export default function TenantSettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2 font-bold">
+              <Label htmlFor="phone" className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
                 Phone
               </Label>
@@ -180,7 +180,7 @@ export default function TenantSettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2 font-bold">
+              <Label htmlFor="email" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email
               </Label>
@@ -225,7 +225,7 @@ export default function TenantSettingsPage() {
       </Card>
 
       {/* Save Button */}
-      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2">
+      <div className="flex justify-end sticky bottom-6 bg-background/80 backdrop-blur rounded-lg p-2 border">
         <Button onClick={handleSave} disabled={saving} size="lg">
           {saving ? (
             <>
@@ -241,16 +241,16 @@ export default function TenantSettingsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <div className="space-y-6">
-          {/* Change Password Section */}
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Account Security</h2>
-            <p className="text-muted-foreground mb-4">
-              Update your password to keep your account secure
-            </p>
-            <ChangePasswordForm />
-          </div>
+             {/* Change Password Section */}
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Account Security</h2>
+              <p className="text-muted-foreground mb-4">
+                Update your password to keep your account secure
+              </p>
+              <ChangePasswordForm />
+            </div>
         </div>
       </div>
     </div>
