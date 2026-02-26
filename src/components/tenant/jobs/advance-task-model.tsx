@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import {
     RiAddLine,
     RiCheckDoubleLine,
@@ -60,9 +61,8 @@ import {
     calculateTaskTotals,
     type CreateTaskInput,
 } from "@/hooks/use-job-tasks";
-import {
-    getStockAvailable,
-    type InventoryItem,
+import type {
+    InventorySnapshotItem,
 } from "@/modules/inventory/domain/inventory.entity";
 import type {
     JobCardTaskWithItem,
@@ -147,7 +147,7 @@ export interface AdvancedTaskPanelProps {
     jobId: string;
     disabled?: boolean;
     className?: string;
-    searchInventory?: (query: string, limit?: number) => InventoryItem[];
+    searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
 }
 
 // ============================================================================
@@ -159,7 +159,7 @@ interface TaskFormValues {
     description: string;
     laborCost: number;
     showInEstimate: boolean;
-    selectedItem: InventoryItem | null;
+    selectedItem: InventorySnapshotItem | null;
     inventorySearch: string;
     qty: number;
 }
@@ -191,7 +191,10 @@ function fromTask(task: JobCardTaskWithItem): TaskFormValues {
                 unitCost: task.unitPriceSnapshot ?? 0,
                 stockOnHand: task.inventoryItem.stockOnHand,
                 stockReserved: task.inventoryItem.stockReserved,
-            } as InventoryItem)
+                stockAvailable: task.inventoryItem.stockAvailable,
+                reorderLevel: 0,
+                updatedAt: '',
+            } as InventorySnapshotItem)
             : null,
     };
 }
@@ -201,7 +204,7 @@ interface TaskFormProps {
     onSubmit: (data: CreateTaskInput) => Promise<void>;
     onCancel: () => void;
     isLoading: boolean;
-    searchInventory?: (query: string, limit?: number) => InventoryItem[];
+    searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
     mode: "add" | "edit";
 }
 
@@ -219,11 +222,10 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
         setForm((prev) => ({ ...prev, ...partial }));
 
     const canSubmit = !!form.taskName.trim();
-    const stockAvail = form.selectedItem ? getStockAvailable(form.selectedItem) : 0;
+    const stockAvail = form.selectedItem ? form.selectedItem.stockAvailable : 0;
     const qtyExceeds = form.selectedItem ? form.qty > stockAvail : false;
     const partsSubtotal = form.selectedItem ? (form.selectedItem.sellPrice ?? 0) * form.qty : 0;
-    const taxAmount = partsSubtotal * 0.18;
-    const grandTotal = partsSubtotal + taxAmount + form.laborCost;
+    const grandTotal = partsSubtotal + form.laborCost;
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -239,7 +241,6 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
             data.inventoryItemId = form.selectedItem.id;
             data.qty = form.qty;
             data.unitPriceSnapshot = form.selectedItem.sellPrice ?? form.selectedItem.unitCost ?? 0;
-            data.taxRateSnapshot = 18;
         }
         await onSubmit(data);
     };
@@ -247,25 +248,25 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
     return (
         <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-background/40">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-background/40">
                 <div className="flex items-center gap-2">
                     {mode === "add"
-                        ? <RiAddLine className="h-3.5 w-3.5 text-primary" />
-                        : <RiEditLine className="h-3.5 w-3.5 text-primary" />
+                        ? <RiAddLine className="h-5 w-5 text-primary" />
+                        : <RiEditLine className="h-5 w-5 text-primary" />
                     }
-                    <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                    <span className="text-s font-semibold text-foreground/80 uppercase tracking-wider">
                         {mode === "add" ? "New Task" : "Edit Task"}
                     </span>
                 </div>
                 <button onClick={onCancel} className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                    <RiCloseLine className="h-4 w-4" />
+                    <RiCloseLine className="h-5 w-5" />
                 </button>
             </div>
 
             <div className="p-4 space-y-4">
                 {/* Task Name */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">
+                    <Label className="text-sm font-medium text-muted-foreground">
                         Task Name <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -274,39 +275,39 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                         placeholder="e.g. Replace brake pads"
                         value={form.taskName}
                         onChange={(e) => patch({ taskName: e.target.value })}
-                        className="bg-background/70 border-border/60 focus-visible:ring-primary/40 h-9"
+                        className="bg-background/70 border-border/60 focus-visible:ring-primary/40 h-11"
                         onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                     />
                 </div>
 
                 {/* Description */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Description</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Description</Label>
                     <Textarea
                         placeholder="Describe the work to be done, any special instructions..."
                         value={form.description}
                         onChange={(e) => patch({ description: e.target.value })}
                         rows={2}
-                        className="bg-background/70 border-border/60 resize-none text-sm focus-visible:ring-primary/40"
+                        className="bg-background/70 border-border/60 resize-none text-base focus-visible:ring-primary/40"
                     />
                 </div>
 
                 {/* Two-column: Labor cost + Quantity */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                            <RiToolsLine className="h-3 w-3" /> Labor Cost (₹)
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <RiToolsLine className="h-4 w-4" /> Labor Cost (₹)
                         </Label>
                         <Input
                             type="number" min={0} step={50}
                             value={form.laborCost}
                             onChange={(e) => patch({ laborCost: parseFloat(e.target.value) || 0 })}
-                            className="bg-background/70 border-border/60 h-9 focus-visible:ring-primary/40"
+                            className="bg-background/70 border-border/60 h-11 focus-visible:ring-primary/40"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                            <RiBox3Line className="h-3 w-3" /> Quantity
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <RiBox3Line className="h-4 w-4" /> Quantity
                         </Label>
                         <Input
                             type="number" min={1}
@@ -314,7 +315,7 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                             disabled={!form.selectedItem}
                             onChange={(e) => patch({ qty: parseInt(e.target.value) || 1 })}
                             className={cn(
-                                "bg-background/70 border-border/60 h-9 focus-visible:ring-primary/40",
+                                "bg-background/70 border-border/60 h-11 focus-visible:ring-primary/40",
                                 !form.selectedItem && "opacity-40 cursor-not-allowed"
                             )}
                         />
@@ -323,8 +324,8 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
 
                 {/* Inventory Search via Popover */}
                 <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                        <RiBox3Line className="h-3.5 w-3.5" />
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <RiBox3Line className="h-5 w-5" />
                         Link Part / Inventory Item
                         <span className="text-muted-foreground/50 font-normal">(optional)</span>
                     </Label>
@@ -334,7 +335,7 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                             <div
                                 role="button"
                                 className={cn(
-                                    "flex h-9 w-full items-center gap-2 rounded-md border bg-background/70 px-3 text-sm cursor-pointer transition-all",
+                                    "flex h-11 w-full items-center gap-2 rounded-md border bg-background/70 px-4 text-base cursor-pointer transition-all",
                                     form.selectedItem
                                         ? "border-emerald-500/50 ring-1 ring-emerald-500/20"
                                         : "border-border/60 hover:border-border"
@@ -343,7 +344,7 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                             >
                                 {form.selectedItem ? (
                                     <>
-                                        <RiBox3Line className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                                        <RiBox3Line className="h-5 w-5 text-emerald-400 shrink-0" />
                                         <span className="flex-1 truncate">{form.selectedItem.name}</span>
                                         <button
                                             onClick={(e) => {
@@ -352,14 +353,14 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                             }}
                                             className="text-muted-foreground hover:text-foreground rounded"
                                         >
-                                            <RiCloseLine className="h-3.5 w-3.5" />
+                                            <RiCloseLine className="h-5 w-5" />
                                         </button>
                                     </>
                                 ) : (
                                     <>
-                                        <RiBox3Line className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <RiBox3Line className="h-5 w-5 text-muted-foreground shrink-0" />
                                         <span className="flex-1 text-muted-foreground">Search inventory...</span>
-                                        <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
+                                        <RiArrowDownSLine className="h-5 w-5 text-muted-foreground" />
                                     </>
                                 )}
                             </div>
@@ -371,14 +372,14 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                     placeholder="Search by name, SKU..."
                                     value={form.inventorySearch}
                                     onChange={(e) => patch({ inventorySearch: e.target.value })}
-                                    className="h-8 bg-muted/50 border-border/40 text-sm focus-visible:ring-primary/40"
+                                    className="h-10 bg-muted/50 border-border/40 text-base focus-visible:ring-primary/40"
                                 />
                             </div>
                             <div className="max-h-56 overflow-y-auto">
                                 {searchResults.length > 0 ? (
                                     <div className="p-1.5 space-y-0.5">
                                         {searchResults.map((item) => {
-                                            const avail = getStockAvailable(item);
+                                            const avail = item.stockOnHand;
                                             const isSelected = form.selectedItem?.id === item.id;
                                             const outOfStock = avail <= 0;
                                             return (
@@ -386,7 +387,7 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                                     key={item.id}
                                                     disabled={outOfStock}
                                                     className={cn(
-                                                        "w-full text-left rounded-lg px-3 py-2.5 text-sm transition-colors",
+                                                        "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors",
                                                         isSelected ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/70",
                                                         outOfStock && "opacity-40 cursor-not-allowed"
                                                     )}
@@ -400,12 +401,12 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-medium truncate">{item.name}</p>
                                                             {item.stockKeepingUnit && (
-                                                                <p className="text-xs text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
+                                                                <p className="text-sm text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
                                                             )}
                                                         </div>
                                                         <div className="shrink-0 text-right">
-                                                            <p className="text-xs font-semibold">₹{item.sellPrice?.toFixed(0)}</p>
-                                                            <p className={cn("text-xs mt-0.5", avail > 0 ? "text-emerald-400" : "text-red-400")}>
+                                                            <p className="text-sm font-semibold">₹{item.sellPrice?.toFixed(0)}</p>
+                                                            <p className={cn("text-sm mt-0.5", avail > 0 ? "text-emerald-400" : "text-red-400")}>
                                                                 {avail > 0 ? `${avail} avail` : "Out of stock"}
                                                             </p>
                                                         </div>
@@ -415,11 +416,11 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                         })}
                                     </div>
                                 ) : form.inventorySearch.trim() ? (
-                                    <div className="py-10 text-center text-sm text-muted-foreground">No items found</div>
+                                    <div className="py-10 text-center text-base text-muted-foreground">No items found</div>
                                 ) : (
                                     <div className="py-10 text-center">
-                                        <RiBox3Line className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                                        <p className="text-xs text-muted-foreground">Start typing to search inventory</p>
+                                        <RiBox3Line className="h-10 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                                        <p className="text-sm text-muted-foreground">Start typing to search inventory</p>
                                     </div>
                                 )}
                             </div>
@@ -427,50 +428,44 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                     </Popover>
 
                     {qtyExceeds && (
-                        <p className="flex items-center gap-1 text-xs text-amber-400">
-                            <RiAlertLine className="h-3.5 w-3.5" />
+                        <p className="flex items-center gap-1 text-sm text-amber-400">
+                            <RiAlertLine className="h-5 w-5" />
                             Only {stockAvail} unit{stockAvail === 1 ? "" : "s"} available
                         </p>
                     )}
 
                     {form.selectedItem && (
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-xs">
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-4 py-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span className="text-emerald-400 font-medium">{form.qty} × {form.selectedItem.name}</span>
                                 <span className="text-muted-foreground">₹{partsSubtotal.toFixed(2)}</span>
                             </div>
-                            {partsSubtotal > 0 && (
-                                <div className="mt-1.5 pt-1.5 border-t border-emerald-500/10 flex items-center justify-between text-muted-foreground">
-                                    <span>+18% GST</span>
-                                    <span>₹{taxAmount.toFixed(2)}</span>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
 
                 {/* Live cost preview */}
                 {grandTotal > 0 && (
-                    <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                            <RiBarChartFill className="h-3.5 w-3.5 text-primary" />
-                            <span className="text-xs font-medium">Estimated Total</span>
+                    <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                            <RiBarChartFill className="h-5 w-5 text-primary" />
+                            <span className="text-sm font-medium">Estimated Total</span>
                         </div>
-                        <span className="text-sm font-bold text-primary">₹{grandTotal.toFixed(2)}</span>
+                        <span className="text-base font-bold text-primary">₹{grandTotal.toFixed(2)}</span>
                     </div>
                 )}
 
                 {/* Show in estimate */}
-                <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/50 px-3 py-2.5">
+                <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/50 px-4 py-2.5">
                     <div className="flex items-center gap-2">
                         {form.showInEstimate ? (
-                            <RiEyeLine className="h-4 w-4 text-blue-400" />
+                            <RiEyeLine className="h-5 w-5 text-blue-400" />
                         ) : (
-                            <RiEyeOffLine className="h-4 w-4 text-muted-foreground" />
+                            <RiEyeOffLine className="h-5 w-5 text-muted-foreground" />
                         )}
                         <div>
-                            <p className="text-sm font-medium leading-none">Show in Estimate</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Include in customer-facing estimate</p>
+                            <p className="text-base font-medium leading-none">Show in Estimate</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">Include in customer-facing estimate</p>
                         </div>
                     </div>
                     <Switch checked={form.showInEstimate} onCheckedChange={(val) => patch({ showInEstimate: val })} />
@@ -478,14 +473,14 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 h-9" onClick={onCancel} disabled={isLoading}>
+                    <Button size="sm" variant="outline" className="flex-1 h-11" onClick={onCancel} disabled={isLoading}>
                         Cancel
                     </Button>
-                    <Button size="sm" className="flex-1 h-9 gap-1.5" onClick={handleSubmit} disabled={isLoading || !canSubmit}>
+                    <Button size="sm" className="flex-1 h-11 gap-2" onClick={handleSubmit} disabled={isLoading || !canSubmit}>
                         {isLoading ? (
-                            <RiLoader4Line className="h-4 w-4 animate-spin" />
+                            <RiLoader4Line className="h-5 w-5 animate-spin" />
                         ) : (
-                            <RiCheckDoubleLine className="h-4 w-4" />
+                            <RiCheckDoubleLine className="h-5 w-5" />
                         )}
                         {mode === "add" ? "Add Task" : "Save Changes"}
                     </Button>
@@ -503,7 +498,7 @@ interface TaskRowProps {
     task: JobCardTaskWithItem;
     disabled: boolean;
     isUpdating: boolean;
-    searchInventory?: (query: string, limit?: number) => InventoryItem[];
+    searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
     onDelete: () => void;
     onStatusChange: (status: TaskStatus) => void;
     onToggleEstimate: (show: boolean) => void;
@@ -540,7 +535,6 @@ function TaskRow({
 
     const lineTotal = task.actionType === "REPLACED" && task.unitPriceSnapshot && task.qty
         ? task.unitPriceSnapshot * task.qty : 0;
-    const taxAmount = lineTotal * ((task.taxRateSnapshot ?? 18) / 100);
     const rowTotal = lineTotal + (task.laborCostSnapshot ?? 0);
 
     const nextStatuses: TaskStatus[] = isDraft ? ["APPROVED"] : isApproved ? ["DRAFT", "COMPLETED"] : [];
@@ -566,13 +560,13 @@ function TaskRow({
                 {/* ── Compact header row ── */}
                 <CollapsibleTrigger asChild>
                     <div className={cn(
-                        "flex items-center gap-2.5 px-3.5 py-3 cursor-pointer select-none rounded-xl",
+                        "flex items-center gap-3 px-4.5 py-4 cursor-pointer select-none rounded-xl",
                         isEditing && "pointer-events-none"
                     )}>
                         {/* Animated status dot */}
                         <div className="shrink-0 relative">
                             <div className={cn(
-                                "h-2.5 w-2.5 rounded-full",
+                                "h-3 w-3 rounded-full",
                                 statusCfg.dotClass
                             )} />
                             {(isDraft || isApproved) && !isUpdating && (
@@ -584,17 +578,17 @@ function TaskRow({
                         </div>
 
                         {/* Action type chip */}
-                        <Badge variant="outline" className={cn("shrink-0 gap-1 text-[10px] h-5 px-1.5 font-medium", actionCfg.chipClass)}>
+                        <Badge variant="outline" className={cn("shrink-0 gap-1 text-xs h-6 px-3 font-medium", actionCfg.chipClass)}>
                             {task.actionType === "LABOR_ONLY"
-                                ? <RiToolsLine className="h-3 w-3" />
-                                : <RiRefreshLine className="h-3 w-3" />
+                                ? <RiToolsLine className="h-4 w-4" />
+                                : <RiRefreshLine className="h-4 w-4" />
                             }
                             {task.actionType === "LABOR_ONLY" ? "Labor" : "Part"}
                         </Badge>
 
                         {/* Task name */}
                         <span className={cn(
-                            "flex-1 min-w-0 text-sm font-medium truncate",
+                            "flex-1 min-w-0 text-base font-medium truncate",
                             isCompleted && "line-through text-muted-foreground"
                         )}>
                             {task.taskName}
@@ -602,24 +596,24 @@ function TaskRow({
 
                         {/* Estimate indicator */}
                         {task.showInEstimate && !isCompleted && (
-                            <RiReceiptLine className="h-3.5 w-3.5 text-blue-400/70 shrink-0" aria-label="In estimate" />
+                            <RiReceiptLine className="h-5 w-5 text-blue-400/70 shrink-0" aria-label="In estimate" />
                         )}
 
                         {/* Row total */}
                         {rowTotal > 0 && (
-                            <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
+                            <span className="shrink-0 text-sm font-medium text-muted-foreground tabular-nums">
                                 {formatCurrency(rowTotal)}
                             </span>
                         )}
 
                         {/* Status badge — compact */}
-                        <Badge variant="outline" className={cn("shrink-0 text-[10px] h-5 px-1.5 hidden sm:flex", statusCfg.badgeClass)}>
+                        <Badge variant="outline" className={cn("shrink-0 text-xs h-6 px-3 hidden sm:flex", statusCfg.badgeClass)}>
                             {statusCfg.label}
                         </Badge>
 
                         {/* Expand chevron */}
                         <RiArrowDownSLine className={cn(
-                            "h-4 w-4 text-muted-foreground/60 transition-transform duration-200 shrink-0",
+                            "h-5 w-5 text-muted-foreground/60 transition-transform duration-200 shrink-0",
                             isOpen && "rotate-180"
                         )} />
 
@@ -630,37 +624,37 @@ function TaskRow({
                                     <DropdownMenuTrigger asChild>
                                         <Button
                                             variant="ghost" size="icon"
-                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-muted"
                                             disabled={isUpdating}
                                         >
                                             {isUpdating
-                                                ? <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-                                                : <RiMore2Fill className="h-3.5 w-3.5" />
+                                                ? <RiLoader4Line className="h-5 w-5 animate-spin" />
+                                                : <RiMore2Fill className="h-5 w-5" />
                                             }
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-52">
 
                                         {/* ── Task actions ── */}
-                                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Task</DropdownMenuLabel>
+                                        <DropdownMenuLabel className="text-sm text-muted-foreground font-normal">Task</DropdownMenuLabel>
                                         {isDraft && (
                                             <DropdownMenuItem onClick={onEdit}>
-                                                <RiEditLine className="h-4 w-4" />
+                                                <RiEditLine className="h-5 w-5" />
                                                 Edit task
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuItem onClick={onDuplicate}>
-                                            <RiFileCopyLine className="h-4 w-4" />
+                                            <RiFileCopyLine className="h-5 w-5" />
                                             Duplicate task
                                         </DropdownMenuItem>
 
                                         {/* ── Estimate visibility ── */}
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Visibility</DropdownMenuLabel>
+                                        <DropdownMenuLabel className="text-sm text-muted-foreground font-normal">Visibility</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => onToggleEstimate(!task.showInEstimate)}>
                                             {task.showInEstimate
-                                                ? <><RiEyeOffLine className="h-4 w-4" />Hide from estimate</>
-                                                : <><RiEyeLine className="h-4 w-4 text-blue-400" />Show in estimate</>
+                                                ? <><RiEyeOffLine className="h-5 w-5" />Hide from estimate</>
+                                                : <><RiEyeLine className="h-5 w-5 text-blue-400" />Show in estimate</>
                                             }
                                         </DropdownMenuItem>
 
@@ -668,12 +662,12 @@ function TaskRow({
                                         {nextStatuses.length > 0 && (
                                             <>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Workflow</DropdownMenuLabel>
+                                                <DropdownMenuLabel className="text-sm text-muted-foreground font-normal">Workflow</DropdownMenuLabel>
                                                 {nextStatuses.map((s) => (
                                                     <DropdownMenuItem key={s} onClick={() => onStatusChange(s)}>
-                                                        {s === "APPROVED" && <RiShieldCheckLine className="h-4 w-4 text-amber-400" />}
-                                                        {s === "COMPLETED" && <RiTrophyLine className="h-4 w-4 text-emerald-400" />}
-                                                        {s === "DRAFT" && <RiArrowGoBackLine className="h-4 w-4 text-zinc-400" />}
+                                                        {s === "APPROVED" && <RiShieldCheckLine className="h-5 w-5 text-amber-400" />}
+                                                        {s === "COMPLETED" && <RiTrophyLine className="h-5 w-5 text-emerald-400" />}
+                                                        {s === "DRAFT" && <RiArrowGoBackLine className="h-5 w-5 text-zinc-400" />}
                                                         {nextStatusLabels[s]}
                                                     </DropdownMenuItem>
                                                 ))}
@@ -685,7 +679,7 @@ function TaskRow({
                                             <>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                                                    <RiDeleteBin6Line className="h-4 w-4" />
+                                                    <RiDeleteBin6Line className="h-5 w-5" />
                                                     Delete task
                                                 </DropdownMenuItem>
                                             </>
@@ -702,7 +696,7 @@ function TaskRow({
                     <div className="border-t border-border/30">
                         {isEditing ? (
                             /* Edit mode — inline form */
-                            <div className="p-3">
+                            <div className="p-4">
                                 <TaskForm
                                     initialValues={fromTask(task)}
                                     onSubmit={onEditSubmit}
@@ -719,8 +713,8 @@ function TaskRow({
                                 {/* Description */}
                                 {task.description ? (
                                     <div className="space-y-1">
-                                        <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/60">Description</p>
-                                        <p className="text-sm text-foreground/80 leading-relaxed bg-muted/30 rounded-lg px-3 py-2.5 border border-border/30">
+                                        <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60">Description</p>
+                                        <p className="text-base text-foreground/80 leading-relaxed bg-muted/30 rounded-lg px-4 py-2.5 border border-border/30">
                                             {task.description}
                                         </p>
                                     </div>
@@ -728,9 +722,9 @@ function TaskRow({
                                     !disabled && (
                                         <button
                                             onClick={onEdit}
-                                            className="text-xs text-muted-foreground/50 hover:text-muted-foreground italic flex items-center gap-1 transition-colors"
+                                            className="text-sm text-muted-foreground/50 hover:text-muted-foreground italic flex items-center gap-1 transition-colors"
                                         >
-                                            <RiEditLine className="h-3 w-3" />
+                                            <RiEditLine className="h-4 w-4" />
                                             Add a description...
                                         </button>
                                     )
@@ -739,63 +733,57 @@ function TaskRow({
                                 {/* Inventory / Part Card */}
                                 {task.actionType === "REPLACED" && (
                                     <div>
-                                        <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Part Used</p>
+                                        <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Part Used</p>
                                         {task.inventoryItem ? (
-                                            <div className={cn("rounded-lg border p-3 space-y-2.5", actionCfg.borderClass, actionCfg.bgClass)}>
+                                            <div className={cn("rounded-lg border p-4 space-y-2.5", actionCfg.borderClass, actionCfg.bgClass)}>
                                                 {/* Part header */}
                                                 <div className="flex items-start justify-between gap-3">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 border border-blue-500/20 shrink-0">
-                                                            <RiBox3Line className="h-4 w-4 text-blue-400" />
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-blue-500/15 border border-blue-500/20 shrink-0">
+                                                            <RiBox3Line className="h-5 w-5 text-blue-400" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-semibold text-foreground">{task.inventoryItem.name}</p>
+                                                            <p className="text-base font-semibold text-foreground">{task.inventoryItem.name}</p>
                                                             {task.inventoryItem.stockKeepingUnit && (
-                                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                                <p className="text-sm text-muted-foreground mt-0.5">
                                                                     SKU: {task.inventoryItem.stockKeepingUnit}
                                                                 </p>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <Badge variant="outline" className="shrink-0 text-[10px] border-blue-500/20 bg-blue-500/10 text-blue-400">
+                                                    <Badge variant="outline" className="shrink-0 text-xs border-blue-500/20 bg-blue-500/10 text-blue-400">
                                                         Part
                                                     </Badge>
                                                 </div>
 
                                                 {/* Price breakdown table */}
-                                                <div className="space-y-1.5 rounded-md bg-background/40 border border-border/20 px-3 py-2">
-                                                    <div className="flex items-center justify-between text-xs">
+                                                <div className="space-y-1.5 rounded-md bg-background/40 border border-border/20 px-4 py-2">
+                                                    <div className="flex items-center justify-between text-sm">
                                                         <span className="text-muted-foreground">Unit price</span>
                                                         <span className="font-medium">{formatCurrency(task.unitPriceSnapshot)}</span>
                                                     </div>
-                                                    <div className="flex items-center justify-between text-xs">
+                                                    <div className="flex items-center justify-between text-sm">
                                                         <span className="text-muted-foreground">Quantity</span>
                                                         <span className="font-medium">{task.qty} units</span>
                                                     </div>
-                                                    <div className="flex items-center justify-between text-xs">
+                                                    <div className="flex items-center justify-between text-sm">
                                                         <span className="text-muted-foreground">Parts subtotal</span>
                                                         <span className="font-medium">{formatCurrency(lineTotal)}</span>
                                                     </div>
-                                                    {taxAmount > 0 && (
-                                                        <div className="flex items-center justify-between text-xs">
-                                                            <span className="text-muted-foreground">GST ({task.taxRateSnapshot ?? 18}%)</span>
-                                                            <span className="font-medium">{formatCurrency(taxAmount)}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/20">
-                                                        <span className="font-semibold">Parts total (incl. tax)</span>
-                                                        <span className="font-bold text-foreground">{formatCurrency(lineTotal + taxAmount)}</span>
+                                                    <div className="flex items-center justify-between text-sm pt-1.5 border-t border-border/20">
+                                                        <span className="font-semibold">Parts total</span>
+                                                        <span className="font-bold text-foreground">{formatCurrency(lineTotal)}</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Stock info */}
-                                                <div className="flex items-center gap-4 text-xs">
+                                                <div className="flex items-center gap-4 text-sm">
                                                     <div className="flex items-center gap-1 text-muted-foreground">
-                                                        <RiBox3Line className="h-3 w-3" />
+                                                        <RiBox3Line className="h-4 w-4" />
                                                         <span>{task.inventoryItem.stockOnHand} on hand</span>
                                                     </div>
                                                     <div className="flex items-center gap-1 text-muted-foreground">
-                                                        <RiTimeLine className="h-3 w-3" />
+                                                        <RiTimeLine className="h-4 w-4" />
                                                         <span>{task.inventoryItem.stockReserved} reserved</span>
                                                     </div>
                                                     <div className={cn(
@@ -807,8 +795,8 @@ function TaskRow({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="rounded-lg border border-dashed border-border/40 px-3 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
-                                                <RiAlertLine className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                                            <div className="rounded-lg border border-dashed border-border/40 px-4 py-2.5 text-sm text-muted-foreground flex items-center gap-2">
+                                                <RiAlertLine className="h-5 w-5 text-amber-400 shrink-0" />
                                                 No inventory item linked — edit task to add one
                                             </div>
                                         )}
@@ -817,7 +805,7 @@ function TaskRow({
 
                                 {/* Cost summary grid */}
                                 <div>
-                                    <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Cost Breakdown</p>
+                                    <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Cost Breakdown</p>
                                     <div className="grid grid-cols-3 gap-2">
                                         {[
                                             { label: "Parts", value: lineTotal, icon: RiBox3Line, color: "text-blue-400" },
@@ -825,14 +813,14 @@ function TaskRow({
                                             { label: "Task Total", value: rowTotal, icon: RiPriceTag3Line, color: "text-primary", highlight: true },
                                         ].map(({ label, value, icon: Icon, color, highlight }) => (
                                             <div key={label} className={cn(
-                                                "rounded-lg border px-3 py-2.5 text-center transition-colors",
+                                                "rounded-lg border px-4 py-2.5 text-center transition-colors",
                                                 highlight
                                                     ? "border-primary/20 bg-primary/5"
                                                     : "border-border/30 bg-muted/30"
                                             )}>
-                                                <Icon className={cn("h-3.5 w-3.5 mx-auto mb-1", color)} />
-                                                <p className="text-[10px] text-muted-foreground uppercase font-medium">{label}</p>
-                                                <p className={cn("text-sm font-bold mt-0.5", highlight && "text-primary")}>
+                                                <Icon className={cn("h-5 w-5 mx-auto mb-1", color)} />
+                                                <p className="text-xs text-muted-foreground uppercase font-medium">{label}</p>
+                                                <p className={cn("text-base font-bold mt-0.5", highlight && "text-primary")}>
                                                     {formatCurrency(value)}
                                                 </p>
                                             </div>
@@ -842,39 +830,24 @@ function TaskRow({
 
                                 {/* Audit trail */}
                                 <div className="space-y-1.5">
-                                    <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/60">Timeline</p>
+                                    <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60">Timeline</p>
                                     <div className="space-y-1">
                                         {task.createdAt && (
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <RiTimeLine className="h-3.5 w-3.5 shrink-0" />
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <RiTimeLine className="h-5 w-5 shrink-0" />
                                                 <span>Created {formatDate(task.createdAt)}</span>
-                                                {task.createdBy && (
-                                                    <span className="flex items-center gap-1">
-                                                        <RiUserLine className="h-3 w-3" /> {task.createdBy}
-                                                    </span>
-                                                )}
                                             </div>
                                         )}
                                         {task.approvedAt && (
-                                            <div className="flex items-center gap-2 text-xs text-amber-400/80">
-                                                <RiShieldCheckLine className="h-3.5 w-3.5 shrink-0" />
+                                            <div className="flex items-center gap-2 text-sm text-amber-400/80">
+                                                <RiShieldCheckLine className="h-5 w-5 shrink-0" />
                                                 <span>Approved {formatDate(task.approvedAt)}</span>
-                                                {task.approvedBy && (
-                                                    <span className="flex items-center gap-1">
-                                                        <RiUserLine className="h-3 w-3" /> {task.approvedBy}
-                                                    </span>
-                                                )}
                                             </div>
                                         )}
                                         {task.completedAt && (
-                                            <div className="flex items-center gap-2 text-xs text-emerald-400/80">
-                                                <RiTrophyLine className="h-3.5 w-3.5 shrink-0" />
+                                            <div className="flex items-center gap-2 text-sm text-emerald-400/80">
+                                                <RiTrophyLine className="h-5 w-5 shrink-0" />
                                                 <span>Completed {formatDate(task.completedAt)}</span>
-                                                {task.completedBy && (
-                                                    <span className="flex items-center gap-1">
-                                                        <RiUserLine className="h-3 w-3" /> {task.completedBy}
-                                                    </span>
-                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -882,12 +855,12 @@ function TaskRow({
 
                                 {/* Estimate visibility row */}
                                 <div className="flex items-center justify-between pt-0.5">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-2">
                                         {task.showInEstimate
-                                            ? <RiReceiptLine className="h-3.5 w-3.5 text-blue-400" />
-                                            : <RiEyeOffLine className="h-3.5 w-3.5 text-muted-foreground" />
+                                            ? <RiReceiptLine className="h-5 w-5 text-blue-400" />
+                                            : <RiEyeOffLine className="h-5 w-5 text-muted-foreground" />
                                         }
-                                        <span className={cn("text-xs", task.showInEstimate ? "text-blue-400" : "text-muted-foreground")}>
+                                        <span className={cn("text-sm", task.showInEstimate ? "text-blue-400" : "text-muted-foreground")}>
                                             {task.showInEstimate ? "Visible in customer estimate" : "Hidden from customer estimate"}
                                         </span>
                                     </div>
@@ -909,7 +882,7 @@ function TaskRow({
                                                 size="sm"
                                                 variant={s === "COMPLETED" ? "default" : "outline"}
                                                 className={cn(
-                                                    "h-8 text-xs gap-1.5 flex-1",
+                                                    "h-10 text-sm gap-2 flex-1",
                                                     s === "APPROVED" && "border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50",
                                                     s === "DRAFT" && "border-zinc-500/30 text-zinc-400 hover:bg-zinc-500/10"
                                                 )}
@@ -917,13 +890,13 @@ function TaskRow({
                                                 disabled={isUpdating}
                                             >
                                                 {isUpdating ? (
-                                                    <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
+                                                    <RiLoader4Line className="h-5 w-5 animate-spin" />
                                                 ) : s === "APPROVED" ? (
-                                                    <RiShieldCheckLine className="h-3.5 w-3.5" />
+                                                    <RiShieldCheckLine className="h-5 w-5" />
                                                 ) : s === "COMPLETED" ? (
-                                                    <RiTrophyLine className="h-3.5 w-3.5" />
+                                                    <RiTrophyLine className="h-5 w-5" />
                                                 ) : (
-                                                    <RiArrowGoBackLine className="h-3.5 w-3.5" />
+                                                    <RiArrowGoBackLine className="h-5 w-5" />
                                                 )}
                                                 {nextStatusLabels[s]}
                                             </Button>
@@ -931,10 +904,10 @@ function TaskRow({
                                         {isDraft && !isEditing && (
                                             <Button
                                                 size="sm" variant="outline"
-                                                className="h-8 text-xs gap-1.5"
+                                                className="h-10 text-sm gap-2"
                                                 onClick={onEdit}
                                             >
-                                                <RiEditLine className="h-3.5 w-3.5" />
+                                                <RiEditLine className="h-5 w-5" />
                                                 Edit
                                             </Button>
                                         )}
@@ -997,7 +970,6 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
             inventoryItemId: task.inventoryItemId ?? undefined,
             qty: task.qty ?? undefined,
             unitPriceSnapshot: task.unitPriceSnapshot ?? undefined,
-            taxRateSnapshot: task.taxRateSnapshot,
         });
     };
 
@@ -1011,6 +983,22 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
             if (status === "APPROVED") await taskActions.approve(taskId);
             else if (status === "COMPLETED") await taskActions.complete(taskId);
             else if (status === "DRAFT") await taskActions.reactivate(taskId);
+
+            toast.success(
+                status === "APPROVED" ? "Task approved — stock reserved"
+                    : status === "COMPLETED" ? "Task marked complete"
+                        : "Task reverted to draft"
+            );
+        } catch (err: any) {
+            console.error("[TaskPanel] Status change failed:", err);
+            if (err?.code === 'INSUFFICIENT_STOCK') {
+                toast.error("Insufficient stock", {
+                    description: `Only ${err.stockAvailable} units available. Cannot reserve ${err.stockRequested} units.`,
+                    duration: 5000,
+                });
+            } else {
+                toast.error(err?.message || "Failed to update task status");
+            }
         } finally {
             setUpdatingTaskId(null);
         }
@@ -1033,15 +1021,15 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
         return (
             <div className={cn("flex flex-col items-center justify-center gap-3 py-12", className)}>
                 <RiLoader4Line className="h-6 w-6 animate-spin text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Loading tasks...</p>
+                <p className="text-sm text-muted-foreground">Loading tasks...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className={cn("flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive", className)}>
-                <RiAlertLine className="h-4 w-4 shrink-0" />
+            <div className={cn("flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-4 text-base text-destructive", className)}>
+                <RiAlertLine className="h-5 w-5 shrink-0" />
                 Failed to load tasks. Please refresh.
             </div>
         );
@@ -1051,14 +1039,14 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
         <div className={cn("space-y-3", className)}>
             {/* ── Header ── */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                        <RiFileListLine className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                        <RiFileListLine className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-semibold leading-none">Tasks</h3>
+                        <h3 className="text-base font-semibold leading-none">Tasks</h3>
                         {taskCount > 0 && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5 leading-none">
+                            <p className="text-sm text-muted-foreground mt-0.5 leading-none">
                                 {completedCount} of {taskCount} completed
                             </p>
                         )}
@@ -1069,12 +1057,12 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
                     <Button
                         size="sm"
                         variant={showAddForm ? "secondary" : "outline"}
-                        className="h-8 gap-1.5 text-xs"
+                        className="h-10 gap-2 text-sm"
                         onClick={() => { setShowAddForm((v) => !v); setEditingTaskId(null); }}
                     >
                         {showAddForm
-                            ? <><RiCloseLine className="h-3.5 w-3.5" />Cancel</>
-                            : <><RiAddLine className="h-3.5 w-3.5" />Add Task</>
+                            ? <><RiCloseLine className="h-5 w-5" />Cancel</>
+                            : <><RiAddLine className="h-5 w-5" />Add Task</>
                         }
                     </Button>
                 )}
@@ -1090,7 +1078,7 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
                         />
                     </div>
                     {taskCount > 0 && (
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>{Math.round(progressPct)}% complete</span>
                             <span>{taskCount - completedCount} remaining</span>
                         </div>
@@ -1138,14 +1126,14 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
                             <RiFileListLine className="h-6 w-6 text-muted-foreground/50" />
                         </div>
                         <div className="text-center">
-                            <p className="text-sm font-medium text-muted-foreground">No tasks yet</p>
-                            <p className="text-xs text-muted-foreground/50 mt-1">
+                            <p className="text-base font-medium text-muted-foreground">No tasks yet</p>
+                            <p className="text-sm text-muted-foreground/50 mt-1">
                                 Break down this job into specific tasks to track progress
                             </p>
                         </div>
                         {!disabled && (
-                            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8 mt-1" onClick={() => setShowAddForm(true)}>
-                                <RiAddLine className="h-3.5 w-3.5" />
+                            <Button size="sm" variant="outline" className="gap-2 text-sm h-10 mt-1" onClick={() => setShowAddForm(true)}>
+                                <RiAddLine className="h-5 w-5" />
                                 Add First Task
                             </Button>
                         )}
@@ -1156,25 +1144,24 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
             {/* ── Totals footer ── */}
             {taskCount > 0 && totals.total > 0 && (
                 <div className="rounded-xl border border-border/40 bg-muted/20 overflow-hidden">
-                    <div className="grid grid-cols-4 divide-x divide-border/40">
+                    <div className="grid grid-cols-3 divide-x divide-border/40">
                         {[
                             { label: "Parts", value: totals.partsTotal },
                             { label: "Labor", value: totals.laborTotal },
-                            { label: "Tax", value: totals.taxTotal },
                             { label: "Total", value: totals.total, highlight: true },
                         ].map(({ label, value, highlight }) => (
-                            <div key={label} className={cn("px-3 py-2.5 text-center", highlight && "bg-primary/5")}>
-                                <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">{label}</p>
-                                <p className={cn("text-sm font-bold mt-0.5 tabular-nums", highlight ? "text-primary" : "text-foreground")}>
+                            <div key={label} className={cn("px-4 py-2.5 text-center", highlight && "bg-primary/5")}>
+                                <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">{label}</p>
+                                <p className={cn("text-base font-bold mt-0.5 tabular-nums", highlight ? "text-primary" : "text-foreground")}>
                                     {formatCurrency(value)}
                                 </p>
                             </div>
                         ))}
                     </div>
                     {totals.partsTotal > 0 && (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border/30 bg-muted/20">
-                            <RiInformationLine className="h-3 w-3 text-muted-foreground/60" />
-                            <p className="text-[10px] text-muted-foreground/60">18% GST applied on parts only</p>
+                        <div className="flex items-center gap-2 px-4 py-2 border-t border-border/30 bg-muted/20">
+                            <RiInformationLine className="h-4 w-4 text-muted-foreground/60" />
+                            <p className="text-xs text-muted-foreground/60">18% GST applied on parts only</p>
                         </div>
                     )}
                 </div>

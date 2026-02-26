@@ -177,6 +177,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       quantity_reserved: input.quantityReserved,
       quantity_consumed: 0,
       status: 'reserved',
+      reserved_at: new Date().toISOString(),
       created_by: input.createdBy,
     }
 
