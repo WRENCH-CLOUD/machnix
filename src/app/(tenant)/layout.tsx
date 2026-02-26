@@ -36,9 +36,9 @@ function TenantLayoutContent({
           tenantName={tenantName}
           onCreateJob={onCreateJob}
         />
-        <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6 bg-background">
+        <div className="h-full flex flex-col space-y-6">
           {children}
-        </main>
+        </div>
       </div>
     </>
   )
