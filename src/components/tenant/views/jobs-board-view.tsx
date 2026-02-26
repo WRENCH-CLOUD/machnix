@@ -208,16 +208,6 @@ function JobCardBody({
             }}
             onCancel={() => setConfirmDelete(false)}
           />
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-6 w-6 transition-opacity",
-              isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            )}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </div>
@@ -301,7 +291,7 @@ export function JobBoardView({
   const [showUndo, setShowUndo] = useState(false);
   const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const handleDeleteWithUndo = async (jobId: string) => {  
+  const handleDeleteWithUndo = async (jobId: string) => {
     const jobToDelete = uiJobs.find((j) => j.id === jobId);
     if (!jobToDelete) return Promise.resolve();
 
@@ -355,16 +345,16 @@ export function JobBoardView({
   }, []);
 
   useEffect(() => {
-  let filtered = mechanicFilter
-    ? jobs.filter((j) => j.mechanic?.id === mechanicFilter)
-    : jobs;
+    let filtered = mechanicFilter
+      ? jobs.filter((j) => j.mechanic?.id === mechanicFilter)
+      : jobs;
 
-  if (pendingDeleteJob) {
-    filtered = filtered.filter((j) => j.id !== pendingDeleteJob.id);
-  }
+    if (pendingDeleteJob) {
+      filtered = filtered.filter((j) => j.id !== pendingDeleteJob.id);
+    }
 
-  setUiJobs(filtered);
-}, [jobs, mechanicFilter, pendingDeleteJob]);
+    setUiJobs(filtered);
+  }, [jobs, mechanicFilter, pendingDeleteJob]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -417,7 +407,7 @@ export function JobBoardView({
     }
   };
 
-  const handleDragOver = (_event: DragOverEvent) => {};
+  const handleDragOver = (_event: DragOverEvent) => { };
 
   const validateStatusTransition = (
     fromStatus: string,
@@ -473,11 +463,11 @@ export function JobBoardView({
         prev.map((job) =>
           job.id === activeId
             ? {
-                ...job,
-                status: targetStatus as string,
-                updatedAt,
-                updated_at: updatedAt,
-              }
+              ...job,
+              status: targetStatus as string,
+              updatedAt,
+              updated_at: updatedAt,
+            }
             : job,
         ),
       );
@@ -620,7 +610,7 @@ export function JobBoardView({
                 <span className="hidden sm:inline">
                   {mechanicFilter
                     ? mechanics.find((m) => m.id === mechanicFilter)?.name ||
-                      "Mechanic"
+                    "Mechanic"
                     : "Filter"}
                 </span>
                 {mechanicFilter && (
