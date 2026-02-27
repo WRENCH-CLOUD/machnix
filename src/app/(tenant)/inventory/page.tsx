@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, History, ArrowRightLeft, Package, Clock } from "lucide-react";
+import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, History, ArrowRightLeft, Package, Clock, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +26,7 @@ import { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
 import { ItemFormModal } from "@/components/inventory/ItemFormModal";
 import { StockAdjustmentModal } from "@/components/inventory/StockAdjustmentModal";
 import { TransactionHistory } from "@/components/inventory/TransactionHistory";
+import { ImportInventoryModal } from "@/components/inventory/ImportInventoryModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -70,6 +71,7 @@ export default function InventoryPage() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null);
   const [viewingHistoryItem, setViewingHistoryItem] = useState<InventoryItem | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -131,8 +133,8 @@ export default function InventoryPage() {
     if (res.ok) {
       fetchItems();
     } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to create item");
+      const error = await res.json();
+      toast.error(error.error || "Failed to create item");
     }
   };
 
@@ -147,8 +149,8 @@ export default function InventoryPage() {
       fetchItems();
       setEditingItem(null);
     } else {
-         const error = await res.json();
-         toast.error(error.error || "Failed to update item");
+      const error = await res.json();
+      toast.error(error.error || "Failed to update item");
     }
   };
 
@@ -174,8 +176,8 @@ export default function InventoryPage() {
       fetchTransactions(); // Refresh transactions after adjustment
       setAdjustingItem(null);
     } else {
-         const error = await res.json();
-         toast.error(error.error || "Failed to adjust stock");
+      const error = await res.json();
+      toast.error(error.error || "Failed to adjust stock");
     }
   };
 
@@ -228,9 +230,14 @@ export default function InventoryPage() {
             Manage your parts and stock levels.
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> Import CSV
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Item
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -280,79 +287,80 @@ export default function InventoryPage() {
               filteredItems.map((item) => {
                 const available = item.stockOnHand - (item.stockReserved || 0);
                 return (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.stockKeepingUnit || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {item.stockOnHand <= item.reorderLevel && (
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      )}
-                      <span
-                        className={
-                          item.stockOnHand <= item.reorderLevel
-                            ? "text-yellow-600 font-medium"
-                            : ""
-                        }
-                      >
-                        {item.stockOnHand}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {(item.stockReserved || 0) > 0 ? (
-                      <span className="text-orange-600 font-medium">{item.stockReserved}</span>
-                    ) : (
-                      <span className="text-muted-foreground">0</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={available <= 0 ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
-                      {available}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {new Intl.NumberFormat("en-IN", {
-                      style: "currency",
-                      currency: "INR",
-                    }).format(item.unitCost)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {new Intl.NumberFormat("en-IN", {
-                      style: "currency",
-                      currency: "INR",
-                    }).format(item.sellPrice)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAdjustingItem(item)}>
-                          <ArrowRightLeft className="mr-2 h-4 w-4" /> Adjust Stock
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setViewingHistoryItem(item)}>
-                            <History className="mr-2 h-4 w-4" /> History
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDelete(item.id)}
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.stockKeepingUnit || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {item.stockOnHand <= item.reorderLevel && (
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        )}
+                        <span
+                          className={
+                            item.stockOnHand <= item.reorderLevel
+                              ? "text-yellow-600 font-medium"
+                              : ""
+                          }
                         >
-                          <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )})
+                          {item.stockOnHand}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {(item.stockReserved || 0) > 0 ? (
+                        <span className="text-orange-600 font-medium">{item.stockReserved}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={available <= 0 ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                        {available}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {new Intl.NumberFormat("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                      }).format(item.unitCost)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {new Intl.NumberFormat("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                      }).format(item.sellPrice)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setAdjustingItem(item)}>
+                            <ArrowRightLeft className="mr-2 h-4 w-4" /> Adjust Stock
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setViewingHistoryItem(item)}>
+                            <History className="mr-2 h-4 w-4" /> History
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -514,19 +522,25 @@ export default function InventoryPage() {
         />
       )}
 
-        {viewingHistoryItem && (
-            <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
-                <DialogContent className="sm:max-w-[700px]">
-                    <DialogHeader>
-                        <DialogTitle>Transaction History</DialogTitle>
-                        <DialogDescription>
-                            Viewing transaction history for {viewingHistoryItem.name}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <TransactionHistory itemId={viewingHistoryItem.id} />
-                </DialogContent>
-            </Dialog>
-        )}
+      {viewingHistoryItem && (
+        <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle>Transaction History</DialogTitle>
+              <DialogDescription>
+                Viewing transaction history for {viewingHistoryItem.name}
+              </DialogDescription>
+            </DialogHeader>
+            <TransactionHistory itemId={viewingHistoryItem.id} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      <ImportInventoryModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImportComplete={fetchItems}
+      />
     </div>
   );
 }
