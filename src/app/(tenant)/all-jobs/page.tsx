@@ -130,6 +130,22 @@ export default function AllJobsPage() {
     }
   }
 
+  const handleDeleteJob = async (jobId: string) => {
+  try {
+    const res = await api.delete(`/api/jobs/${jobId}`)
+    if (!res.ok) throw new Error('Failed to delete job')
+
+    if (selectedJob?.id === jobId) {
+      setSelectedJob(null)
+    }
+
+    await invalidateJobs()
+  } catch (err) {
+    console.error('Error deleting job:', err)
+    alert('Failed to delete job')
+  }
+}
+
   if (isLoading) {
     return null; // Layout handles auth loading, page handles data loading
   }
@@ -139,6 +155,8 @@ export default function AllJobsPage() {
       <AllJobsView
         jobs={transformedJobs}
         onJobClick={handleJobClick}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDeleteJob}
       />
 
       {selectedJob && (

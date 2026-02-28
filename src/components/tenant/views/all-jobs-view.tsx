@@ -12,6 +12,8 @@ import {
   MoreHorizontal,
   Calendar,
   ArrowUpDown,
+  Trash2,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -46,12 +49,14 @@ import { cn } from "@/lib/utils";
 interface AllJobsViewProps {
   jobs: UIJob[];
   onJobClick: (job: UIJob) => void;
+  onStatusChange: (jobId: string, status: JobStatus) => Promise<void>;
+  onDelete: (jobId: string) => Promise<void>;
 }
 
 type SortField = "jobNumber" | "createdAt" | "customer" | "vehicle" | "status";
 type SortOrder = "asc" | "desc";
 
-export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
+export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJobsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [sortField, setSortField] = useState<SortField>("createdAt");
@@ -307,8 +312,8 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="w-12" />
             </TableRow>
-          </TableHeader>
-          <TableBody>
+            </TableHeader>
+            <TableBody>
             {filteredAndSortedJobs.map((job, index) => {
               const status = statusConfig[job.status as JobStatus];
               const total = (job as any).partsTotal + (job as any).laborTotal + (job as any).tax;
@@ -398,6 +403,29 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          disabled={job.status === 'cancelled' || job.status === 'completed'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStatusChange(job.id, 'cancelled');
+                          }}
+                        >
+                          <Ban className="w-4 h-4 mr-2" />
+                          Cancel Job
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                              onDelete(job.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Job
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
