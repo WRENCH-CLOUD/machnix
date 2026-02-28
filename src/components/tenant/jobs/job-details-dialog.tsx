@@ -6,7 +6,6 @@ import {
   CreditCard,
   Car,
   ChevronDown,
-  AlertTriangle,
   RefreshCw,
   Printer,
   CheckCircle2,

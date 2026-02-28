@@ -33,7 +33,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
-import { useInventoryItems } from "@/hooks/queries";
 
 /** Minimal estimate item type - only fields actually used by this component */
 interface EstimateItemMinimal {
@@ -97,7 +96,6 @@ export function JobParts({
   loadingInventory = false,
   inventoryError,
   searchInventory,
-  onRefreshInventory,
 }: JobPartsProps) {
   // Inventory query moved to parent
 
