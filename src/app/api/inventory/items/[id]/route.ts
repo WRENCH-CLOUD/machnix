@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { UpdateItemUseCase } from '@/modules/inventory/application/update-item.use-case'
 import { DeleteItemUseCase } from '@/modules/inventory/application/delete-item.use-case'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const updateSchema = z.object({
   stockKeepingUnit: z.string().optional(),
@@ -21,17 +22,11 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
     const item = await repository.findById(id)
@@ -53,17 +48,11 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const json = await request.json()
     const result = updateSchema.safeParse(json)
@@ -95,21 +84,15 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
 
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
     const useCase = new DeleteItemUseCase(repository)
-    await useCase.execute(id, user.id)
+    await useCase.execute(id, userId)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
