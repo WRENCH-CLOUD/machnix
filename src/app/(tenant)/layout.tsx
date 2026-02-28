@@ -31,7 +31,7 @@ function TenantLayoutContent({
         activeView={activeView}
         onViewChange={onViewChange}
       />
-      <div className="flex-1 flex flex-col min-h-0 w-full">
+      <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
         <TopHeader
           tenantName={tenantName}
           onCreateJob={onCreateJob}

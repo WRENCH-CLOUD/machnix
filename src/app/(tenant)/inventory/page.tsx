@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, History, ArrowRightLeft, Package, Clock, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-grid";
+import { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -187,7 +181,7 @@ export default function InventoryPage() {
   //   fetchTransactions();
   // }; 
 
-  const getTransactionBadgeVariant = (type: string) => {
+  const getTransactionBadgeVariant = useCallback((type: string) => {
     switch (type) {
       case 'purchase':
       case 'adjustment_in':
@@ -204,16 +198,16 @@ export default function InventoryPage() {
       default:
         return 'secondary';
     }
-  };
+  }, []);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-IN', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);
 
   const filteredItems = items.filter(
     (item) =>
@@ -221,8 +215,150 @@ export default function InventoryPage() {
       item.stockKeepingUnit?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const inventoryColumns = useMemo<ColumnDef<InventoryItem>[]>(() => [
+    { accessorKey: "name", header: "Item", cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
+    { accessorKey: "stockKeepingUnit", header: "Stock Keeping Unit", cell: ({ row }) => row.original.stockKeepingUnit || "-" },
+    {
+      accessorKey: "stockOnHand",
+      header: "On Hand",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center justify-end gap-2">
+            {item.stockOnHand <= item.reorderLevel && (
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            )}
+            <span className={item.stockOnHand <= item.reorderLevel ? "text-yellow-600 font-medium" : ""}>
+              {item.stockOnHand}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: "stockReserved",
+      header: "Reserved",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => {
+        const reserved = row.original.stockReserved || 0;
+        return reserved > 0 ? (
+          <span className="text-orange-600 font-medium">{reserved}</span>
+        ) : (
+          <span className="text-muted-foreground">0</span>
+        );
+      }
+    },
+    {
+      id: "available",
+      header: "Available",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => {
+        const item = row.original;
+        const available = item.stockOnHand - (item.stockReserved || 0);
+        return (
+          <span className={available <= 0 ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+            {available}
+          </span>
+        );
+      }
+    },
+    {
+      accessorKey: "unitCost",
+      header: "Cost",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(row.original.unitCost)
+    },
+    {
+      accessorKey: "sellPrice",
+      header: "Price",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(row.original.sellPrice)
+    },
+    {
+      id: "actions",
+      header: "",
+      meta: { headerClassName: "w-[50px]", cellClassName: "" },
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setAdjustingItem(item)}>
+                <ArrowRightLeft className="mr-2 h-4 w-4" /> Adjust Stock
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewingHistoryItem(item)}>
+                <History className="mr-2 h-4 w-4" /> History
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDelete(item.id)}
+              >
+                <Trash className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      }
+    }
+  ], [setEditingItem, setAdjustingItem, setViewingHistoryItem]);
+
+  const allocationColumns = useMemo<ColumnDef<AllocationWithRelations>[]>(() => [
+    { accessorKey: "itemName", header: "Item", cell: ({ row }) => <span className="font-medium">{row.original.itemName}</span> },
+    { accessorKey: "jobNumber", header: "Job", cell: ({ row }) => <Badge variant="outline">{row.original.jobNumber}</Badge> },
+    {
+      accessorKey: "quantityReserved",
+      header: "Qty",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => <span className="font-medium text-orange-600">{row.original.quantityReserved}</span>
+    },
+    {
+      accessorKey: "reservedAt",
+      header: "Reserved",
+      cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatDate(row.original.reservedAt)}</span>
+    }
+  ], [formatDate]);
+
+  const transactionColumns = useMemo<ColumnDef<TransactionWithItem>[]>(() => [
+    { accessorKey: "itemName", header: "Item", cell: ({ row }) => <span className="font-medium">{row.original.itemName || 'Unknown'}</span> },
+    {
+      accessorKey: "transactionType",
+      header: "Type",
+      cell: ({ row }) => (
+        <Badge variant={getTransactionBadgeVariant(row.original.transactionType)}>
+          {row.original.transactionType.replace('_', ' ')}
+        </Badge>
+      )
+    },
+    {
+      accessorKey: "quantity",
+      header: "Qty",
+      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      cell: ({ row }) => {
+        const tx = row.original;
+        const prefix = ['purchase', 'adjustment_in', 'return', 'unreserve'].includes(tx.transactionType) ? '+' : '-';
+        return <span className="font-medium">{prefix}{tx.quantity}</span>;
+      }
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Date",
+      cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatDate(row.original.createdAt)}</span>
+    }
+  ], [formatDate, getTransactionBadgeVariant]);
+
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
@@ -238,6 +374,51 @@ export default function InventoryPage() {
             <Plus className="mr-2 h-4 w-4" /> Add Item
           </Button>
         </div>
+      </div>
+
+      {/* Reserved Stock and Recent Transactions Grid Moved Up */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Reserved Stock Card */}
+        <Card className="flex flex-col h-[350px]">
+          <CardHeader className="pb-3 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Reserved Stock
+                </CardTitle>
+                <CardDescription>Parts currently reserved for jobs</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={fetchAllocations}>
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0">
+            <DataTable columns={allocationColumns} data={reservedAllocations} pageSize={5} stretch={true} />
+          </CardContent>
+        </Card>
+
+        {/* Recent Transactions Card */}
+        <Card className="flex flex-col h-[350px]">
+          <CardHeader className="pb-3 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Latest inventory operations</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={fetchTransactions}>
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0">
+            <DataTable columns={transactionColumns} data={recentTransactions} pageSize={5} stretch={true} />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex items-center gap-2">
@@ -256,245 +437,8 @@ export default function InventoryPage() {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Item</TableHead>
-              <TableHead>Stock Keeping Unit</TableHead>
-              <TableHead className="text-right">On Hand</TableHead>
-              <TableHead className="text-right">Reserved</TableHead>
-              <TableHead className="text-right">Available</TableHead>
-              <TableHead className="text-right">Cost</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center h-24">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : filteredItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                  No items found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredItems.map((item) => {
-                const available = item.stockOnHand - (item.stockReserved || 0);
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.stockKeepingUnit || "-"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {item.stockOnHand <= item.reorderLevel && (
-                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                        )}
-                        <span
-                          className={
-                            item.stockOnHand <= item.reorderLevel
-                              ? "text-yellow-600 font-medium"
-                              : ""
-                          }
-                        >
-                          {item.stockOnHand}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {(item.stockReserved || 0) > 0 ? (
-                        <span className="text-orange-600 font-medium">{item.stockReserved}</span>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={available <= 0 ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
-                        {available}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                      }).format(item.unitCost)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                      }).format(item.sellPrice)}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setAdjustingItem(item)}>
-                            <ArrowRightLeft className="mr-2 h-4 w-4" /> Adjust Stock
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setViewingHistoryItem(item)}>
-                            <History className="mr-2 h-4 w-4" /> History
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Reserved Stock and Recent Transactions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Reserved Stock Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Reserved Stock
-                </CardTitle>
-                <CardDescription>Parts currently reserved for jobs</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" onClick={fetchAllocations}>
-                Refresh
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Job</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead>Reserved</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allocationsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-20">
-                        Loading...
-                      </TableCell>
-                    </TableRow>
-                  ) : reservedAllocations.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-20 text-muted-foreground">
-                        No reserved stock
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    reservedAllocations.map((allocation) => (
-                      <TableRow key={allocation.id}>
-                        <TableCell className="font-medium">{allocation.itemName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{allocation.jobNumber}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-orange-600">
-                          {allocation.quantityReserved}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(allocation.reservedAt)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Transactions Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Recent Activity
-                </CardTitle>
-                <CardDescription>Latest inventory operations</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" onClick={fetchTransactions}>
-                Refresh
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactionsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-20">
-                        Loading...
-                      </TableCell>
-                    </TableRow>
-                  ) : recentTransactions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-20 text-muted-foreground">
-                        No recent activity
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    recentTransactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="font-medium">{tx.itemName || 'Unknown'}</TableCell>
-                        <TableCell>
-                          <Badge variant={getTransactionBadgeVariant(tx.transactionType)}>
-                            {tx.transactionType.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {['purchase', 'adjustment_in', 'return', 'unreserve'].includes(tx.transactionType) ? '+' : '-'}
-                          {tx.quantity}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(tx.createdAt)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Inventory Table */}
+      <DataTable columns={inventoryColumns} data={filteredItems} />
 
       <ItemFormModal
         open={isCreateOpen}

@@ -5,14 +5,8 @@ import { useTransactions } from "@/hooks/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-grid";
+import { ColumnDef } from "@tanstack/react-table";
 import {
     Select,
     SelectContent,
@@ -176,81 +170,91 @@ export default function TransactionsPage() {
                             <p>No transactions found</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Transaction ID</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Vehicle</TableHead>
-                                        <TableHead>Job</TableHead>
-                                        <TableHead className="text-right">Amount</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredTransactions.map((tx) => (
-                                        <TableRow key={tx.id}>
-                                            <TableCell className="font-mono text-xs">
-                                                {tx.id.slice(0, 8)}...
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {formatDate(tx.createdAt)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {tx.customer ? (
-                                                    <Link
-                                                        href={`/customers?id=${tx.customer.id}`}
-                                                        className="flex items-center gap-1 text-primary hover:underline"
-                                                    >
-                                                        <User className="w-3 h-3" />
-                                                        {tx.customer.name}
-                                                    </Link>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {tx.vehicle ? (
-                                                    <Link
-                                                        href={`/vehicles?id=${tx.vehicle.id}`}
-                                                        className="flex items-center gap-1 text-primary hover:underline"
-                                                    >
-                                                        <Car className="w-3 h-3" />
-                                                        {tx.vehicle.regNo}
-                                                    </Link>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {tx.jobcard ? (
-                                                    <Link
-                                                        href={`/jobs-board?job=${tx.jobcard.id}`}
-                                                        className="flex items-center gap-1 text-primary hover:underline"
-                                                    >
-                                                        <Briefcase className="w-3 h-3" />
-                                                        {tx.jobcard.jobNumber}
-                                                    </Link>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right font-semibold">
-                                                {formatAmount(tx.amount)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="capitalize">
-                                                    {tx.mode}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{getStatusBadge(tx.status)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        <div className="w-full">
+                            {(() => {
+                                const columns: ColumnDef<any>[] = [
+                                    {
+                                        accessorKey: "id",
+                                        header: "Transaction ID",
+                                        cell: ({ row }) => <span className="font-mono text-xs">{row.original.id.slice(0, 8)}...</span>
+                                    },
+                                    {
+                                        accessorKey: "createdAt",
+                                        header: "Date",
+                                        cell: ({ row }) => <span className="text-sm">{formatDate(row.original.createdAt)}</span>
+                                    },
+                                    {
+                                        id: "customer",
+                                        header: "Customer",
+                                        cell: ({ row }) => row.original.customer ? (
+                                            <Link
+                                                href={`/customers?id=${row.original.customer.id}`}
+                                                className="flex items-center gap-1 text-primary hover:underline"
+                                            >
+                                                <User className="w-3 h-3" />
+                                                {row.original.customer.name}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )
+                                    },
+                                    {
+                                        id: "vehicle",
+                                        header: "Vehicle",
+                                        cell: ({ row }) => row.original.vehicle ? (
+                                            <Link
+                                                href={`/vehicles?id=${row.original.vehicle.id}`}
+                                                className="flex items-center gap-1 text-primary hover:underline"
+                                            >
+                                                <Car className="w-3 h-3" />
+                                                {row.original.vehicle.regNo}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )
+                                    },
+                                    {
+                                        id: "jobcard",
+                                        header: "Job",
+                                        cell: ({ row }) => row.original.jobcard ? (
+                                            <Link
+                                                href={`/jobs-board?job=${row.original.jobcard.id}`}
+                                                className="flex items-center gap-1 text-primary hover:underline"
+                                            >
+                                                <Briefcase className="w-3 h-3" />
+                                                {row.original.jobcard.jobNumber}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )
+                                    },
+                                    {
+                                        accessorKey: "amount",
+                                        header: () => <div className="text-right">Amount</div>,
+                                        cell: ({ row }) => <div className="text-right font-semibold">{formatAmount(row.original.amount)}</div>,
+                                        meta: {
+                                            headerClassName: "text-right",
+                                            cellClassName: "text-right"
+                                        }
+                                    },
+                                    {
+                                        accessorKey: "mode",
+                                        header: "Type",
+                                        cell: ({ row }) => (
+                                            <Badge variant="outline" className="capitalize">
+                                                {row.original.mode}
+                                            </Badge>
+                                        )
+                                    },
+                                    {
+                                        accessorKey: "status",
+                                        header: "Status",
+                                        cell: ({ row }) => getStatusBadge(row.original.status)
+                                    }
+                                ];
+
+                                return <DataTable data={filteredTransactions} columns={columns} />;
+                            })()}
                         </div>
                     )}
                 </CardContent>

@@ -104,7 +104,7 @@ export function CustomersView({
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!addFormData.name.trim()) {
       setAddError("Customer name is required")
       return
@@ -157,8 +157,8 @@ export function CustomersView({
   }
 
   return (
-    <div className="h-[calc(100svh-4rem)] flex flex-col space-y-6  overflow-hidden">
-      <div className ="flex-shrink-0 space-y-4 mt-4 overflow-hidden">
+    <div className="h-[calc(100svh-4rem)] flex flex-col space-y-6 overflow-hidden p-4 md:p-6 lg:p-8">
+      <div className="flex-shrink-0 space-y-4 mt-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -353,7 +353,7 @@ export function CustomersView({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card 
+                <Card
                   className="hover:border-primary/50 transition-colors cursor-pointer"
                   onClick={() => handleViewDetails(customer)}
                 >
@@ -392,7 +392,7 @@ export function CustomersView({
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-destructive"
                             onClick={(e) => { e.stopPropagation(); handleDelete(customer); }}
                           >
@@ -442,9 +442,9 @@ export function CustomersView({
                         <div className="text-sm font-medium">
                           {customer.lastVisit
                             ? customer.lastVisit.toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                            })
                             : "N/A"}
                         </div>
                         <div className="text-xs text-muted-foreground">Last Visit</div>

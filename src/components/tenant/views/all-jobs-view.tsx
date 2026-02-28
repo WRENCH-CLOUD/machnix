@@ -16,14 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-grid";
+import { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,6 +176,164 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
     document.body.removeChild(link);
   };
 
+  const columns: ColumnDef<UIJob>[] = useMemo(() => [
+    {
+      accessorKey: "jobNumber",
+      header: () => {
+        return (
+          <div className="flex items-center cursor-pointer select-none" onClick={() => handleSort("jobNumber")}>
+            Job # <SortIndicator field="jobNumber" />
+          </div>
+        )
+      },
+      cell: ({ row }) => <span className="font-mono font-medium">{row.getValue("jobNumber")}</span>
+    },
+    {
+      id: "customer",
+      header: () => {
+        return (
+          <div className="flex items-center cursor-pointer select-none" onClick={() => handleSort("customer")}>
+            Customer <SortIndicator field="customer" />
+          </div>
+        )
+      },
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.customer.name}</div>
+          <div className="text-sm text-muted-foreground">{row.original.customer.phone}</div>
+        </div>
+      )
+    },
+    {
+      id: "vehicle",
+      header: () => {
+        return (
+          <div className="flex items-center cursor-pointer select-none" onClick={() => handleSort("vehicle")}>
+            Vehicle <SortIndicator field="vehicle" />
+          </div>
+        )
+      },
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">
+            {row.original.vehicle.make} {row.original.vehicle.model}
+          </div>
+          <div className="text-sm text-muted-foreground">{row.original.vehicle.regNo}</div>
+        </div>
+      )
+    },
+    {
+      id: "mechanic",
+      header: "Mechanic",
+      cell: ({ row }) => {
+        const mechanic = row.original.mechanic;
+        return mechanic ? (
+          <div className="flex items-center gap-2">
+            <Avatar className="w-6 h-6">
+              <AvatarImage src={mechanic.avatar || "/placeholder.svg"} />
+              <AvatarFallback>
+                {mechanic.name ? mechanic.name.charAt(0) : "M"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm">{mechanic.name}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-sm">Unassigned</span>
+        )
+      }
+    },
+    {
+      accessorKey: "status",
+      header: () => {
+        return (
+          <div className="flex items-center cursor-pointer select-none" onClick={() => handleSort("status")}>
+            Status <SortIndicator field="status" />
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const status = statusConfig[row.original.status as JobStatus];
+        return (
+          <Badge className={`${status.bgColor} ${status.color} border-0`}>
+            {status.label}
+          </Badge>
+        )
+      }
+    },
+    {
+      accessorKey: "createdAt",
+      header: () => {
+        return (
+          <div className="flex items-center cursor-pointer select-none" onClick={() => handleSort("createdAt")}>
+            Created <SortIndicator field="createdAt" />
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const date = row.original.createdAt instanceof Date ? row.original.createdAt : new Date(row.original.createdAt as any);
+        return (
+          <div className="flex items-center gap-1 text-muted-foreground text-sm">
+            <Calendar className="w-3 h-3" />
+            {date.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+            })}
+          </div>
+        )
+      }
+    },
+    {
+      id: "total",
+      header: () => <div className="text-right">Total</div>,
+      cell: ({ row }) => {
+        const total = (row.original as any).partsTotal + (row.original as any).laborTotal + (row.original as any).tax;
+        return (
+          <div className="text-right font-medium">
+            {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
+          </div>
+        )
+      },
+      meta: {
+        headerClassName: "text-right",
+        cellClassName: "text-right"
+      }
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            asChild
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onJobClick(row.original);
+              }}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  ], [sortField, sortOrder, onJobClick]);
+
+
   return (
     <div className="h-full flex flex-col p-3 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -253,163 +405,15 @@ export function AllJobsView({ jobs, onJobClick }: AllJobsViewProps) {
       </div>
 
       {/* Table with horizontal scroll on mobile */}
-      <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table aria-label="All Jobs" className="min-w-[800px]">
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => handleSort("jobNumber")}
-                aria-sort={sortField === "jobNumber" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <div className="flex items-center">
-                  Job # <SortIndicator field="jobNumber" />
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => handleSort("customer")}
-                aria-sort={sortField === "customer" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <div className="flex items-center">
-                  Customer <SortIndicator field="customer" />
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => handleSort("vehicle")}
-                aria-sort={sortField === "vehicle" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <div className="flex items-center">
-                  Vehicle <SortIndicator field="vehicle" />
-                </div>
-              </TableHead>
-              <TableHead>Mechanic</TableHead>
-              <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => handleSort("status")}
-                aria-sort={sortField === "status" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <div className="flex items-center">
-                  Status <SortIndicator field="status" />
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => handleSort("createdAt")}
-                aria-sort={sortField === "createdAt" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <div className="flex items-center">
-                  Created <SortIndicator field="createdAt" />
-                </div>
-              </TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAndSortedJobs.map((job, index) => {
-              const status = statusConfig[job.status as JobStatus];
-              const total = (job as any).partsTotal + (job as any).laborTotal + (job as any).tax;
-
-              return (
-                <motion.tr
-                  key={job.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="group cursor-pointer hover:bg-muted/50"
-                  onClick={() => onJobClick(job)}
-                >
-                  <TableCell className="font-mono font-medium">{job.jobNumber}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{job.customer.name}</div>
-                      <div className="text-sm text-muted-foreground">{job.customer.phone}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        {job.vehicle.make} {job.vehicle.model}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{job.vehicle.regNo}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {job.mechanic ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src={job.mechanic.avatar || "/placeholder.svg"} />
-                          <AvatarFallback>
-                            {job.mechanic.name ? job.mechanic.name.charAt(0) : "M"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{job.mechanic.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Unassigned</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`${status.bgColor} ${status.color} border-0`}>
-                      {status.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                      <Calendar className="w-3 h-3" />
-                      {(
-                        job.createdAt instanceof Date
-                          ? job.createdAt
-                          : new Date(job.createdAt as any)
-                      ).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        asChild
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onJobClick(job);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </motion.tr>
-              );
-            })}
-          </TableBody>
-        </Table>
-        </div>
+      <div className="flex-1 min-h-0 relative">
+        <DataTable
+          data={filteredAndSortedJobs}
+          columns={columns}
+          onRowClick={onJobClick}
+          stretch={true}
+        />
         {filteredAndSortedJobs.length === 0 && (
-          <div className="p-8">
+          <div className="p-8 absolute inset-0 flex items-center justify-center pointer-events-none">
             <Empty>
               <EmptyMedia variant="icon">
                 <Filter className="size-6" />

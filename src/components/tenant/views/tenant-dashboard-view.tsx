@@ -1,17 +1,19 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  ClipboardList, 
-  Users, 
-  TrendingUp, 
-  Clock, 
+import {
+  ClipboardList,
+  Users,
+  TrendingUp,
+  Clock,
   AlertCircle,
   CheckCircle2,
   Calendar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { DataTable } from "@/components/ui/data-grid";
+import { ColumnDef } from "@tanstack/react-table";
 
 import type { TenantWithStats } from "@/modules/tenant";
 
@@ -71,7 +73,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6 lg:p-8">
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         {stats.map((stat, i) => (
@@ -110,46 +112,52 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
             </div>
           </CardHeader>
           <CardContent className="p-0 md:p-4 lg:p-6 pt-0">
-            <div className="relative w-full overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[500px]" aria-label="Recent Jobs">
-                <thead className="text-xs text-muted-foreground uppercase border-b border-border/50">
-                  <tr>
-                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Job ID</th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Customer</th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium">Vehicle</th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 font-medium text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {recentJobs.map((job) => (
-                    <tr key={job.id} className="group hover:bg-muted/50 transition-colors">
-                      <td className="px-3 md:px-4 py-2 md:py-3 font-medium text-primary whitespace-nowrap">{job.id}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap">{job.customer}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap">{job.vehicle}</td>
-                      <td className="px-3 md:px-4 py-2 md:py-3 text-right">
-                        {getStatusBadge(job.status)}
-                      </td>
-                    </tr>
-                  ))}
-                  {recentJobs.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8">
-                        <Empty>
-                          <EmptyMedia variant="icon">
-                            <ClipboardList className="size-6" />
-                          </EmptyMedia>
-                          <EmptyContent>
-                            <EmptyTitle>No recent jobs</EmptyTitle>
-                            <EmptyDescription>
-                              New jobs will appear here once created.
-                            </EmptyDescription>
-                          </EmptyContent>
-                        </Empty>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="relative w-full">
+              {recentJobs.length === 0 ? (
+                <div className="p-8">
+                  <Empty>
+                    <EmptyMedia variant="icon">
+                      <ClipboardList className="size-6" />
+                    </EmptyMedia>
+                    <EmptyContent>
+                      <EmptyTitle>No recent jobs</EmptyTitle>
+                      <EmptyDescription>
+                        New jobs will appear here once created.
+                      </EmptyDescription>
+                    </EmptyContent>
+                  </Empty>
+                </div>
+              ) : (
+                <div className="w-full">
+                  {(() => {
+                    const columns: ColumnDef<any>[] = [
+                      {
+                        accessorKey: "id",
+                        header: "Job ID",
+                        cell: ({ row }) => <span className="font-medium text-primary">{row.original.id}</span>
+                      },
+                      {
+                        accessorKey: "customer",
+                        header: "Customer",
+                      },
+                      {
+                        accessorKey: "vehicle",
+                        header: "Vehicle",
+                      },
+                      {
+                        accessorKey: "status",
+                        header: () => <div className="text-right">Status</div>,
+                        cell: ({ row }) => <div className="text-right">{getStatusBadge(row.original.status)}</div>,
+                        meta: {
+                          headerClassName: "text-right",
+                          cellClassName: "text-right"
+                        }
+                      }
+                    ];
+                    return <DataTable data={recentJobs} columns={columns} />
+                  })()}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -171,7 +179,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                 </div>
               </div>
             )}
-            
+
             {/* Ready for Pickup */}
             {(dynamicStats?.ready_jobs ?? 0) > 0 && (
               <div className="flex gap-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5">

@@ -4,14 +4,8 @@ import { useState, useCallback, useMemo } from "react";
 import { Plus, Search, MoreVertical, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-grid";
+import { ColumnDef } from "@tanstack/react-table";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -246,67 +240,85 @@ export default function MechanicsPage() {
                             {searchQuery ? "No mechanics match your search" : "No mechanics yet. Add your first mechanic!"}
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="w-[70px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredMechanics.map((mechanic) => (
-                                    <TableRow key={mechanic.id}>
-                                        <TableCell className="font-medium">{mechanic.name}</TableCell>
-                                        <TableCell>{mechanic.phone || "-"}</TableCell>
-                                        <TableCell>{mechanic.email || "-"}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={mechanic.isActive ? "default" : "secondary"}>
-                                                {mechanic.isActive ? "Active" : "Inactive"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleOpenEditDialog(mechanic)}>
-                                                        <Pencil className="h-4 w-4 mr-2" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleToggleActive(mechanic)}>
-                                                        {mechanic.isActive ? (
-                                                            <>
-                                                                <ToggleLeft className="h-4 w-4 mr-2" />
-                                                                Deactivate
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ToggleRight className="h-4 w-4 mr-2" />
-                                                                Activate
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleDelete(mechanic)}
-                                                        className="text-destructive"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <div className="w-full">
+                            {(() => {
+                                const columns: ColumnDef<Mechanic>[] = [
+                                    {
+                                        accessorKey: "name",
+                                        header: "Name",
+                                    },
+                                    {
+                                        accessorKey: "phone",
+                                        header: "Phone",
+                                        cell: ({ row }) => row.getValue("phone") || "-"
+                                    },
+                                    {
+                                        accessorKey: "email",
+                                        header: "Email",
+                                        cell: ({ row }) => row.getValue("email") || "-"
+                                    },
+                                    {
+                                        accessorKey: "isActive",
+                                        header: "Status",
+                                        cell: ({ row }) => {
+                                            const mechanic = row.original;
+                                            return (
+                                                <Badge variant={mechanic.isActive ? "default" : "secondary"}>
+                                                    {mechanic.isActive ? "Active" : "Inactive"}
+                                                </Badge>
+                                            );
+                                        }
+                                    },
+                                    {
+                                        id: "actions",
+                                        cell: ({ row }) => {
+                                            const mechanic = row.original;
+                                            return (
+                                                <div className="flex justify-end">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreVertical className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => handleOpenEditDialog(mechanic)}>
+                                                                <Pencil className="h-4 w-4 mr-2" />
+                                                                Edit
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleToggleActive(mechanic)}>
+                                                                {mechanic.isActive ? (
+                                                                    <>
+                                                                        <ToggleLeft className="h-4 w-4 mr-2" />
+                                                                        Deactivate
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <ToggleRight className="h-4 w-4 mr-2" />
+                                                                        Activate
+                                                                    </>
+                                                                )}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={() => handleDelete(mechanic)}
+                                                                className="text-destructive"
+                                                            >
+                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            );
+                                        }
+                                    }
+                                ];
+
+                                return <DataTable data={filteredMechanics} columns={columns} />;
+                            })()}
+                        </div>
                     )}
+
                 </CardContent>
             </Card>
 
