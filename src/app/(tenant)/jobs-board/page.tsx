@@ -291,6 +291,17 @@ export default function JobsPage() {
     }
   }
 
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      const res = await api.delete(`/api/jobs/${jobId}`)
+      if (!res.ok) throw new Error('Failed to delete job')
+      await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
+    } catch (err) {
+      console.error('Error deleting job:', err)
+      alert('Failed to delete job')
+    }
+  }
+
   return (
     <>
       <JobBoardView
@@ -298,6 +309,7 @@ export default function JobsPage() {
         loading={jobsQuery.isLoading}
         onJobClick={handleJobClick}
         onStatusChange={handleStatusChange}
+        onDelete={handleDeleteJob}
       />
 
       {selectedJob && (
