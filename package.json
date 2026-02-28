@@ -54,6 +54,7 @@
         "@supabase/ssr": "^0.8.0",
         "@supabase/supabase-js": "^2.95.3",
         "@tanstack/react-query": "^5.90.20",
+        "@tanstack/react-table": "^8.21.3",
         "@vercel/analytics": "latest",
         "autoprefixer": "^10.4.24",
         "bcryptjs": "^3.0.3",
