@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { useAuth } from "@/providers/auth-provider"
+// import { useAuth } from "@/providers/auth-provider"
 import { Building2, Phone, Mail, MapPin, Clock, Save, Loader2 } from "lucide-react"
 import { ChangePasswordForm } from "@/components/auth-ui/ResetPasswordForm"
 import { useTenantSettings, useInvalidateQueries } from "@/hooks/queries"
@@ -30,10 +30,10 @@ export default function TenantSettingsPage() {
   // const { tenantId } = useAuth()
   const { invalidateTenantSettings } = useInvalidateQueries()
   const [saving, setSaving] = useState(false)
-  
+
   // Use React Query for fetching tenant settings
   const { data: tenantSettings, isLoading } = useTenantSettings()
-  
+
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
     name: "",
@@ -73,7 +73,7 @@ export default function TenantSettingsPage() {
 
       await invalidateTenantSettings()
       toast.success("Your garage settings have been updated.")
-    } catch (err) {
+    } catch {
       toast.error("Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
@@ -137,7 +137,7 @@ export default function TenantSettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label className="font-bold" htmlFor="city">City</Label>
               <Input
                 id="city"
@@ -146,7 +146,7 @@ export default function TenantSettingsPage() {
                 placeholder="City"
               />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label className="font-bold" htmlFor="state">State</Label>
               <Input
                 id="state"
@@ -155,7 +155,7 @@ export default function TenantSettingsPage() {
                 placeholder="State"
               />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label className="font-bold" htmlFor="pincode">Pincode</Label>
               <Input
                 id="pincode"
@@ -241,16 +241,16 @@ export default function TenantSettingsPage() {
         </Button>
       </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <div className="space-y-6">
-             {/* Change Password Section */}
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Account Security</h2>
-              <p className="text-muted-foreground mb-4">
-                Update your password to keep your account secure
-              </p>
-              <ChangePasswordForm />
-            </div>
+          {/* Change Password Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Account Security</h2>
+            <p className="text-muted-foreground mb-4">
+              Update your password to keep your account secure
+            </p>
+            <ChangePasswordForm />
+          </div>
         </div>
       </div>
     </div>

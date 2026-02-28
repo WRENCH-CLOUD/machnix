@@ -555,11 +555,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               <Label>Description of Work</Label>
               <Textarea
                 placeholder="Describe the issues or services required..."
-                rows={4}
                 value={jobDetails.description}
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
-                className="break-all overflow-wrap-anywhere resize-none"
-                style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
+                className="max-h-15 overflow-y-auto resize-none break-words"
+                style={{ overflowWrap: 'anywhere' }}
               />
             </div>
 
@@ -625,7 +624,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     {jobDetails.priority} Priority
                   </Badge>
                 </div>
-                <p className="text-sm italic break-words whitespace-pre-wrap">"{jobDetails.description || 'No description provided'}"</p>
+                <p className="text-sm italic break-words whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
           </div>
@@ -642,7 +641,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-150 h-175">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -679,9 +678,11 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
           })}
         </div>
 
-        {renderStepContent()}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {renderStepContent()}
+        </div>
 
-        <DialogFooter className="flex justify-between sm:justify-between items-center">
+        <DialogFooter className="flex justify-between sm:justify-between items-center shrink-0 border-t pt-4">
           <Button
             variant="ghost"
             onClick={() => {

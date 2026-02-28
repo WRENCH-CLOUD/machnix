@@ -80,6 +80,7 @@ export class SupabaseCustomerRepository extends BaseSupabaseRepository<Customer>
       .select('id, customer_id, created_at')
       .eq('tenant_id', tenantId)
       .in('customer_id', customerIds)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     // Group vehicles by customer_id

@@ -1,16 +1,16 @@
 import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
-import { 
-  AllocationStatus, 
-  CreateAllocationInput, 
+import {
+  AllocationStatus,
+  CreateAllocationInput,
   InventoryAllocation,
   InventoryAllocationRow,
   AllocationDbUpdate,
-  UpdateAllocationInput 
+  UpdateAllocationInput
 } from '../domain/allocation.entity'
 import { AllocationRepository } from '../domain/allocation.repository'
 
 export class SupabaseAllocationRepository extends BaseSupabaseRepository<InventoryAllocation, InventoryAllocationRow> implements AllocationRepository {
-  
+
   protected toDomain(row: InventoryAllocationRow): InventoryAllocation {
     return {
       id: row.id,
@@ -177,6 +177,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       quantity_reserved: input.quantityReserved,
       quantity_consumed: 0,
       status: 'reserved',
+      reserved_at: new Date().toISOString(),
       created_by: input.createdBy,
     }
 
@@ -194,7 +195,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
   async update(id: string, input: UpdateAllocationInput): Promise<InventoryAllocation> {
     const tenantId = this.getContextTenantId()
     const updates: AllocationDbUpdate = {}
-    
+
     if (input.quantityConsumed !== undefined) updates.quantity_consumed = input.quantityConsumed
     if (input.status !== undefined) updates.status = input.status
     if (input.consumedAt !== undefined) updates.consumed_at = input.consumedAt.toISOString()
@@ -216,9 +217,9 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
   async markConsumed(id: string, quantityConsumed?: number): Promise<InventoryAllocation> {
     const allocation = await this.findById(id)
     if (!allocation) throw new Error(`Allocation ${id} not found`)
-    
+
     const consumed = quantityConsumed ?? allocation.quantityReserved
-    
+
     return this.update(id, {
       status: 'consumed',
       quantityConsumed: consumed,
@@ -235,10 +236,10 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
 
   async releaseAllForJobcard(jobcardId: string): Promise<number> {
     const tenantId = this.getContextTenantId()
-    
+
     // Get all reserved allocations for this job
     const reservedAllocations = await this.findReservedByJobcard(jobcardId)
-    
+
     if (reservedAllocations.length === 0) return 0
 
     // Update all to released
@@ -275,7 +276,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
     releasedAt?: Date
   }[]> {
     const tenantId = this.getContextTenantId()
-    
+
     // First, get allocations
     let query = this.supabase
       .schema('tenant')
@@ -314,6 +315,7 @@ export class SupabaseAllocationRepository extends BaseSupabaseRepository<Invento
       .from('jobcards')
       .select('id, job_number')
       .in('id', jobcardIds)
+      .is('deleted_at', null)
       .eq('tenant_id', tenantId)
 
     if (jobcardsError) throw jobcardsError
