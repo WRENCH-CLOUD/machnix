@@ -47,6 +47,7 @@ export async function GET(
             .from('jobcards')
             .select('*', { count: 'exact', head: true })
             .eq('vehicle_id', vehicleId)
+            .is('deleted_at', null)
 
         if (countError) {
             console.error('Error counting jobs:', countError)
@@ -73,6 +74,7 @@ export async function GET(
                     .select('id, job_number, created_at, status, details')
                     .eq('vehicle_id', vehicleId)
                     .lt('created_at', currentJob.created_at)
+                    .is('deleted_at', null)
                     .order('created_at', { ascending: false })
                     .limit(1)
 
@@ -103,6 +105,7 @@ export async function GET(
                 .from('jobcards')
                 .select('id, job_number, created_at, status, details')
                 .eq('vehicle_id', vehicleId)
+                .is('deleted_at', null)
                 .order('created_at', { ascending: false })
                 .limit(1)
 
