@@ -234,7 +234,7 @@ export default function InventoryPage() {
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Import CSV
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
+          <Button className="mr-4" onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Item
           </Button>
         </div>

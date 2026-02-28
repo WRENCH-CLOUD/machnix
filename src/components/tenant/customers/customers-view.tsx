@@ -157,8 +157,8 @@ export function CustomersView({
   }
 
   return (
-    <div className="h-[calc(100svh-4rem)] flex flex-col space-y-6 overflow-hidden">
-      <div className ="flex-shrink-0 space-y-4 overflow-hidden">
+    <div className="h-[calc(100svh-4rem)] flex flex-col space-y-6  overflow-hidden">
+      <div className ="flex-shrink-0 space-y-4 mt-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
