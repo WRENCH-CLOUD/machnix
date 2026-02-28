@@ -1,27 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
-  MoreVertical,
   Plus,
   Trash2,
-  X,
   CheckCircle2,
-  Clock,
-  AlertCircle,
-  AlertTriangle,
   Package,
   Wrench,
-  Search,
-  Check,
-  ChevronsUpDown,
   Loader2,
   RefreshCw,
-  MinusCircle,
   ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -48,7 +38,6 @@ import type {
   TaskActionType
 } from "@/modules/job/domain/task.entity";
 import type { InventoryItem } from "@/modules/inventory/domain/inventory.entity";
-import { getStockAvailable } from "@/modules/inventory/domain/inventory.entity";
 
 // ============================================================================
 // Constants

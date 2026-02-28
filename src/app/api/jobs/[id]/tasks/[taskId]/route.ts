@@ -6,6 +6,7 @@ import { InventoryAllocationService } from '@/modules/inventory/application/inve
 import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
 import { z } from 'zod'
 import type { TaskActionType } from '@/modules/job/domain/task.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Validation schema for updates
 const updateTaskSchema = z.object({
@@ -39,18 +40,11 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
 
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
-
     const repository = new SupabaseTaskRepository(supabase, tenantId)
     const task = await repository.findById(taskId)
 
@@ -88,22 +82,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     // Rate limit
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'update-task')
+    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'update-task')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
 
     // Parse and validate body
@@ -119,6 +105,7 @@ export async function PATCH(
 
     const input = validationResult.data
 
+    const supabase = await createClient()
     const repository = new SupabaseTaskRepository(supabase, tenantId)
 
     // Get existing task
@@ -212,7 +199,7 @@ export async function PATCH(
           finalInventoryId,
           finalQty,
           existingTask.jobcardId,
-          user.id,
+          userId,
         )
         await repository.linkAllocation(taskId, reserveResult.allocation.id)
       }
@@ -263,24 +250,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     // Rate limit
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'delete-task')
+    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'delete-task')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
     }
 
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
-
+    const supabase = await createClient()
     const repository = new SupabaseTaskRepository(supabase, tenantId)
 
     // Get existing task
@@ -321,7 +301,7 @@ export async function DELETE(
       console.warn('[Task API] Failed to remove estimate item for task:', syncError)
     }
 
-    await repository.softDelete(taskId, user.id)
+    await repository.softDelete(taskId, userId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

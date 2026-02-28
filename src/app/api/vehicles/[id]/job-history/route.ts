@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardRead, validateRouteId, isValidUUID } from '@/lib/auth/api-guard'
 
-interface Task {
+interface TodoItem {
     id: string
-    task_name: string
-    action_type: 'LABOR_ONLY' | 'REPLACED'
-    task_status: string
+    text: string
+    status: 'changed' | 'repaired' | 'no_change' | null
+    completed: boolean
 }
 
 interface JobHistoryResponse {
@@ -30,27 +30,16 @@ export async function GET(
         const resolvedParams = await (context.params as any)
         const vehicleId = (resolvedParams as { id: string }).id
 
+        const idError = validateRouteId(vehicleId, 'vehicle')
+        if (idError) return idError
+
+        const guard = await apiGuardRead(request)
+        if (!guard.ok) return guard.response
+        const { supabase } = guard
+
         // Get currentJobId from query params
         const { searchParams } = new URL(request.url)
         const currentJobId = searchParams.get('currentJobId')
-
-        // Validate ID format (UUID)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (!vehicleId || !uuidRegex.test(vehicleId)) {
-            return NextResponse.json({ error: 'Invalid vehicle ID format' }, { status: 400 })
-        }
-
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-        if (!tenantId) {
-            return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-        }
 
         // Get all job cards for this vehicle (count)
         const { count, error: countError } = await supabase
@@ -66,28 +55,8 @@ export async function GET(
 
         let recentJob: JobHistoryResponse['recentJob'] = null
 
-        // Helper function to get parts worked on from job_card_tasks
-        const getPartsWorkedOn = async (jobId: string): Promise<Array<{ name: string; status: 'changed' | 'repaired' }>> => {
-            const { data: tasks, error } = await supabase
-                .schema('tenant')
-                .from('job_card_tasks')
-                .select('id, task_name, action_type, task_status')
-                .eq('jobcard_id', jobId)
-                .is('deleted_at', null)
-                .eq('action_type', 'REPLACED')
-
-            if (error || !tasks) {
-                return []
-            }
-
-            return (tasks as Task[]).map(task => ({
-                name: task.task_name,
-                status: 'changed' as 'changed' | 'repaired'
-            }))
-        }
-
         // If we have a currentJobId, find the job created BEFORE this one
-        if (currentJobId && uuidRegex.test(currentJobId)) {
+        if (currentJobId && isValidUUID(currentJobId)) {
             // First get the current job's created_at
             const { data: currentJob, error: currentJobError } = await supabase
                 .schema('tenant')
@@ -101,7 +70,7 @@ export async function GET(
                 const { data: previousJobs, error: prevError } = await supabase
                     .schema('tenant')
                     .from('jobcards')
-                    .select('id, job_number, created_at, status')
+                    .select('id, job_number, created_at, status, details')
                     .eq('vehicle_id', vehicleId)
                     .lt('created_at', currentJob.created_at)
                     .order('created_at', { ascending: false })
@@ -109,7 +78,14 @@ export async function GET(
 
                 if (!prevError && previousJobs && previousJobs.length > 0) {
                     const job = previousJobs[0]
-                    const partsWorkedOn = await getPartsWorkedOn(job.id)
+                    const todos: TodoItem[] = job.details?.todos || []
+
+                    const partsWorkedOn = todos
+                        .filter(todo => todo.status === 'changed' || todo.status === 'repaired')
+                        .map(todo => ({
+                            name: todo.text,
+                            status: todo.status as 'changed' | 'repaired'
+                        }))
 
                     recentJob = {
                         id: job.id,
@@ -125,14 +101,21 @@ export async function GET(
             const { data: recentJobs, error: jobsError } = await supabase
                 .schema('tenant')
                 .from('jobcards')
-                .select('id, job_number, created_at, status')
+                .select('id, job_number, created_at, status, details')
                 .eq('vehicle_id', vehicleId)
                 .order('created_at', { ascending: false })
                 .limit(1)
 
             if (!jobsError && recentJobs && recentJobs.length > 0) {
                 const job = recentJobs[0]
-                const partsWorkedOn = await getPartsWorkedOn(job.id)
+                const todos: TodoItem[] = job.details?.todos || []
+
+                const partsWorkedOn = todos
+                    .filter(todo => todo.status === 'changed' || todo.status === 'repaired')
+                    .map(todo => ({
+                        name: todo.text,
+                        status: todo.status as 'changed' | 'repaired'
+                    }))
 
                 recentJob = {
                     id: job.id,

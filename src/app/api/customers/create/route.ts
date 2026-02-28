@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { CreateCustomerUseCase } from '@/modules/customer/application/create-customer.use-case'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardWrite } from '@/lib/auth/api-guard'
 import { z } from 'zod'
-import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
 
 const createCustomerSchema = z.object({
   name: z.string().min(1, "Name is required").max(200, "Name too long"),
@@ -15,23 +14,9 @@ const createCustomerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Rate limit write operations
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'create-customer')
-    if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult)
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuardWrite(request, 'create-customer')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
     const validatedBody = createCustomerSchema.parse(body)

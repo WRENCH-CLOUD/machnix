@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
+import { Phone, Mail, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -54,7 +54,6 @@ export function JobOverview({
   isEditable = true,
   onMechanicChange,
   estimate,
-  searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);

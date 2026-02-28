@@ -1,21 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
 import { GetAllInvoicesUseCase } from '@/modules/invoice/application/get-all-invoices.use-case'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardRead } from '@/lib/auth/api-guard'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuardRead(request)
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const repository = new SupabaseInvoiceRepository(supabase, tenantId)
     const useCase = new GetAllInvoicesUseCase(repository)
