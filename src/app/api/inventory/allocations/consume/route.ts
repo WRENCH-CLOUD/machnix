@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const { allocationId, jobcardId, itemId, quantity } = result.data
 
     const service = createInventoryAllocationService(supabase, tenantId)
-    
+
     let consumeResult
     if (allocationId) {
       consumeResult = await service.consumeAllocation(allocationId, quantity, userId)
@@ -49,14 +49,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      allocationId: consumeResult.allocation.id,
       quantityConsumed: consumeResult.quantityConsumed,
-      transactionId: consumeResult.transactionId,
     })
 
   } catch (error: unknown) {
     console.error('Error consuming stock:', error)
-    
+
     if (error instanceof AllocationNotFoundError) {
       return NextResponse.json({
         error: error.message,

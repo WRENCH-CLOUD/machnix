@@ -31,13 +31,13 @@ export async function GET(request: Request) {
     const limit = searchParams.get('limit')
 
     const repository = new SupabaseAllocationRepository(supabase, tenantId)
-    
+
     // If with_relations is true, use the new method
     if (withRelations) {
       const statusFilter = status && isValidAllocationStatus(status) ? status : undefined
       const limitNum = limit ? parseInt(limit, 10) : 50
       const allocations = await repository.findWithRelations(statusFilter, limitNum)
-      return NextResponse.json(allocations)
+      return NextResponse.json(allocations.map(({ id, ...rest }: any) => rest))
     }
 
     let allocations
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       allocations = await repository.findByStatus('reserved')
     }
 
-    return NextResponse.json(allocations)
+    return NextResponse.json(allocations.map(({ id, tenantId, ...rest }: any) => rest))
   } catch (error: unknown) {
     console.error('Error fetching allocations:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

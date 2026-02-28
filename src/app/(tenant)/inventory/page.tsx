@@ -31,7 +31,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 
 interface AllocationWithRelations {
-  id: string;
   itemId: string;
   itemName: string;
   jobcardId: string;
@@ -45,13 +44,11 @@ interface AllocationWithRelations {
 }
 
 interface TransactionWithItem {
-  id: string;
   itemId: string;
   itemName?: string;
   transactionType: string;
   quantity: number;
   referenceType?: string;
-  referenceId?: string;
   createdAt: string;
 }
 
@@ -409,8 +406,8 @@ export default function InventoryPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    reservedAllocations.map((allocation) => (
-                      <TableRow key={allocation.id}>
+                    reservedAllocations.map((allocation, index) => (
+                      <TableRow key={`${allocation.itemId}-${allocation.jobcardId}-${index}`}>
                         <TableCell className="font-medium">{allocation.itemName}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{allocation.jobNumber}</Badge>
@@ -471,8 +468,8 @@ export default function InventoryPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    recentTransactions.map((tx) => (
-                      <TableRow key={tx.id}>
+                    recentTransactions.map((tx, index) => (
+                      <TableRow key={`${tx.itemId}-${tx.createdAt}-${index}`}>
                         <TableCell className="font-medium">{tx.itemName || 'Unknown'}</TableCell>
                         <TableCell>
                           <Badge variant={getTransactionBadgeVariant(tx.transactionType)}>
