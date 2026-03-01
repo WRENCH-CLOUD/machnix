@@ -407,7 +407,7 @@ export default function InventoryPage() {
                     </TableRow>
                   ) : (
                     reservedAllocations.map((allocation, index) => (
-                      <TableRow key={`${allocation.itemId}-${allocation.jobcardId}-${index}`}>
+                      <TableRow key={`${allocation.itemId}-${allocation.jobcardId}-${allocation.reservedAt}`}>
                         <TableCell className="font-medium">{allocation.itemName}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{allocation.jobNumber}</Badge>
