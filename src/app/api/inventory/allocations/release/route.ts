@@ -52,11 +52,6 @@ export async function POST(request: Request) {
       success: true,
       releasedCount: releaseResult.releasedAllocations.length,
       totalQuantityReleased: releaseResult.totalQuantityReleased,
-      releasedAllocations: releaseResult.releasedAllocations.map(a => ({
-        id: a.id,
-        itemId: a.itemId,
-        quantityReleased: a.quantityReserved,
-      })),
     })
 
   } catch (error: unknown) {
