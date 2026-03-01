@@ -468,8 +468,8 @@ export default function InventoryPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    recentTransactions.map((tx, index) => (
-                      <TableRow key={`${tx.itemId}-${tx.createdAt}-${index}`}>
+                    recentTransactions.map((tx) => (
+                      <TableRow key={`${tx.itemId}-${tx.createdAt}-${tx.transactionType}-${tx.quantity}`}>
                         <TableCell className="font-medium">{tx.itemName || 'Unknown'}</TableCell>
                         <TableCell>
                           <Badge variant={getTransactionBadgeVariant(tx.transactionType)}>
