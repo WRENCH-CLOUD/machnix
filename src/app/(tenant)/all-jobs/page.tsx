@@ -53,6 +53,13 @@ export default function AllJobsPage() {
     transformJobs()
   }, [dbJobs])
 
+  // Keep selected job in sync so details panel reflects refreshed complaints/notes too
+  useEffect(() => {
+    if (!selectedJob) return
+    const fresh = transformedJobs.find((j) => j.id === selectedJob.id)
+    if (fresh) setSelectedJob(fresh)
+  }, [transformedJobs, selectedJob?.id])
+
   const handleJobClick = async (job: UIJob) => {
     setSelectedJob(job)
   }
