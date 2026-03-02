@@ -57,7 +57,7 @@ export default function CustomersPage() {
     await invalidateCustomers();
   };
 
-  const handleEditCustomer = async (id: string, data: CustomerFormData & { notes: string }) => {
+  const handleEditCustomer = async (id: string, data: CustomerFormData) => {
     const response = await fetch(`/api/customers/${id}/update`, {
       method: "PUT",
       headers: {
@@ -68,7 +68,6 @@ export default function CustomersPage() {
         phone: data.phone || null,
         email: data.email || null,
         address: data.address || null,
-        notes: data.notes || null,
       }),
     });
 

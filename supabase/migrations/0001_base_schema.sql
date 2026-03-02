@@ -127,8 +127,7 @@ CREATE TABLE IF NOT EXISTS public.platform_admins (
 -- Vehicle Category (global reference data)
 CREATE TABLE IF NOT EXISTS public.vehicle_category (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL UNIQUE,
-  description text
+  name text NOT NULL UNIQUE
 );
 
 -- Vehicle Make (global reference data)
@@ -210,7 +209,6 @@ CREATE TABLE IF NOT EXISTS tenant.customers (
   phone text,
   email text,
   address text,
-  notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz,
@@ -311,7 +309,6 @@ CREATE TABLE IF NOT EXISTS tenant.estimates (
   vehicle_id uuid,
   created_by uuid,
   status text NOT NULL DEFAULT 'draft',
-  description text,
   total_amount numeric(12,2) DEFAULT 0,
   tax_amount numeric(12,2) DEFAULT 0,
   labor_total numeric(10,2) DEFAULT 0,
@@ -338,7 +335,6 @@ CREATE TABLE IF NOT EXISTS tenant.estimate_items (
   part_id uuid,
   custom_name text,
   custom_part_number text,
-  description text,
   qty integer NOT NULL,
   unit_price numeric(10,2) NOT NULL,
   labor_cost numeric(10,2) DEFAULT 0,

@@ -6,7 +6,6 @@ export interface CreateEstimateDTO {
   customerId: string
   vehicleId: string
   jobcardId?: string
-  description?: string
   laborTotal: number
   partsTotal: number
   taxAmount?: number
@@ -53,7 +52,6 @@ export class CreateEstimateUseCase {
       vehicleId: dto.vehicleId,
       jobcardId: dto.jobcardId,
       status: 'draft',
-      description: dto.description,
       laborTotal: dto.laborTotal,
       partsTotal: dto.partsTotal,
       subtotal,

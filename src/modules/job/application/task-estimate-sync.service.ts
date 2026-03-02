@@ -104,7 +104,6 @@ export class TaskEstimateSyncService {
     return {
       partId: isReplaced ? task.inventoryItemId : undefined,
       customName: task.taskName,
-      description: task.description || (isReplaced ? 'Part replacement' : 'Repair service'),
       qty: isReplaced ? (task.qty || 1) : 1,
       unitPrice: isReplaced ? (task.unitPriceSnapshot || 0) : 0,
       laborCost: task.laborCostSnapshot || 0,
@@ -124,7 +123,6 @@ export class TaskEstimateSyncService {
         estimate_id: estimateId,
         part_id: item.partId || null,
         custom_name: item.customName,
-        description: item.description,
         qty: item.qty,
         unit_price: item.unitPrice,
         labor_cost: item.laborCost,
@@ -152,7 +150,6 @@ export class TaskEstimateSyncService {
       .update({
         part_id: item.partId || null,
         custom_name: item.customName,
-        description: item.description,
         qty: item.qty,
         unit_price: item.unitPrice,
         labor_cost: item.laborCost,
@@ -237,7 +234,6 @@ export class TaskEstimateSyncService {
 interface EstimateItemInput {
   partId?: string
   customName: string
-  description?: string
   qty: number
   unitPrice: number
   laborCost: number
