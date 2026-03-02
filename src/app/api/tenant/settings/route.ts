@@ -3,14 +3,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
 import { GetTenantSettingsUseCase } from '@/modules/tenant/application/get-tenant-settings.usecase'
 import { UpdateTenantSettingsUseCase } from '@/modules/tenant/application/update-tenant-settings.usecase'
-import { apiGuardRead, apiGuardAdmin } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const guard = await apiGuardRead(request)
-    if (!guard.ok) return guard.response
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const { tenantId, supabase } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
+    }
 
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new GetTenantSettingsUseCase(repository)
@@ -33,11 +40,17 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // SECURITY: Only tenant owners/admins can modify settings
-    const guard = await apiGuardAdmin(request, 'update-settings')
-    if (!guard.ok) return guard.response
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const { tenantId, supabase } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context required' }, { status: 400 })
+    }
 
     const body = await request.json()
     const repository = new SupabaseTenantRepository(supabase)

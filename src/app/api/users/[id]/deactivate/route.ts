@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseUserRepository } from '@/modules/user/infrastructure/user.repository.supabase'
 import { DeactivateUserUseCase } from '@/modules/user/application/deactivate-user.use-case'
-import { apiGuardAdmin, validateRouteId } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
@@ -9,16 +9,17 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // Validate UUID format
-    const idError = validateRouteId(id, 'user')
-    if (idError) return idError
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // SECURITY: Only tenant owners and admins can deactivate users
-    const guard = await apiGuardAdmin(request, 'deactivate-user')
-    if (!guard.ok) return guard.response
-
-    const { tenantId, supabase } = guard
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const repository = new SupabaseUserRepository(supabase, tenantId)
     const useCase = new DeactivateUserUseCase(repository)

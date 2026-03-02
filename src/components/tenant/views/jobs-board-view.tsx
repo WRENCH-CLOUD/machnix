@@ -22,26 +22,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  LayoutGrid,
-  List,
-  Filter,
-  Car,
-  User,
-  Clock,
-  ChevronRight,
-  HardHat,
-  MoreHorizontal,
-  Trash2,
-  Ban,
-} from "lucide-react";
+import { LayoutGrid, List, Filter, Car, User, Clock, ChevronRight, HardHat } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,18 +31,21 @@ import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ConfirmDialog } from "@/components/ui/confirmDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 interface JobBoardProps {
   jobs: UIJob[];
   loading?: boolean;
   isMechanicMode?: boolean;
   onJobClick: (job: UIJob) => void;
   onStatusChange: (jobId: string, status: JobStatus) => void | Promise<void>;
-  onMechanicChange?: (
-    jobId: string,
-    mechanicId: string,
-  ) => void | Promise<void>;
-  onDelete: (jobId: string) => Promise<void>;
+  onMechanicChange?: (jobId: string, mechanicId: string) => void | Promise<void>;
 }
 
 const COLUMNS: { id: JobStatus; label: string }[] = [
@@ -94,7 +78,7 @@ function DroppableColumn({
       className={cn(
         "shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all snap-start",
         isMobile ? "w-[calc(100vw-3rem)] min-w-70" : "w-72 lg:w-80",
-        isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20",
+        isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
       )}
       onContextMenu={onContextMenu}
     >
@@ -103,30 +87,14 @@ function DroppableColumn({
   );
 }
 
-function JobCardBody({
-  job,
-  status,
-  isMobile,
-  onStatusChange,
-  onDelete,
-}: {
-  job: UIJob;
-  status: JobStatus;
-  isMobile?: boolean;
-  onStatusChange?: (jobId: string, status: JobStatus) => void | Promise<void>;
-  onDelete?: (jobId: string) => Promise<void>;
-}) {
+function JobCardBody({ job, status, isMobile }: { job: UIJob; status: JobStatus; isMobile?: boolean }) {
   const config = statusConfig[status] || statusConfig.received;
-  const [confirmDelete, setConfirmDelete] = useState(false);
+
   return (
     <div className={cn("space-y-2", isMobile ? "p-3" : "p-4 space-y-3")}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-mono font-bold text-primary">
-          {job.jobNumber}
-        </span>
-        <Badge
-          className={`${config.bgColor} ${config.color} border-0 text-[10px] px-1.5 py-0`}
-        >
+        <span className="text-xs font-mono font-bold text-primary">{job.jobNumber}</span>
+        <Badge className={`${config.bgColor} ${config.color} border-0 text-[10px] px-1.5 py-0`}>
           {config.label}
         </Badge>
       </div>
@@ -138,9 +106,7 @@ function JobCardBody({
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Car className="w-3 h-3 shrink-0" />
-          <span className="truncate">
-            {job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}
-          </span>
+          <span className="truncate">{job.vehicle.make} {job.vehicle.model} • {job.vehicle.regNo}</span>
         </div>
       </div>
 
@@ -158,57 +124,13 @@ function JobCardBody({
             {new Date(job.updatedAt).toLocaleDateString()}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-6 w-6 transition-opacity",
-                  isMobile
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100",
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownMenuItem
-                disabled={status === "cancelled" || status === "completed"}
-                onClick={() => onStatusChange?.(job.id, "cancelled")}
-              >
-                <Ban className="w-4 h-4 mr-2" />
-                Cancel Job
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => {
-                  setConfirmDelete(true);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Job
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <ConfirmDialog
-            open={confirmDelete}
-            title="Delete Job?"
-            description="This action cannot be undone."
-            onConfirm={async () => {
-              await onDelete?.(job.id);
-              setConfirmDelete(false);
-            }}
-            onCancel={() => setConfirmDelete(false)}
-          />
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("h-6 w-6 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );
@@ -217,13 +139,9 @@ function JobCardBody({
 function SortableJobCard({
   job,
   onClick,
-  onStatusChange,
-  onDelete,
 }: {
   job: UIJob;
   onClick: () => void;
-  onStatusChange: (jobId: string, status: JobStatus) => void | Promise<void>;
-  onDelete: (jobId: string) => Promise<void>;
 }) {
   const {
     attributes,
@@ -254,12 +172,7 @@ function SortableJobCard({
         className="group relative bg-card hover:shadow-md transition-all cursor-pointer border-border/50"
         onClick={onClick}
       >
-        <JobCardBody
-          job={job}
-          status={status}
-          onStatusChange={onStatusChange}
-          onDelete={onDelete}
-        />
+        <JobCardBody job={job} status={status} />
       </Card>
     </div>
   );
@@ -270,7 +183,6 @@ export function JobBoardView({
   loading,
   onJobClick,
   onStatusChange,
-  onDelete,
 }: JobBoardProps) {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [hiddenStatuses, setHiddenStatuses] = useState<JobStatus[]>([]);
@@ -282,51 +194,8 @@ export function JobBoardView({
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
   const [mechanicFilter, setMechanicFilter] = useState<string>("");
-  const [mechanics, setMechanics] = useState<{ id: string; name: string }[]>(
-    [],
-  );
+  const [mechanics, setMechanics] = useState<{ id: string; name: string }[]>([]);
   const isMobile = useIsMobile();
-
-  const [pendingDeleteJob, setPendingDeleteJob] = useState<UIJob | null>(null);
-  const [showUndo, setShowUndo] = useState(false);
-  const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
-
-  const handleDeleteWithUndo = async (jobId: string) => {
-    const jobToDelete = uiJobs.find((j) => j.id === jobId);
-    if (!jobToDelete) return Promise.resolve();
-
-    setUiJobs((prev) => prev.filter((j) => j.id !== jobId));
-
-    setPendingDeleteJob(jobToDelete);
-    setShowUndo(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        await onDelete(jobId);
-      } catch (error) {
-        console.error("Delete failed:", error);
-        setUiJobs((prev) => [...prev, jobToDelete]);
-      } finally {
-        setShowUndo(false);
-        setPendingDeleteJob(null);
-      }
-    }, 5000);
-
-    setDeleteTimer(timer);
-  };
-
-  const handleUndoDelete = () => {
-    if (!pendingDeleteJob) return;
-
-    if (deleteTimer) {
-      clearTimeout(deleteTimer);
-    }
-
-    setUiJobs((prev) => [...prev, pendingDeleteJob]);
-
-    setPendingDeleteJob(null);
-    setShowUndo(false);
-  };
 
   // Load mechanics for filter dropdown
   useEffect(() => {
@@ -345,16 +214,12 @@ export function JobBoardView({
   }, []);
 
   useEffect(() => {
-    let filtered = mechanicFilter
+    // Filter jobs by mechanic if filter is set
+    const filtered = mechanicFilter
       ? jobs.filter((j) => j.mechanic?.id === mechanicFilter)
       : jobs;
-
-    if (pendingDeleteJob) {
-      filtered = filtered.filter((j) => j.id !== pendingDeleteJob.id);
-    }
-
     setUiJobs(filtered);
-  }, [jobs, mechanicFilter, pendingDeleteJob]);
+  }, [jobs, mechanicFilter]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -370,7 +235,7 @@ export function JobBoardView({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const groupedJobs = statusOrder.reduce(
@@ -392,11 +257,11 @@ export function JobBoardView({
       }
       return acc;
     },
-    {} as Record<JobStatus, UIJob[]>,
+    {} as Record<JobStatus, UIJob[]>
   );
 
   const visibleStatuses = statusOrder.filter(
-    (status) => !hiddenStatuses.includes(status),
+    (status) => !hiddenStatuses.includes(status)
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -411,7 +276,7 @@ export function JobBoardView({
 
   const validateStatusTransition = (
     fromStatus: string,
-    toStatus: string,
+    toStatus: string
   ): boolean => {
     const validTransitions: Record<string, string[]> = {
       received: ["received", "working"],
@@ -437,7 +302,7 @@ export function JobBoardView({
 
     if (overId.startsWith("droppable-")) {
       targetStatus = statusOrder.find(
-        (status) => overId === `droppable-${status}`,
+        (status) => overId === `droppable-${status}`
       );
     } else {
       const overJob = uiJobs.find((j) => j.id === overId);
@@ -449,7 +314,7 @@ export function JobBoardView({
     if (targetStatus && draggedJob.status !== targetStatus) {
       const isValidTransition = validateStatusTransition(
         draggedJob.status,
-        targetStatus,
+        targetStatus
       );
 
       if (!isValidTransition) {
@@ -468,8 +333,8 @@ export function JobBoardView({
               updatedAt,
               updated_at: updatedAt,
             }
-            : job,
-        ),
+            : job
+        )
       );
 
       if (onStatusChange) {
@@ -503,9 +368,7 @@ export function JobBoardView({
   };
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">Loading...</div>
-    );
+    return <div className="flex h-64 items-center justify-center">Loading...</div>;
   }
 
   if (viewMode === "list") {
@@ -519,11 +382,7 @@ export function JobBoardView({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 bg-transparent"
-            >
+            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
               <Filter className="w-4 h-4" />
               Filter
             </Button>
@@ -559,8 +418,6 @@ export function JobBoardView({
                 <JobCardBody
                   job={job}
                   status={(job.status || "received") as JobStatus}
-                  onStatusChange={onStatusChange}
-                  onDelete={onDelete}
                 />
               </Card>
             ))}
@@ -579,9 +436,7 @@ export function JobBoardView({
     <div className="h-full flex flex-col" onClick={handleClickOutside}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 md:px-6 py-3 md:py-4 border-b border-border shrink-0 gap-2">
         <div className="min-w-0">
-          <h1 className="text-lg md:text-2xl font-bold text-foreground">
-            Job Board
-          </h1>
+          <h1 className="text-lg md:text-2xl font-bold text-foreground">Job Board</h1>
           <p className="text-muted-foreground text-xs md:text-sm truncate">
             {jobs.length} active jobs •{" "}
             {jobs.filter((j) => j.status !== "completed").length} in progress
@@ -595,28 +450,20 @@ export function JobBoardView({
               className="gap-2 text-xs"
               onClick={unhideAll}
             >
-              <span className="hidden sm:inline">Unhide All</span> (
-              {hiddenStatuses.length})
+              <span className="hidden sm:inline">Unhide All</span> ({hiddenStatuses.length})
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 md:gap-2 bg-transparent"
-              >
+              <Button variant="outline" size="sm" className="gap-1 md:gap-2 bg-transparent">
                 <Filter className="w-4 h-4" />
                 <span className="hidden sm:inline">
                   {mechanicFilter
-                    ? mechanics.find((m) => m.id === mechanicFilter)?.name ||
-                    "Mechanic"
+                    ? mechanics.find(m => m.id === mechanicFilter)?.name || "Mechanic"
                     : "Filter"}
                 </span>
                 {mechanicFilter && (
-                  <span className="ml-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
-                    1
-                  </span>
+                  <span className="ml-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">1</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -629,17 +476,13 @@ export function JobBoardView({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {mechanics.length === 0 ? (
-                <DropdownMenuItem disabled>
-                  No mechanics available
-                </DropdownMenuItem>
+                <DropdownMenuItem disabled>No mechanics available</DropdownMenuItem>
               ) : (
                 mechanics.map((mechanic) => (
                   <DropdownMenuItem
                     key={mechanic.id}
                     onClick={() => setMechanicFilter(mechanic.id)}
-                    className={cn(
-                      mechanicFilter === mechanic.id && "bg-accent",
-                    )}
+                    className={cn(mechanicFilter === mechanic.id && "bg-accent")}
                   >
                     <HardHat className="w-4 h-4 mr-2" />
                     {mechanic.name}
@@ -677,12 +520,10 @@ export function JobBoardView({
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div
-            className={cn(
-              "flex gap-2 md:gap-3 h-full w-full overflow-x-auto pb-2",
-              isMobile && "snap-x snap-mandatory scroll-smooth",
-            )}
-          >
+          <div className={cn(
+            "flex gap-2 md:gap-3 h-full w-full overflow-x-auto pb-2",
+            isMobile && "snap-x snap-mandatory scroll-smooth"
+          )}>
             {visibleStatuses.map((status) => {
               const statusInfo = statusConfig[status];
               const columnJobs = groupedJobs[status];
@@ -700,7 +541,7 @@ export function JobBoardView({
                         <div
                           className={cn(
                             "w-3 h-3 rounded-full",
-                            statusInfo.bgColor,
+                            statusInfo.bgColor
                           )}
                         />
                         <h3 className="font-semibold text-foreground text-sm">
@@ -724,8 +565,6 @@ export function JobBoardView({
                           key={job.id}
                           job={job}
                           onClick={() => onJobClick(job)}
-                          onStatusChange={onStatusChange}
-                          onDelete={handleDeleteWithUndo}
                         />
                       ))}
                       {columnJobs.length === 0 && (
@@ -779,17 +618,6 @@ export function JobBoardView({
               </button>
             </>
           )}
-        </div>
-      )}
-
-      {showUndo && pendingDeleteJob && (
-        <div className="fixed bottom-4 right-4 bg-card border border-border shadow-lg rounded-lg px-4 py-3 flex items-center gap-4 z-50">
-          <span className="text-sm">
-            Job {pendingDeleteJob.jobNumber} deleted
-          </span>
-          <Button size="sm" variant="secondary" onClick={handleUndoDelete}>
-            Undo
-          </Button>
         </div>
       )}
     </div>

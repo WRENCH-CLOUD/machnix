@@ -25,8 +25,8 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       completedAt: details.completedAt ? new Date(details.completedAt) : undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
-      deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
-      deletedBy: row.deleted_by,
+      deletedAt: undefined,
+      deletedBy: undefined,
     }
   }
 
@@ -45,13 +45,13 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
   private async fetchVehicles(vehicleIds: string[]): Promise<Map<string, any>> {
     const uniqueIds = [...new Set(vehicleIds.filter(Boolean))]
     if (uniqueIds.length === 0) return new Map()
-
+    
     const { data } = await this.supabase
       .schema('tenant')
       .from('vehicles')
       .select('*')
       .in('id', uniqueIds)
-
+    
     const vehicleMap = new Map<string, any>()
     for (const v of data || []) {
       vehicleMap.set(v.id, v)
@@ -105,7 +105,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
         mechanic:mechanics(*)
       `)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -113,7 +112,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id))
-
+    
     return data.map(row => ({
       ...this.toDomain(row),
       customer: row.customer,
@@ -135,7 +134,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       `)
       .eq('tenant_id', tenantId)
       .eq('status', status)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -143,7 +141,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicles separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles(data.map(row => row.vehicle_id))
-
+    
     return data.map(row => ({
       ...this.toDomain(row),
       customer: row.customer,
@@ -165,7 +163,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       `)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
       .single()
 
     if (error) {
@@ -177,7 +174,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     // Fetch vehicle separately (cross-schema FK not detected by PostgREST)
     const vehicleMap = await this.fetchVehicles([data.vehicle_id])
-
+    
     return {
       ...this.toDomain(data),
       customer: data.customer,
@@ -195,7 +192,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('customer_id', customerId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -211,7 +207,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('vehicle_id', vehicleId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -227,7 +222,6 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('assigned_mechanic_id', mechanicId)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -324,7 +318,7 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
     const { error } = await this.supabase
       .schema('tenant')
       .from('jobcards')
-      .update({ deleted_at: new Date().toISOString() })
+      .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
 

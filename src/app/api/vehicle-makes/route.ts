@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Vehicle makes are in the public schema and available to all tenants
     const { data, error } = await supabase
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       )
     }
-
+    
     return NextResponse.json(data || [])
   } catch (error: unknown) {
     console.error('Error fetching vehicle makes:', error)

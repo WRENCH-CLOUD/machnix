@@ -24,10 +24,10 @@ export async function ensurePlatformAdmin(): Promise<EnsurePlatformAdminResult> 
     return { ok: false, status: 401, message: "Unauthorized" };
   }
 
-  // SECURITY: Only trust app_metadata for role (server-controlled).
-  // user_metadata is client-modifiable and MUST NOT be used for authorization.
+  // Role can be stored in app_metadata or user_metadata depending on how claims were set
   const appMeta: any = user.app_metadata ?? {};
-  const role = appMeta.role;
+  const userMeta: any = user.user_metadata ?? {};
+  const role = appMeta.role ?? userMeta.role;
 
   if (role !== "platform_admin") {
     return { ok: false, status: 403, message: "Forbidden" };

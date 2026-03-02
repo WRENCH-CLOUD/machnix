@@ -48,24 +48,8 @@ export class TaskEstimateSyncService {
       return null
     }
 
-    // If task has an inventory item, look up its name for the estimate
-    let inventoryItemName: string | undefined
-    if (task.inventoryItemId) {
-      const { data: item } = await this.supabase
-        .schema('tenant')
-        .from('inventory_items')
-        .select('name')
-        .eq('id', task.inventoryItemId)
-        .eq('tenant_id', this.tenantId)
-        .single()
-
-      if (item) {
-        inventoryItemName = item.name
-      }
-    }
-
     // Build estimate item data from task
-    const itemData = this.buildEstimateItemFromTask(task, inventoryItemName)
+    const itemData = this.buildEstimateItemFromTask(task)
 
     if (task.estimateItemId) {
       // Update existing estimate item
@@ -114,15 +98,12 @@ export class TaskEstimateSyncService {
     return estimates.length > 0 ? { id: estimates[0].id } : null
   }
 
-  private buildEstimateItemFromTask(task: JobCardTask, inventoryItemName?: string): EstimateItemInput {
+  private buildEstimateItemFromTask(task: JobCardTask): EstimateItemInput {
     const isReplaced = task.actionType === 'REPLACED'
-
-    // Use inventory item name for the estimate when available, fall back to task name
-    const displayName = (isReplaced && inventoryItemName) ? inventoryItemName : task.taskName
 
     return {
       partId: isReplaced ? task.inventoryItemId : undefined,
-      customName: displayName,
+      customName: task.taskName,
       description: task.description || (isReplaced ? 'Part replacement' : 'Repair service'),
       qty: isReplaced ? (task.qty || 1) : 1,
       unitPrice: isReplaced ? (task.unitPriceSnapshot || 0) : 0,

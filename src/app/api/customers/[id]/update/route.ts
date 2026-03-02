@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
 import { UpdateCustomerUseCase } from '@/modules/customer/application/update-customer.use-case'
-import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function PUT(
   request: NextRequest,
@@ -10,12 +10,17 @@ export async function PUT(
   try {
     const resolvedParams = await (context.params as any)
     const id = (resolvedParams as { id: string }).id
-    const idError = validateRouteId(id, 'customer')
-    if (idError) return idError
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const guard = await apiGuardWrite(request, 'update-customer')
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const body = await request.json()
     

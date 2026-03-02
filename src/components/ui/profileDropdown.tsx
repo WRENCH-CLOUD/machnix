@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Avatar from "boring-avatars";
@@ -32,7 +32,7 @@ interface MenuItem {
     external?: boolean;
 }
 
-const PROFILE_DATA: Profile = {
+const SAMPLE_PROFILE_DATA: Profile = {
     name: "User",
     email: "user@example.com",
     role: "Tenant Admin",
@@ -46,7 +46,7 @@ interface ProfileDropdownProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export default function ProfileDropdown({
-    data = PROFILE_DATA,
+    data = SAMPLE_PROFILE_DATA,
     onSignOut,
     className,
     ...props
@@ -55,6 +55,11 @@ export default function ProfileDropdown({
     const [imageError, setImageError] = React.useState(false);
 
     const menuItems: MenuItem[] = [
+        {
+            label: "Profile",
+            href: "/profile",
+            icon: <User className="w-4 h-4" />,
+        },
         {
             label: "Settings",
             href: "/settings",
@@ -156,7 +161,7 @@ export default function ProfileDropdown({
                                 <DropdownMenuSeparator className="mb-2 bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-zinc-800" />
                             </>
                         )}
-
+                        
                         <div className="space-y-1">
                             {menuItems.map((item) => (
                                 <DropdownMenuItem key={item.label} asChild>

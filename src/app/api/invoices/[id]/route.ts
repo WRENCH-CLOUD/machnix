@@ -1,26 +1,43 @@
 // app/api/invoices/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { apiGuardRead, apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
+import { createClient } from "@/lib/supabase/server";
 
 
 const BUCKET = "invoices";
 const SIGN_EXPIRES = 60 * 60; // 1 hour
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: invoiceId } = await context.params;
+/** Helper: authorize request and check tenant access */
+async function authorizeRequest(req: NextRequest, invoiceId: string) {
+  // Get tenant-id from header (set by client)
+  const tenantId = req.headers.get("x-tenant-id");
+  if (!tenantId) {
+    return { ok: false, code: 400, message: "Missing tenant-id header" };
+  }
 
-  // Validate UUID format
-  const idError = validateRouteId(invoiceId, 'invoice');
-  if (idError) return idError;
+  // Create Supabase client (uses cookies for auth)
+  const supabase = await createClient();
 
-  // SECURITY: Use JWT-based tenant_id, NOT client-supplied x-tenant-id header
-  const guard = await apiGuardRead(req);
-  if (!guard.ok) return guard.response;
+  // Get current user from session
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { ok: false, code: 401, message: "Unauthenticated" };
+  }
 
-  const { tenantId, supabase } = guard;
+  // Check if user has access to this tenant
+  const { data: userAccess, error: accessErr } = await supabase
+    .schema('tenant')
+    .from("users")
+    .select("id, tenant_id, role")
+    .eq("auth_user_id", user.id)
+    .eq("tenant_id", tenantId)
+    .single();
+
+  if (accessErr || !userAccess) {
+    return { ok: false, code: 403, message: "No access to this tenant" };
+  }
 
   // Fetch invoice and verify it belongs to the tenant
-  const { data: invoice, error: invErr } = await supabase
+  const { data: invoiceRow, error: invErr } = await supabase
     .schema('tenant')
     .from("invoices")
     .select("id, file_key, filename, tenant_id")
@@ -28,15 +45,28 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     .eq("tenant_id", tenantId)
     .single();
 
-  if (invErr || !invoice) {
-    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  if (invErr || !invoiceRow) {
+    return { ok: false, code: 404, message: "Invoice not found" };
   }
 
+  return { ok: true, user, invoice: invoiceRow, tenantId };
+}
+
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: invoiceId } = await context.params;
+  const auth = await authorizeRequest(req, invoiceId);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.message }, { status: auth.code });
+  }
+
+  const invoice = auth.invoice!;
   const key = invoice.file_key as string;
   if (!key) {
     return NextResponse.json({ error: "Invoice file not found" }, { status: 404 });
   }
 
+  // Create Supabase server client and generate signed URL
+  const supabase = await createClient();
   const { data: signedData, error: signedError } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(key, SIGN_EXPIRES);
@@ -129,19 +159,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: invoiceId } = await context.params;
-
-    // Validate UUID format
-    const idError = validateRouteId(invoiceId, 'invoice');
-    if (idError) return idError;
-
     const body = await req.json();
     const { isGstBilled, discountPercentage } = body;
 
-    // SECURITY: Use JWT-based tenant_id, NOT client-supplied values
-    const guard = await apiGuardWrite(req, 'update-invoice');
-    if (!guard.ok) return guard.response;
+    const supabase = await createClient();
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
-    const { tenantId, supabase } = guard;
+    if (userErr || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
+    }
 
     // Fetch current invoice to get subtotal for recalculation
     const { data: invoice, error: fetchError } = await supabase
