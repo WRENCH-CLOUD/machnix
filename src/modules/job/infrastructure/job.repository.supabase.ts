@@ -8,6 +8,7 @@ import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.re
 export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> implements JobRepository {
   protected toDomain(row: any): JobCard {
     const details = row.details || {}
+    const complaints = details.complaints ?? details.notes ?? details.description
 
     return {
       id: row.id,
@@ -18,8 +19,8 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       status: row.status as JobStatus,
       createdBy: row.created_by,
       assignedMechanicId: row.assigned_mechanic_id,
-      description: details.description,
-      notes: details.notes,
+      description: complaints,
+      notes: complaints,
       details,
       startedAt: details.startedAt ? new Date(details.startedAt) : undefined,
       completedAt: details.completedAt ? new Date(details.completedAt) : undefined,
@@ -65,13 +66,13 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       ...baseDetails,
     }
 
-    if (job.description) {
-      details.description = job.description
+    const complaints = job.notes ?? job.description
+    if (complaints !== undefined) {
+      details.complaints = complaints
     }
 
-    if (job.notes) {
-      details.notes = job.notes
-    }
+    delete details.notes
+    delete details.description
 
     if (job.startedAt) {
       details.startedAt = job.startedAt.toISOString()
@@ -261,16 +262,16 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     const description = job.description !== undefined ? job.description : existing.description
     const notes = job.notes !== undefined ? job.notes : existing.notes
+    const complaints = notes !== undefined ? notes : description
     const startedAt = job.startedAt !== undefined ? job.startedAt : existing.startedAt
     const completedAt = job.completedAt !== undefined ? job.completedAt : existing.completedAt
 
-    if (description) {
-      mergedDetails.description = description
+    if (complaints !== undefined) {
+      mergedDetails.complaints = complaints
     }
 
-    if (notes) {
-      mergedDetails.notes = notes
-    }
+    delete mergedDetails.notes
+    delete mergedDetails.description
 
     if (startedAt) {
       mergedDetails.startedAt = startedAt.toISOString()

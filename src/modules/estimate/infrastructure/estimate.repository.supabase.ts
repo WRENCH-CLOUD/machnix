@@ -19,7 +19,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       jobcardId: row.jobcard_id,
       estimateNumber: row.estimate_number,
       status: row.status as EstimateStatus,
-      description: row.description,
       laborTotal: row.labor_total,
       partsTotal: row.parts_total,
       subtotal: row.subtotal,
@@ -81,7 +80,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       jobcard_id: estimate.jobcardId,
       estimate_number: estimate.estimateNumber,
       status: estimate.status,
-      description: estimate.description,
       labor_total: estimate.laborTotal,
       parts_total: estimate.partsTotal,
       subtotal: estimate.subtotal,
@@ -227,8 +225,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
 
     const dbUpdates: any = {};
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.description !== undefined)
-      dbUpdates.description = updates.description;
     if (updates.laborTotal !== undefined)
       dbUpdates.labor_total = updates.laborTotal;
     if (updates.partsTotal !== undefined)
@@ -316,7 +312,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
         part_id: item.partId || null,
         custom_name: item.customName,
         custom_part_number: item.customPartNumber || null,
-        description: item.description || null,
         qty: item.qty,
         unit_price: item.unitPrice,
         labor_cost: item.laborCost || 0,
@@ -336,7 +331,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       partId: data.part_id,
       customName: data.custom_name,
       customPartNumber: data.custom_part_number,
-      description: data.description,
       qty: data.qty,
       unitPrice: data.unit_price,
       laborCost: data.labor_cost,
@@ -351,8 +345,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       dbUpdates.custom_name = updates.customName;
     if (updates.customPartNumber !== undefined)
       dbUpdates.custom_part_number = updates.customPartNumber;
-    if (updates.description !== undefined)
-      dbUpdates.description = updates.description;
     if (updates.qty !== undefined) dbUpdates.qty = updates.qty;
     if (updates.unitPrice !== undefined)
       dbUpdates.unit_price = updates.unitPrice;
@@ -377,7 +369,6 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       partId: data.part_id,
       customName: data.custom_name,
       customPartNumber: data.custom_part_number,
-      description: data.description,
       qty: data.qty,
       unitPrice: data.unit_price,
       laborCost: data.labor_cost,

@@ -48,7 +48,7 @@ interface CustomersViewProps {
   loading: boolean
   error: string | null
   onAddCustomer: (data: CustomerFormData) => Promise<void>
-  onEditCustomer: (id: string, data: CustomerFormData & { notes: string }) => Promise<void>
+  onEditCustomer: (id: string, data: CustomerFormData) => Promise<void>
   onDeleteCustomer: (id: string) => Promise<void>
   onRefresh: () => void
   onCreateJob?: (customer: CustomerWithStats) => void
@@ -141,7 +141,7 @@ export function CustomersView({
     setShowDetailDialog(false)
   }
 
-  const handleSaveEdit = async (id: string, data: CustomerFormData & { notes: string }) => {
+  const handleSaveEdit = async (id: string, data: CustomerFormData) => {
     await onEditCustomer(id, data)
     onRefresh()
   }
