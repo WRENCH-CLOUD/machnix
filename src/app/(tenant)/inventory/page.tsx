@@ -358,7 +358,7 @@ export default function InventoryPage() {
   ], [formatDate, getTransactionBadgeVariant]);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="md:px-6 lg:px-8 pt-1 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
@@ -379,7 +379,7 @@ export default function InventoryPage() {
       {/* Reserved Stock and Recent Transactions Grid Moved Up */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reserved Stock Card */}
-        <Card className="flex flex-col h-[350px]">
+        <Card className="flex flex-col h-[300px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -400,7 +400,7 @@ export default function InventoryPage() {
         </Card>
 
         {/* Recent Transactions Card */}
-        <Card className="flex flex-col h-[350px]">
+        <Card className="flex flex-col h-[300px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>

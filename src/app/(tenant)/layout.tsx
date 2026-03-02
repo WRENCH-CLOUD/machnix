@@ -27,16 +27,18 @@ function TenantLayoutContent({
 }) {
   return (
     <>
-      <AppSidebar
-        activeView={activeView}
-        onViewChange={onViewChange}
-      />
+      <div className="flex h-screen overflow-hidden">
+        <AppSidebar
+          activeView={activeView}
+          onViewChange={onViewChange}
+        />
+      </div>
       <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
         <TopHeader
           tenantName={tenantName}
           onCreateJob={onCreateJob}
         />
-        <div className="TenantDashboard flex flex-col space-y-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {children}
         </div>
       </div>

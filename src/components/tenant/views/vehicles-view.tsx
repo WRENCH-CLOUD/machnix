@@ -194,7 +194,7 @@ export function VehiclesView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100svh-4rem)] overflow-hidden p-4 md:p-6 gap-4 md:gap-6">
+    <div className="flex flex-col h-[85vh] overflow-hidden p-4 md:p-6 gap-4 md:gap-6">
       <div className ="flex-shrink-0 space-y-4 md:space-y-6">
         {/* Header */}
         <div className="flex flex-col sticky sm:flex-row sm:items-center justify-between gap-2">
