@@ -95,7 +95,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
       specialty: 'Mechanic', // TODO: add specialty field to database
     } : null,
     status: dbJob.status,
-    complaints: extractComplaints(dbJob.details),
+    complaints: extractComplaints(dbJob.details, dbJob),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
     // Keep legacy snake_case fields for compatibility if needed, otherwise remove them
@@ -136,16 +136,18 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
 /**
  * Extract complaints from job details JSONB field
  */
-function extractComplaints(details: any): string {
-  if (!details) return 'No complaints recorded'
+function extractComplaints(details: any, job?: Partial<JobCardWithRelations>): string {
+  const fromTopLevel = job?.notes || job?.description
 
-  if (typeof details === 'string') return details
+  if (!details) return fromTopLevel || 'No complaints recorded'
+
+  if (typeof details === 'string') return details || fromTopLevel || 'No complaints recorded'
 
   if (typeof details === 'object') {
-    return details.complaints || details.description || 'No complaints recorded'
+    return details.complaints || details.notes || details.description || fromTopLevel || 'No complaints recorded'
   }
 
-  return 'No complaints recorded'
+  return fromTopLevel || 'No complaints recorded'
 }
 
 /**
