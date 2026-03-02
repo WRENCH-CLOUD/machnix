@@ -11,15 +11,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { InventoryTransaction } from "@/modules/inventory/domain/inventory.entity";
 import { Badge } from "@/components/ui/badge";
+
+/** Client-safe transaction shape (no raw DB IDs) */
+interface SafeTransaction {
+  itemId: string;
+  transactionType: string;
+  quantity: number;
+  unitCost?: number;
+  referenceType?: string;
+  createdBy?: string;
+  createdAt: string;
+}
 
 interface TransactionHistoryProps {
   itemId?: string;
 }
 
 export function TransactionHistory({ itemId }: TransactionHistoryProps) {
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [transactions, setTransactions] = useState<SafeTransaction[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -65,8 +75,8 @@ export function TransactionHistory({ itemId }: TransactionHistoryProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
+              {transactions.map((tx, index) => (
+                <TableRow key={`${tx.itemId}-${tx.createdAt}-${index}`}>
                   <TableCell>{format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">

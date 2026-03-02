@@ -44,8 +44,6 @@ export async function POST(request: Request) {
     )
 
     return NextResponse.json({
-      allocationId: reserveResult.allocation.id,
-      itemId: reserveResult.allocation.itemId,
       quantityReserved: reserveResult.allocation.quantityReserved,
       stockRemaining: reserveResult.stockRemaining,
       stockAvailable: reserveResult.stockAvailable,

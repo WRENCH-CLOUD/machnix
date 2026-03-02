@@ -3,8 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { RecordTransactionUseCase } from '@/modules/inventory/application/record-transaction.use-case'
-import { ReferenceType, TransactionType } from '@/modules/inventory/domain/inventory.entity'
+import { InventoryTransaction, ReferenceType, TransactionType } from '@/modules/inventory/domain/inventory.entity'
 import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+
+/** Strip internal DB fields before sending to client */
+function toSafeTransaction({ id, tenantId, referenceId, ...rest }: InventoryTransaction & { itemName?: string }) {
+  return rest
+}
 
 const transactionSchema = z.object({
   itemId: z.string().uuid(),
@@ -32,22 +37,22 @@ export async function GET(request: Request) {
 
     if (itemId) {
       const transactions = await repository.findTransactionsByItem(itemId)
-      return NextResponse.json(transactions)
+      return NextResponse.json(transactions.map(toSafeTransaction))
     }
 
     if (referenceType && referenceId) {
-        const validRefTypes = ['jobcard', 'invoice', 'purchase_order', 'manual']
-        if (!validRefTypes.includes(referenceType)) {
-             return NextResponse.json({ error: 'Invalid referenceType' }, { status: 400 })
-        }
-        const transactions = await repository.findTransactionsByReference(referenceType as ReferenceType, referenceId)
-        return NextResponse.json(transactions)
+      const validRefTypes = ['jobcard', 'invoice', 'purchase_order', 'manual']
+      if (!validRefTypes.includes(referenceType)) {
+        return NextResponse.json({ error: 'Invalid referenceType' }, { status: 400 })
+      }
+      const transactions = await repository.findTransactionsByReference(referenceType as ReferenceType, referenceId)
+      return NextResponse.json(transactions.map(toSafeTransaction))
     }
 
     // Return recent transactions with item names
     const recentLimit = limit ? parseInt(limit, 10) : 20
     const transactions = await repository.findRecentTransactions(recentLimit)
-    return NextResponse.json(transactions)
+    return NextResponse.json(transactions.map(toSafeTransaction))
 
   } catch (error: any) {
     console.error('Error fetching transactions:', error)
@@ -74,18 +79,18 @@ export async function POST(request: Request) {
     const useCase = new RecordTransactionUseCase(repository)
 
     const input = {
-        itemId: result.data.itemId,
-        transactionType: result.data.transactionType as TransactionType,
-        quantity: result.data.quantity,
-        unitCost: result.data.unitCost,
-        referenceType: result.data.referenceType as ReferenceType | undefined,
-        referenceId: result.data.referenceId,
-        createdBy: userId
+      itemId: result.data.itemId,
+      transactionType: result.data.transactionType as TransactionType,
+      quantity: result.data.quantity,
+      unitCost: result.data.unitCost,
+      referenceType: result.data.referenceType as ReferenceType | undefined,
+      referenceId: result.data.referenceId,
+      createdBy: userId
     }
 
     const transaction = await useCase.execute(input)
 
-    return NextResponse.json(transaction, { status: 201 })
+    return NextResponse.json(toSafeTransaction(transaction), { status: 201 })
   } catch (error: any) {
     console.error('Error recording transaction:', error)
     if (error.message === 'Item not found') {
