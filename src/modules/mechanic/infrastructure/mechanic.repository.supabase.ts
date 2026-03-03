@@ -8,6 +8,8 @@ type DbMechanic = {
     name: string
     phone: string | null
     email: string | null
+    efficiency_score: number
+    current_work_status: 'idle' | 'working' | 'waiting_for_part' | 'on_leave'
     is_active: boolean
     created_at: string
     updated_at: string
@@ -28,6 +30,8 @@ export class SupabaseMechanicRepository
             name: row.name,
             phone: row.phone || undefined,
             email: row.email || undefined,
+            efficiencyScore: row.efficiency_score ?? 1.0,
+            currentWorkStatus: row.current_work_status ?? 'idle',
             isActive: row.is_active ?? true,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at || row.created_at),
@@ -43,6 +47,8 @@ export class SupabaseMechanicRepository
             name: entity.name,
             phone: entity.phone || null,
             email: entity.email || null,
+            efficiency_score: entity.efficiencyScore,
+            current_work_status: entity.currentWorkStatus,
             is_active: entity.isActive,
             created_at: '',
             updated_at: '',
@@ -129,6 +135,8 @@ export class SupabaseMechanicRepository
         if (input.name !== undefined) updates.name = input.name
         if (input.phone !== undefined) updates.phone = input.phone
         if (input.email !== undefined) updates.email = input.email
+        if (input.efficiencyScore !== undefined) updates.efficiency_score = input.efficiencyScore
+        if (input.currentWorkStatus !== undefined) updates.current_work_status = input.currentWorkStatus
         if (input.isActive !== undefined) updates.is_active = input.isActive
 
         const { data, error } = await this.supabase

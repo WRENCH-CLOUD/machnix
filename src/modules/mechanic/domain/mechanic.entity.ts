@@ -9,6 +9,8 @@ export interface Mechanic {
     name: string
     phone?: string
     email?: string
+    efficiencyScore: number
+    currentWorkStatus: 'idle' | 'working' | 'waiting_for_part' | 'on_leave'
     isActive: boolean
     createdAt: Date
     updatedAt: Date
@@ -33,5 +35,7 @@ export type UpdateMechanicInput = Partial<{
     name: string
     phone: string
     email: string
+    efficiencyScore: number
+    currentWorkStatus: 'idle' | 'working' | 'waiting_for_part' | 'on_leave'
     isActive: boolean
 }>

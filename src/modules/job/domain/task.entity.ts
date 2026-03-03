@@ -54,6 +54,14 @@ export interface JobCardTask {
   // Whether this task should appear in the customer estimate
   showInEstimate: boolean
 
+  // Brain System Fields
+  serviceCategoryId?: string
+  requiredSkillLevel?: number
+  requiredBayType?: string
+  priorityScore: number
+  estimatedTimeMinutes?: number
+  actualTimeMinutes?: number
+
   // Audit fields
   createdBy?: string
   approvedBy?: string
@@ -138,12 +146,17 @@ export interface UpdateTaskInput {
   laborCostSnapshot?: number
   taxRateSnapshot?: number
   showInEstimate?: boolean
+  serviceCategoryId?: string
+  requiredSkillLevel?: number
+  requiredBayType?: string
+  estimatedTimeMinutes?: number
 }
 
 export interface UpdateTaskStatusInput {
   taskStatus: TaskStatus
   completedBy?: string
   approvedBy?: string
+  actualTimeMinutes?: number
 }
 
 // ============================================================================
@@ -175,4 +188,10 @@ export interface JobCardTaskRow {
   updated_at: string
   deleted_at: string | null
   deleted_by: string | null
+  service_category_id: string | null
+  required_skill_level: number | null
+  required_bay_type: string | null
+  priority_score: number
+  estimated_time_minutes: number | null
+  actual_time_minutes: number | null
 }

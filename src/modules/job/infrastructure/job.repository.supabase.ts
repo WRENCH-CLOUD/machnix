@@ -23,6 +23,10 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       details,
       startedAt: details.startedAt ? new Date(details.startedAt) : undefined,
       completedAt: details.completedAt ? new Date(details.completedAt) : undefined,
+      isWaitingOnSite: row.is_waiting_on_site ?? false,
+      promisedDeliveryTime: row.promised_delivery_time ? new Date(row.promised_delivery_time) : undefined,
+      softDeadline: row.soft_deadline ? new Date(row.soft_deadline) : undefined,
+      hardDeadline: row.hard_deadline ? new Date(row.hard_deadline) : undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
       deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
@@ -89,6 +93,10 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
       status: job.status,
       created_by: job.createdBy,
       assigned_mechanic_id: job.assignedMechanicId,
+      is_waiting_on_site: job.isWaitingOnSite,
+      promised_delivery_time: job.promisedDeliveryTime?.toISOString(),
+      soft_deadline: job.softDeadline?.toISOString(),
+      hard_deadline: job.hardDeadline?.toISOString(),
       details,
     }
   }
@@ -286,6 +294,16 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
         ? job.assignedMechanicId
         : existing.assignedMechanicId,
       created_by: existing.createdBy,
+      is_waiting_on_site: job.isWaitingOnSite !== undefined ? job.isWaitingOnSite : existing.isWaitingOnSite,
+      promised_delivery_time: job.promisedDeliveryTime !== undefined 
+        ? job.promisedDeliveryTime?.toISOString() 
+        : existing.promisedDeliveryTime?.toISOString(),
+      soft_deadline: job.softDeadline !== undefined 
+        ? job.softDeadline?.toISOString() 
+        : existing.softDeadline?.toISOString(),
+      hard_deadline: job.hardDeadline !== undefined 
+        ? job.hardDeadline?.toISOString() 
+        : existing.hardDeadline?.toISOString(),
       details: mergedDetails,
     }
 

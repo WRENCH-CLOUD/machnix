@@ -19,6 +19,10 @@ export interface JobCard {
   description?: string
   notes?: string
   details: Record<string, any>
+  isWaitingOnSite: boolean
+  promisedDeliveryTime?: Date
+  softDeadline?: Date
+  hardDeadline?: Date
   startedAt?: Date
   completedAt?: Date
   createdAt: Date

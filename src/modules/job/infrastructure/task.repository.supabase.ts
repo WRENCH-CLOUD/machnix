@@ -42,6 +42,12 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       updatedAt: new Date(row.updated_at),
       deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
       deletedBy: row.deleted_by ?? undefined,
+      serviceCategoryId: row.service_category_id ?? undefined,
+      requiredSkillLevel: row.required_skill_level ?? undefined,
+      requiredBayType: row.required_bay_type ?? undefined,
+      priorityScore: row.priority_score ? Number(row.priority_score) : 0,
+      estimatedTimeMinutes: row.estimated_time_minutes ?? undefined,
+      actualTimeMinutes: row.actual_time_minutes ?? undefined,
     }
   }
 
@@ -71,6 +77,12 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       updated_at: new Date().toISOString(), // placeholder
       deleted_at: entity.deletedAt?.toISOString() ?? null,
       deleted_by: entity.deletedBy ?? null,
+      service_category_id: entity.serviceCategoryId ?? null,
+      required_skill_level: entity.requiredSkillLevel ?? null,
+      required_bay_type: entity.requiredBayType ?? null,
+      priority_score: entity.priorityScore ?? 0,
+      estimated_time_minutes: entity.estimatedTimeMinutes ?? null,
+      actual_time_minutes: entity.actualTimeMinutes ?? null,
     }
   }
 
@@ -184,6 +196,10 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
       task_status: 'DRAFT' as TaskStatus,
       created_by: input.createdBy ?? null,
       show_in_estimate: input.showInEstimate ?? true,
+      service_category_id: input.serviceCategoryId ?? null,
+      required_skill_level: input.requiredSkillLevel ?? null,
+      required_bay_type: input.requiredBayType ?? null,
+      estimated_time_minutes: input.estimatedTimeMinutes ?? null,
     }
 
     const { data, error } = await this.supabase
@@ -211,6 +227,10 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
     if (input.laborCostSnapshot !== undefined) updates.labor_cost_snapshot = input.laborCostSnapshot
     if (input.taxRateSnapshot !== undefined) updates.tax_rate_snapshot = input.taxRateSnapshot
     if (input.showInEstimate !== undefined) updates.show_in_estimate = input.showInEstimate
+    if (input.serviceCategoryId !== undefined) updates.service_category_id = input.serviceCategoryId
+    if (input.requiredSkillLevel !== undefined) updates.required_skill_level = input.requiredSkillLevel
+    if (input.requiredBayType !== undefined) updates.required_bay_type = input.requiredBayType
+    if (input.estimatedTimeMinutes !== undefined) updates.estimated_time_minutes = input.estimatedTimeMinutes
 
     const { data, error } = await this.supabase
       .schema('tenant')
@@ -242,6 +262,9 @@ export class SupabaseTaskRepository extends BaseSupabaseRepository<JobCardTask, 
     if (input.taskStatus === 'COMPLETED' && input.completedBy) {
       updates.completed_by = input.completedBy
       updates.completed_at = new Date().toISOString()
+      if (input.actualTimeMinutes !== undefined) {
+          updates.actual_time_minutes = input.actualTimeMinutes
+      }
     }
 
     const { data, error } = await this.supabase

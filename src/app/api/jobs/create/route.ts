@@ -24,6 +24,9 @@ const createJobSchema = z.object({
   serviceType: z.string().max(100, 'Service type too long').optional(),
   priority: z.enum(['low', 'normal', 'medium', 'high', 'urgent']).optional(),
   estimatedCompletion: z.string().optional(),
+  isWaitingOnSite: z.boolean().optional(),
+  hardDeadline: z.string().optional(),
+  softDeadline: z.string().optional(),
   details: z.record(z.unknown()).optional(),
   todos: z.array(todoItemSchema).max(50, 'Too many tasks').optional(),
 })

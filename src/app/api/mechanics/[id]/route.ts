@@ -65,6 +65,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             phone: body.phone,
             email: body.email,
             isActive: body.isActive,
+            currentWorkStatus: body.currentWorkStatus,
         })
 
         return NextResponse.json(mechanic)

@@ -28,9 +28,12 @@ import {
   Plus,
   Loader2,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleServiceHistory } from "./vehicle-service-history";
@@ -57,6 +60,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
     description: "",
     priority: "medium",
     estimatedCompletion: "",
+    isWaitingOnSite: false,
+    hardDeadline: "",
+    softDeadline: "",
   });
 
   // Search/Data State
@@ -258,7 +264,12 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
         body: JSON.stringify({
           customerId: selectedCustomer.id,
           vehicleId: selectedVehicle.id,
-          ...jobDetails,
+          serviceType: jobDetails.serviceType,
+          description: jobDetails.description,
+          priority: jobDetails.priority,
+          isWaitingOnSite: jobDetails.isWaitingOnSite,
+          hardDeadline: jobDetails.hardDeadline || undefined,
+          softDeadline: jobDetails.softDeadline || undefined,
           assignedMechanicId: selectedMechanicId || undefined,
         }),
       });
@@ -562,6 +573,36 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
               />
             </div>
 
+            {/* Urgency & CRM Flags */}
+            <div className="grid grid-cols-2 gap-4 mt-4 p-4 border rounded-lg bg-muted/20">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      Waiting on Site
+                    </Label>
+                    <p className="text-[10px] text-muted-foreground">Customer is in the lobby</p>
+                  </div>
+                  <Switch
+                    checked={jobDetails.isWaitingOnSite}
+                    onCheckedChange={(c) => setJobDetails({ ...jobDetails, isWaitingOnSite: c })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  Hard Deadline (Drop-dead)
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={jobDetails.hardDeadline}
+                  onChange={(e) => setJobDetails({ ...jobDetails, hardDeadline: e.target.value })}
+                />
+              </div>
+            </div>
+
             {/* Mechanic Assignment (Optional) */}
             <div className="space-y-2">
               <Label>Assign Mechanic (Optional)</Label>
@@ -623,6 +664,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   }>
                     {jobDetails.priority} Priority
                   </Badge>
+                  {jobDetails.isWaitingOnSite && (
+                    <Badge variant="destructive" className="ml-2 animate-pulse">Waiting On Site</Badge>
+                  )}
                 </div>
                 <p className="text-sm italic break-words whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
               </div>

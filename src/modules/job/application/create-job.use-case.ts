@@ -14,6 +14,9 @@ export interface CreateJobDTO {
   serviceType?: string
   priority?: string
   estimatedCompletion?: string
+  isWaitingOnSite?: boolean
+  hardDeadline?: string
+  softDeadline?: string
 }
 
 /**
@@ -56,6 +59,9 @@ export class CreateJobUseCase {
       description: dto.description,
       notes: dto.notes,
       assignedMechanicId: dto.assignedMechanicId,
+      isWaitingOnSite: dto.isWaitingOnSite ?? false,
+      hardDeadline: dto.hardDeadline ? new Date(dto.hardDeadline) : undefined,
+      softDeadline: dto.softDeadline ? new Date(dto.softDeadline) : undefined,
       details,
       createdBy,
     })
