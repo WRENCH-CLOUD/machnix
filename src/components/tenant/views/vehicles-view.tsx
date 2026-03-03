@@ -448,7 +448,7 @@ export function VehiclesView({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card 
+              <Card
                 className="hover:border-primary/50 transition-colors cursor-pointer group"
                 onClick={() => handleViewDetails(vehicle)}
               >
@@ -491,7 +491,7 @@ export function VehiclesView({
                         {onDeleteVehicle && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={(e) => { e.stopPropagation(); handleDelete(vehicle); }}
                             >
@@ -538,13 +538,13 @@ export function VehiclesView({
                       <div className="text-sm font-medium">
                         {vehicle.lastService
                           ? new Date(vehicle.lastService).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )
                           : "N/A"}
                       </div>
                       <div className="text-xs text-muted-foreground">

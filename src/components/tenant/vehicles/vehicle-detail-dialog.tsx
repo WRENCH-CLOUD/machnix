@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Car,
   Calendar,
@@ -17,7 +19,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehicleViewModel } from "@/lib/transformers";
 
 interface VehicleDetailDialogProps {
@@ -37,23 +38,42 @@ export function VehicleDetailDialog({
   onDelete,
   onCreateJob,
 }: VehicleDetailDialogProps) {
-  if (!vehicle || !isOpen) return null;
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Reset to details tab when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab("details");
+    }
+  }, [isOpen]);
+
+  if (!vehicle || !isOpen || !mounted) return null;
+
+  const dialogContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
-          onClick={onClose}
+          className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="w-full max-w-2xl bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col max-h-[90vh]"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -95,29 +115,46 @@ export function VehicleDetailDialog({
               </Button>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-              <div className="border-b border-border px-6 flex-none">
-                <TabsList className="h-12 bg-transparent border-0 p-0 gap-6">
-                  <TabsTrigger
-                    value="details"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Details
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="history"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
-                  >
-                    <Wrench className="w-4 h-4 mr-2" />
-                    Service History
-                  </TabsTrigger>
-                </TabsList>
+            {/* Custom Tab Bar */}
+            <div className="border-b border-border px-6 flex-none">
+              <div className="flex gap-6 h-12">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab("details");
+                  }}
+                  className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "details"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab("history");
+                  }}
+                  className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "history"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  <Wrench className="w-4 h-4" />
+                  Service History
+                </button>
               </div>
+            </div>
 
-              <div className="flex-1 overflow-y-auto">
-                <TabsContent value="details" className="m-0 p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto">
+              {/* Details Tab */}
+              {activeTab === "details" && (
+                <div className="p-6 space-y-6">
                   {/* Vehicle Information */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -220,13 +257,13 @@ export function VehicleDetailDialog({
                         <div className="text-sm font-bold text-foreground">
                           {vehicle.lastService
                             ? new Date(vehicle.lastService).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                }
-                              )
+                              "en-IN",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )
                             : "N/A"}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -235,15 +272,17 @@ export function VehicleDetailDialog({
                       </div>
                     </div>
                   </div>
-                </TabsContent>
+                </div>
+              )}
 
-                <TabsContent value="history" className="m-0 p-6 space-y-4">
+              {/* History Tab */}
+              {activeTab === "history" && (
+                <div className="p-6 space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     Service History
                   </h3>
                   {vehicle.totalJobs && vehicle.totalJobs > 0 ? (
                     <div className="space-y-3">
-                      {/* Placeholder for service history - you can expand this with actual job data */}
                       <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl border border-border">
                         <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                           <Wrench className="w-5 h-5 text-emerald-500" />
@@ -256,10 +295,10 @@ export function VehicleDetailDialog({
                             Last service on{" "}
                             {vehicle.lastService
                               ? new Date(vehicle.lastService).toLocaleDateString("en-IN", {
-                                  day: "2-digit",
-                                  month: "long",
-                                  year: "numeric",
-                                })
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              })
                               : "N/A"}
                           </p>
                         </div>
@@ -282,9 +321,9 @@ export function VehicleDetailDialog({
                       )}
                     </div>
                   )}
-                </TabsContent>
-              </div>
-            </Tabs>
+                </div>
+              )}
+            </div>
 
             {/* Footer Actions */}
             <div className="border-t border-border p-4 bg-secondary/30">
@@ -323,4 +362,6 @@ export function VehicleDetailDialog({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(dialogContent, document.body);
 }
