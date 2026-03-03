@@ -358,7 +358,7 @@ export default function InventoryPage() {
   ], [formatDate, getTransactionBadgeVariant]);
 
   return (
-    <div className="md:px-6 lg:px-8 pt-1 space-y-6">
+    <div className="h-[85vh] overflow-y-hidden md:px-6 lg:px-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
@@ -379,7 +379,7 @@ export default function InventoryPage() {
       {/* Reserved Stock and Recent Transactions Grid Moved Up */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reserved Stock Card */}
-        <Card className="flex flex-col h-[300px]">
+        <Card className="flex flex-col h-[250px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -400,7 +400,7 @@ export default function InventoryPage() {
         </Card>
 
         {/* Recent Transactions Card */}
-        <Card className="flex flex-col h-[300px]">
+        <Card className="flex flex-col h-[250px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -438,53 +438,55 @@ export default function InventoryPage() {
       </div>
 
       {/* Main Inventory Table */}
-      <DataTable columns={inventoryColumns} data={filteredItems} />
+      <div className="h-[180px] overflow-y-scroll">
+        <DataTable columns={inventoryColumns} data={filteredItems} />
 
-      <ItemFormModal
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        onSubmit={handleCreate}
-        mode="create"
-      />
-
-      {editingItem && (
         <ItemFormModal
-          open={!!editingItem}
-          onOpenChange={(open) => !open && setEditingItem(null)}
-          onSubmit={handleUpdate}
-          initialData={editingItem}
-          mode="edit"
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          onSubmit={handleCreate}
+          mode="create"
         />
-      )}
 
-      {adjustingItem && (
-        <StockAdjustmentModal
-          open={!!adjustingItem}
-          onOpenChange={(open) => !open && setAdjustingItem(null)}
-          onSubmit={handleAdjustStock}
-          itemName={adjustingItem.name}
+        {editingItem && (
+          <ItemFormModal
+            open={!!editingItem}
+            onOpenChange={(open) => !open && setEditingItem(null)}
+            onSubmit={handleUpdate}
+            initialData={editingItem}
+            mode="edit"
+          />
+        )}
+
+        {adjustingItem && (
+          <StockAdjustmentModal
+            open={!!adjustingItem}
+            onOpenChange={(open) => !open && setAdjustingItem(null)}
+            onSubmit={handleAdjustStock}
+            itemName={adjustingItem.name}
+          />
+        )}
+
+        {viewingHistoryItem && (
+          <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
+            <DialogContent className="sm:max-w-[700px]">
+              <DialogHeader>
+                <DialogTitle>Transaction History</DialogTitle>
+                <DialogDescription>
+                  Viewing transaction history for {viewingHistoryItem.name}
+                </DialogDescription>
+              </DialogHeader>
+              <TransactionHistory itemId={viewingHistoryItem.id} />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        <ImportInventoryModal
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          onImportComplete={fetchItems}
         />
-      )}
-
-      {viewingHistoryItem && (
-        <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
-          <DialogContent className="sm:max-w-[700px]">
-            <DialogHeader>
-              <DialogTitle>Transaction History</DialogTitle>
-              <DialogDescription>
-                Viewing transaction history for {viewingHistoryItem.name}
-              </DialogDescription>
-            </DialogHeader>
-            <TransactionHistory itemId={viewingHistoryItem.id} />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <ImportInventoryModal
-        open={isImportOpen}
-        onOpenChange={setIsImportOpen}
-        onImportComplete={fetchItems}
-      />
+      </div>
     </div>
   );
 }
