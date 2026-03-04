@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Car,
@@ -39,20 +39,15 @@ export function VehicleDetailDialog({
   onCreateJob,
 }: VehicleDetailDialogProps) {
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
-  const [mounted, setMounted] = useState(false);
+  const prevIsOpenRef = useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Reset to details tab when dialog opens (no useEffect needed)
+  if (isOpen && !prevIsOpenRef.current) {
+    setActiveTab("details");
+  }
+  prevIsOpenRef.current = isOpen;
 
-  // Reset to details tab when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab("details");
-    }
-  }, [isOpen]);
-
-  if (!vehicle || !isOpen || !mounted) return null;
+  if (!vehicle || !isOpen || typeof window === "undefined") return null;
 
   const dialogContent = (
     <AnimatePresence>
@@ -72,9 +67,8 @@ export function VehicleDetailDialog({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-2xl bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col max-h-[90vh]"
+            className="w-full max-w-2xl h-[600px] bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col"
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
@@ -126,8 +120,8 @@ export function VehicleDetailDialog({
                     setActiveTab("details");
                   }}
                   className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "details"
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   <FileText className="w-4 h-4" />
@@ -141,8 +135,8 @@ export function VehicleDetailDialog({
                     setActiveTab("history");
                   }}
                   className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "history"
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   <Wrench className="w-4 h-4" />
