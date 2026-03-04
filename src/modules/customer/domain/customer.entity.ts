@@ -9,7 +9,6 @@ export interface Customer {
   phone?: string
   email?: string
   address?: string
-  notes?: string
   createdAt: Date
   updatedAt: Date
   deletedAt?: Date
