@@ -340,7 +340,7 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
 
 
   return (
-    <div className="h-full flex flex-col p-3 md:p-6 space-y-4 md:space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h1 className="text-lg md:text-2xl font-bold text-foreground">All Jobs</h1>
@@ -409,8 +409,8 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
         </Select>
       </div>
 
-      {/* Table with horizontal scroll on mobile */}
-      <div className="flex-1 min-h-0 relative">
+      {/* Table */}
+      <div className="relative">
         <DataTable
           data={filteredAndSortedJobs}
           columns={columns}

@@ -157,8 +157,8 @@ export function CustomersView({
   }
 
   return (
-    <div className="h-[calc(100svh-4rem)] flex flex-col space-y-6 overflow-hidden p-4 md:p-6 lg:p-8">
-      <div className="flex-shrink-0 space-y-4 mt-4 overflow-hidden">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -302,7 +302,7 @@ export function CustomersView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 pb-4">
+      <div>
         {/* Loading State */}
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
