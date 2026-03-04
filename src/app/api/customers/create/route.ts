@@ -9,7 +9,6 @@ const createCustomerSchema = z.object({
   phone: z.string().max(20, "Phone number too long").optional(),
   email: z.string().email("Invalid email format").max(255, "Email too long").optional().or(z.literal('')),
   address: z.string().max(500, "Address too long").optional(),
-  notes: z.string().max(1000, "Notes too long").optional(),
 })
 
 export async function POST(request: NextRequest) {

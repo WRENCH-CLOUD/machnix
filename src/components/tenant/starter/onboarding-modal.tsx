@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -27,14 +27,53 @@ const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Lakshadweep'
 ]
 
+const INDIAN_CITIES_BY_STATE: Record<string, string[]> = {
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Rajahmundry', 'Tirupati', 'Kakinada', 'Kadapa', 'Anantapur', 'Ongole', 'Eluru', 'Machilipatnam', 'Vizianagaram', 'Chittoor'],
+  'Arunachal Pradesh': ['Itanagar', 'Naharlagun', 'Pasighat', 'Tawang', 'Ziro', 'Bomdila', 'Tezu', 'Along'],
+  'Assam': ['Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Nagaon', 'Tinsukia', 'Tezpur', 'Bongaigaon', 'Dhubri', 'Karimganj'],
+  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Purnia', 'Darbhanga', 'Bihar Sharif', 'Arrah', 'Begusarai', 'Katihar', 'Munger', 'Chhapra', 'Hajipur', 'Samastipur'],
+  'Chhattisgarh': ['Raipur', 'Bhilai', 'Bilaspur', 'Korba', 'Durg', 'Rajnandgaon', 'Jagdalpur', 'Raigarh', 'Ambikapur', 'Dhamtari'],
+  'Goa': ['Panaji', 'Vasco da Gama', 'Margao', 'Mapusa', 'Ponda', 'Bicholim', 'Curchorem', 'Canacona'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Gandhinagar', 'Junagadh', 'Anand', 'Navsari', 'Morbi', 'Nadiad', 'Surendranagar', 'Bharuch', 'Mehsana', 'Bhuj', 'Porbandar', 'Gondal'],
+  'Haryana': ['Faridabad', 'Gurgaon', 'Panipat', 'Ambala', 'Yamunanagar', 'Rohtak', 'Hisar', 'Karnal', 'Sonipat', 'Panchkula', 'Bhiwani', 'Sirsa', 'Bahadurgarh', 'Jind', 'Thanesar'],
+  'Himachal Pradesh': ['Shimla', 'Solan', 'Dharamshala', 'Mandi', 'Palampur', 'Baddi', 'Nahan', 'Paonta Sahib', 'Sundernagar', 'Chamba'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Phusro', 'Hazaribagh', 'Giridih', 'Ramgarh', 'Medininagar', 'Chaibasa', 'Chatra'],
+  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi', 'Kalaburagi', 'Ballari', 'Vijayapura', 'Shivamogga', 'Tumakuru', 'Davanagere', 'Bidar', 'Raichur', 'Hassan', 'Dharwad', 'Udupi', 'Chitradurga', 'Kolar', 'Mandya', 'Chikkamagaluru'],
+  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Kannur', 'Alappuzha', 'Palakkad', 'Malappuram', 'Kottayam', 'Kayamkulam', 'Thalassery', 'Kasaragod', 'Ponnani'],
+  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Dewas', 'Satna', 'Ratlam', 'Rewa', 'Murwara', 'Singrauli', 'Burhanpur', 'Khandwa', 'Bhind', 'Chhindwara', 'Guna', 'Shivpuri', 'Vidisha'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Solapur', 'Amravati', 'Navi Mumbai', 'Thane', 'Kolhapur', 'Sangli', 'Jalgaon', 'Akola', 'Latur', 'Dhule', 'Ahmednagar', 'Chandrapur', 'Parbhani', 'Ichalkaranji', 'Jalna', 'Ambarnath', 'Nanded', 'Bhiwandi', 'Panvel', 'Satara'],
+  'Manipur': ['Imphal', 'Thoubal', 'Bishnupur', 'Churachandpur', 'Senapati', 'Ukhrul'],
+  'Meghalaya': ['Shillong', 'Tura', 'Jowai', 'Nongstoin', 'Williamnagar', 'Baghmara'],
+  'Mizoram': ['Aizawl', 'Lunglei', 'Saiha', 'Champhai', 'Kolasib', 'Serchhip'],
+  'Nagaland': ['Kohima', 'Dimapur', 'Mokokchung', 'Tuensang', 'Wokha', 'Zunheboto', 'Mon'],
+  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Brahmapur', 'Sambalpur', 'Puri', 'Balasore', 'Bhadrak', 'Baripada', 'Jharsuguda', 'Rayagada', 'Jeypore', 'Barbil', 'Koraput'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Pathankot', 'Hoshiarpur', 'Batala', 'Moga', 'Abohar', 'Malerkotla', 'Khanna', 'Firozpur', 'Phagwara', 'Muktsar'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Bikaner', 'Ajmer', 'Udaipur', 'Bhilwara', 'Bharatpur', 'Alwar', 'Barmer', 'Sikar', 'Sri Ganganagar', 'Pali', 'Beawar', 'Hanumangarh', 'Chittorgarh', 'Nagaur', 'Tonk'],
+  'Sikkim': ['Gangtok', 'Namchi', 'Mangan', 'Gyalshing', 'Ravangla'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Erode', 'Vellore', 'Thoothukudi', 'Dindigul', 'Thanjavur', 'Ranipet', 'Sivakasi', 'Karunagappalli', 'Kanchipuram', 'Hosur', 'Nagercoil', 'Kumbakonam', 'Tiruppur', 'Karaikudi'],
+  'Telangana': ['Hyderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Ramagundam', 'Khammam', 'Mahbubnagar', 'Nalgonda', 'Adilabad', 'Suryapet', 'Miryalaguda', 'Siddipet', 'Zahirabad', 'Mancherial'],
+  'Tripura': ['Agartala', 'Dharmanagar', 'Udaipur', 'Kailashahar', 'Belonia', 'Khowai'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Meerut', 'Varanasi', 'Prayagraj', 'Bareilly', 'Aligarh', 'Moradabad', 'Saharanpur', 'Gorakhpur', 'Noida', 'Firozabad', 'Jhansi', 'Muzaffarnagar', 'Mathura', 'Shahjahanpur', 'Rampur', 'Hapur', 'Etawah', 'Faizabad', 'Mau', 'Mirzapur', 'Bulandshahr'],
+  'Uttarakhand': ['Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Rudrapur', 'Kashipur', 'Rishikesh', 'Pithoragarh', 'Ramnagar', 'Kotdwar'],
+  'West Bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Bardhaman', 'Malda', 'Baharampur', 'Habra', 'Kharagpur', 'Shantipur', 'Dankuni', 'Dhulian', 'Ranaghat', 'Haldia', 'Raiganj', 'Krishnanagar'],
+  'Delhi': ['New Delhi', 'Delhi', 'Noida (Delhi NCR)', 'Dwarka', 'Rohini', 'Pitampura', 'Janakpuri', 'Shahdara', 'Laxmi Nagar', 'Saket', 'Vasant Kunj', 'Patel Nagar', 'Karol Bagh'],
+  'Jammu and Kashmir': ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla', 'Sopore', 'Kathua', 'Udhampur', 'Poonch', 'Rajouri'],
+  'Ladakh': ['Leh', 'Kargil'],
+  'Puducherry': ['Puducherry', 'Karaikal', 'Mahe', 'Yanam'],
+  'Chandigarh': ['Chandigarh'],
+  'Andaman and Nicobar Islands': ['Port Blair', 'Diglipur', 'Rangat', 'Mayabunder'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Daman', 'Diu', 'Silvassa'],
+  'Lakshadweep': ['Kavaratti', 'Agatti', 'Minicoy', 'Andrott'],
+}
+
 const onboardingSchema = z.object({
   garageName: z.string().min(1, 'Garage name is required'),
   legalName: z.string().optional(),
   gstNumber: z.string().min(1, 'GST Number is required'),
   panNumber: z.string().optional(),
   address: z.string().min(1, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
+  city: z.string().min(1, 'City is required'),
   pincode: z.string().optional(),
   businessPhone: z.string().min(1, 'Phone number is required'),
   businessEmail: z.string().email('Invalid email').optional().or(z.literal('')),
@@ -72,7 +111,8 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     handleSubmit,
     formState: { errors },
     trigger,
-    // watch
+    watch,
+    setValue,
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     mode: 'onChange',
@@ -82,8 +122,8 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
       gstNumber: initialData?.settings?.gstNumber || '',
       panNumber: initialData?.settings?.panNumber || '',
       address: initialData?.settings?.address || '',
-      city: initialData?.settings?.city || '',
       state: initialData?.settings?.state || '',
+      city: initialData?.settings?.city || '',
       pincode: initialData?.settings?.pincode || '',
       businessPhone: initialData?.settings?.businessPhone || '',
       businessEmail: initialData?.settings?.businessEmail || '',
@@ -95,6 +135,16 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
       confirmPassword: ''
     }
   })
+
+  const selectedState = watch('state')
+  const availableCities = selectedState
+    ? (INDIAN_CITIES_BY_STATE[selectedState] ?? []).slice().sort()
+    : []
+
+  // Reset city when state changes
+  useEffect(() => {
+    setValue('city', '')
+  }, [selectedState, setValue])
 
   const onSubmit = async (data: OnboardingFormData) => {
     try {
@@ -118,7 +168,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     if (step === 1) {
       fieldsToValidate = ['garageName', 'gstNumber']
     } else if (step === 2) {
-      fieldsToValidate = ['address', 'city', 'state', 'pincode', 'businessPhone', 'businessEmail']
+      fieldsToValidate = ['address', 'state', 'city', 'pincode', 'businessPhone', 'businessEmail']
     } else if (step === 3) {
       // Preferences step - nothing to validate
       fieldsToValidate = []
@@ -256,20 +306,6 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">
-                      City <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="city"
-                      placeholder="City"
-                      {...register('city')}
-                      className={errors.city ? 'border-destructive' : ''}
-                    />
-                    {errors.city && (
-                      <p className="text-sm text-destructive">{errors.city.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="state">
                       State <span className="text-destructive">*</span>
                     </Label>
@@ -286,6 +322,27 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                     </select>
                     {errors.state && (
                       <p className="text-sm text-destructive">{errors.state.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">
+                      City <span className="text-destructive">*</span>
+                    </Label>
+                    <select
+                      id="city"
+                      {...register('city')}
+                      disabled={!selectedState}
+                      className={`flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.city ? 'border-destructive' : ''}`}
+                    >
+                      <option value="" className="bg-background text-foreground">
+                        {selectedState ? 'Select city' : 'Select state first'}
+                      </option>
+                      {availableCities.map((city) => (
+                        <option key={city} value={city} className="bg-background text-foreground">{city}</option>
+                      ))}
+                    </select>
+                    {errors.city && (
+                      <p className="text-sm text-destructive">{errors.city.message}</p>
                     )}
                   </div>
                 </div>

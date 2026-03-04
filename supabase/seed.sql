@@ -5,23 +5,23 @@
 -- ============================================================================
 -- VEHICLE CATEGORIES
 -- ============================================================================
-INSERT INTO public.vehicle_category (name, description) VALUES
-    ('Sedan', 'Four-door passenger car with a separate trunk'),
-    ('SUV', 'Sport Utility Vehicle - higher ground clearance and cargo space'),
-    ('Truck', 'Light-duty pickup trucks'),
-    ('Hatchback', 'Compact car with a rear door that swings upward'),
-    ('Minivan', 'Multi-purpose vehicle designed for transporting passengers'),
-    ('Sports Car', 'High performance vehicle designed for speed and agility'),
-    ('Hybrid', 'Vehicles with both electric and combustion engines'),
-    ('Electric', 'Battery Electric Vehicles (BEV)'),
-    ('Van', 'Cargo or passenger vans'),
-    ('Coupe', 'Two-door car with a fixed roof'),
-    ('Convertible', 'Car with a retractable roof'),
-    ('Wagon', 'Station wagon with extended cargo area'),
-    ('Motorcycle', 'Two-wheeled motor vehicle'),
-    ('Scooter', 'Step-through frame two-wheeler with automatic transmission'),
-    ('Electric Motorcycle', 'Battery-powered two-wheeled vehicle'),
-    ('Electric Scooter', 'Battery-powered step-through scooter')
+INSERT INTO public.vehicle_category (name) VALUES
+    ('Sedan'),
+    ('SUV'),
+    ('Truck'),
+    ('Hatchback'),
+    ('Minivan'),
+    ('Sports Car'),
+    ('Hybrid'),
+    ('Electric'),
+    ('Van'),
+    ('Coupe'),
+    ('Convertible'),
+    ('Wagon'),
+    ('Motorcycle'),
+    ('Scooter'),
+    ('Electric Motorcycle'),
+    ('Electric Scooter')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================

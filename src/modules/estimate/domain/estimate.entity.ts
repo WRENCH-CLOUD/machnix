@@ -13,7 +13,6 @@ export interface EstimateItem {
   partId?: string
   customName?: string
   customPartNumber?: string
-  description?: string
   qty: number
   unitPrice: number
   laborCost: number
@@ -34,7 +33,6 @@ export interface Estimate {
   jobcardId?: string
   estimateNumber: string
   status: EstimateStatus
-  description?: string
   laborTotal: number
   partsTotal: number
   subtotal: number
