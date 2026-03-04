@@ -66,6 +66,9 @@ export async function PATCH(
       complaints: notes,
     }
 
+    delete updatedDetails.notes
+    delete updatedDetails.description
+
     // Update the job with new details
     const { data, error } = await supabase
       .schema('tenant')
