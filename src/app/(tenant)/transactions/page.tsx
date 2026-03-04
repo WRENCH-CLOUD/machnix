@@ -93,7 +93,7 @@ export default function TransactionsPage() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 h-[85vh] overflow-y-hidden space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -170,7 +170,7 @@ export default function TransactionsPage() {
                             <p>No transactions found</p>
                         </div>
                     ) : (
-                        <div className="w-full">
+                        <div className="w-full h-[350px] overflow-y-auto">
                             {(() => {
                                 const columns: ColumnDef<any>[] = [
                                     {

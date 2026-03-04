@@ -190,9 +190,9 @@ export default function MechanicsPage() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 h-[85vh] overflow-y-hidden space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="sticky flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Mechanics</h1>
                     <p className="text-muted-foreground">
@@ -221,7 +221,7 @@ export default function MechanicsPage() {
             </Card>
 
             {/* Table */}
-            <Card>
+            <Card className="overflow-y-auto h-[380px]" >
                 <CardHeader>
                     <CardTitle>All Mechanics</CardTitle>
                     <CardDescription>

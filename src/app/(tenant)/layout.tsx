@@ -27,13 +27,10 @@ function TenantLayoutContent({
 }) {
   return (
     <div className="flex h-screen overflow-hidden w-full">
-      {/* Sidebar - fixed on the left */}
       <AppSidebar
         activeView={activeView}
         onViewChange={onViewChange}
       />
-
-      {/* Main area - header fixed + content scrollable */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
         <TopHeader
           tenantName={tenantName}

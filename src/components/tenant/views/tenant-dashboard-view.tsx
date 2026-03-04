@@ -73,7 +73,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-6 lg:p-8">
+    <div className="space-y-4 md:space-y-6 ">
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         {stats.map((stat, i) => (
@@ -99,7 +99,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
         {/* Recent Jobs */}
         <Card className="lg:col-span-2 border-border/50 shadow-sm">
-          <CardHeader className="p-3 md:p-4 lg:p-6">
+          <CardHeader>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <CardTitle className="text-base md:text-lg">Recent Jobs</CardTitle>
@@ -128,35 +128,52 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                   </Empty>
                 </div>
               ) : (
-                <div className="w-full">
-                  {(() => {
-                    const columns: ColumnDef<any>[] = [
-                      {
-                        accessorKey: "id",
-                        header: "Job ID",
-                        cell: ({ row }) => <span className="font-medium text-primary">{row.original.id}</span>
-                      },
-                      {
-                        accessorKey: "customer",
-                        header: "Customer",
-                      },
-                      {
-                        accessorKey: "vehicle",
-                        header: "Vehicle",
-                      },
-                      {
-                        accessorKey: "status",
-                        header: () => <div className="text-right">Status</div>,
-                        cell: ({ row }) => <div className="text-right">{getStatusBadge(row.original.status)}</div>,
-                        meta: {
-                          headerClassName: "text-right",
-                          cellClassName: "text-right"
-                        }
-                      }
-                    ];
-                    return <DataTable data={recentJobs} columns={columns} />
-                  })()}
-                </div>
+                <Card className="flex flex-col h-[250px]">
+                  <CardHeader className="shrink-0">
+                    <CardTitle>Recent Jobs</CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="flex-1 min-h-0">
+                    <div className="h-full overflow-y-auto">
+                      {(() => {
+                        const columns: ColumnDef<any>[] = [
+                          {
+                            accessorKey: "id",
+                            header: "Job ID",
+                            cell: ({ row }) => (
+                              <span className="font-medium text-primary">
+                                {row.original.id}
+                              </span>
+                            ),
+                          },
+                          {
+                            accessorKey: "customer",
+                            header: "Customer",
+                          },
+                          {
+                            accessorKey: "vehicle",
+                            header: "Vehicle",
+                          },
+                          {
+                            accessorKey: "status",
+                            header: () => <div className="text-right">Status</div>,
+                            cell: ({ row }) => (
+                              <div className="text-right">
+                                {getStatusBadge(row.original.status)}
+                              </div>
+                            ),
+                            meta: {
+                              headerClassName: "text-right",
+                              cellClassName: "text-right",
+                            },
+                          },
+                        ];
+
+                        return <DataTable data={recentJobs} columns={columns} />;
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </CardContent>
