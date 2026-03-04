@@ -8,7 +8,6 @@ export interface AddEstimateItemInput {
   partId?: string
   customName: string
   customPartNumber?: string
-  description?: string
   qty: number
   unitPrice: number
   laborCost?: number
@@ -56,7 +55,6 @@ export class AddEstimateItemUseCase {
       partId: input.partId,
       customName: input.customName,
       customPartNumber: input.customPartNumber,
-      description: input.description,
       qty: input.qty,
       unitPrice: input.unitPrice,
       laborCost: input.laborCost ?? 0,
