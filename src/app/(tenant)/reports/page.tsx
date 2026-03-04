@@ -28,8 +28,8 @@ export default function ReportsPage() {
     jobsChange: 8.2, // Placeholder
     completedJobs: data.completed_jobs || 0,
     pendingJobs: data.pending_jobs || 0,
-    averageJobValue: data.completed_jobs > 0 
-      ? Math.round((data.total_revenue || 0) / data.completed_jobs) 
+    averageJobValue: data.completed_jobs > 0
+      ? Math.round((data.total_revenue || 0) / data.completed_jobs)
       : 0,
     customerCount: data.customer_count || 0,
   } : null
@@ -43,7 +43,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -187,7 +187,7 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Completion Rate</span>
                 <span className="text-sm font-medium">
-                  {stats?.totalJobs 
+                  {stats?.totalJobs
                     ? Math.round((stats.completedJobs / stats.totalJobs) * 100)
                     : 0}%
                 </span>
@@ -195,7 +195,7 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Jobs per Customer</span>
                 <span className="text-sm font-medium">
-                  {stats?.customerCount 
+                  {stats?.customerCount
                     ? (stats.totalJobs / stats.customerCount).toFixed(1)
                     : 0}
                 </span>
@@ -203,7 +203,7 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Revenue per Customer</span>
                 <span className="text-sm font-medium">
-                  ₹{stats?.customerCount 
+                  ₹{stats?.customerCount
                     ? Math.round(stats.totalRevenue / stats.customerCount).toLocaleString()
                     : 0}
                 </span>
