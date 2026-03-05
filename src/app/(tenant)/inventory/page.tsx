@@ -455,35 +455,37 @@ export default function InventoryPage() {
                 showClear
               />
             </div>
-            {search && filteredItems.length > 0 && (
+            {search && (
               <AutocompleteContent align="start" showBackdrop={false} className="w-[300px]">
                 <AutocompleteStatus>
                   {filteredItems.length === 0
                     ? `No items found`
                     : `${filteredItems.length} item(s) found`}
                 </AutocompleteStatus>
-                <AutocompleteList>
-                  {(item: InventoryItem) => (
-                    <AutocompleteItem
-                      key={item.id}
-                      value={item}
-                      className="rounded-lg cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5 truncate w-full">
-                        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                          <Package className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium">{item.name}</div>
-                          <div className="text-muted-foreground truncate text-xs flex justify-between">
-                            <span>SKU: {item.stockKeepingUnit || "-"}</span>
-                            <span className="font-semibold text-foreground">Stock: {item.stockOnHand}</span>
+                {filteredItems.length > 0 && (
+                  <AutocompleteList>
+                    {(item: InventoryItem) => (
+                      <AutocompleteItem
+                        key={item.id}
+                        value={item}
+                        className="rounded-lg cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 truncate w-full">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{item.name}</div>
+                            <div className="text-muted-foreground truncate text-xs flex justify-between">
+                              <span>SKU: {item.stockKeepingUnit || "-"}</span>
+                              <span className="font-semibold text-foreground">Stock: {item.stockOnHand}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </AutocompleteItem>
-                  )}
-                </AutocompleteList>
+                      </AutocompleteItem>
+                    )}
+                  </AutocompleteList>
+                )}
               </AutocompleteContent>
             )}
           </Autocomplete>
