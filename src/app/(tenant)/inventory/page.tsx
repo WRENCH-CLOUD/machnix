@@ -527,7 +527,7 @@ export default function InventoryPage() {
 
       {viewingHistoryItem && (
         <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-175">
             <DialogHeader>
               <DialogTitle>Transaction History</DialogTitle>
               <DialogDescription>
