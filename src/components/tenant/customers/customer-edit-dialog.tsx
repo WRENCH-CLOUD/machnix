@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 interface CustomerFormData {
   name: string;
@@ -117,15 +118,16 @@ export function CustomerEditDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2" dir="ltr">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
+                <PhoneInput
                   id="phone"
+                  defaultCountry="IN"
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
+                  onChange={(val) =>
+                    setFormData({ ...formData, phone: val ? String(val) : "" })
                   }
-                  placeholder="+91 99999 99999"
+                  placeholder="9999999999"
                 />
               </div>
               <div className="space-y-2">
@@ -155,7 +157,7 @@ export function CustomerEditDialog({
               />
             </div>
 
-            </div>
+          </div>
 
           <DialogFooter>
             <Button

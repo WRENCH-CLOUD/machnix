@@ -35,6 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 interface CreateJobWizardProps {
   isOpen: boolean;
@@ -52,11 +54,11 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Form State
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [jobDetails, setJobDetails] = useState({
+  const [jobDetails, setJobDetails] = useState<{ serviceType: string; description: string; priority: string; estimatedCompletion: Date | undefined }>({
     serviceType: "repair",
     description: "",
     priority: "medium",
-    estimatedCompletion: "",
+    estimatedCompletion: undefined,
   });
 
   // Search/Data State
@@ -305,12 +307,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2" dir="ltr">
                   <Label>Phone Number</Label>
-                  <Input
-                    placeholder="e.g. +91 9876543210"
+                  <PhoneInput
+                    defaultCountry="IN"
+                    placeholder="e.g. 9876543210"
                     value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                    onChange={(val) => setNewCustomer({ ...newCustomer, phone: val ? String(val) : "" })}
                   />
                 </div>
               </div>
@@ -549,6 +552,14 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     <SelectItem value="urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2 col-span-2 md:col-span-1">
+                <Label>Estimated Completion</Label>
+                <DateTimePicker
+                  date={jobDetails.estimatedCompletion}
+                  setDate={(date) => setJobDetails({ ...jobDetails, estimatedCompletion: date })}
+                  className="w-full"
+                />
               </div>
             </div>
             <div className="space-y-2">
