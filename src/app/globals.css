@@ -3,7 +3,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-<<<<<<< refactor/enhancement/major-ui-revamp
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.2046 0 0);
   --card: oklch(0.9911 0 0);
@@ -40,48 +39,6 @@
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
   --radius: 0.5rem;
-=======
-  --background: oklch(0.9761 0.0041 91.4461);
-  --foreground: oklch(0.2417 0.0298 269.8827);
-  --card: oklch(1.0000 0 0);
-  --card-foreground: oklch(0.2417 0.0298 269.8827);
-  --popover: oklch(1.0000 0 0);
-  --popover-foreground: oklch(0.2417 0.0298 269.8827);
-  --primary: oklch(43.978% 0.11542 148.527);
-  --pricing-bg: oklch(29.361% 0.07541 148.49);
-  --pricing-foreground: oklch(82.898% 0.1751 150.185);
-  --pricing-card: oklch(47.246% 0.11803 149.227);
-  --pricing-button: oklch(51.476% 0.12938 149.145);
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.8596 0.0291 119.9919);
-  --secondary-foreground: oklch(0.2417 0.0298 269.8827);
-  --muted: oklch(0.9251 0.0071 88.6450);
-  --muted-foreground: oklch(0.5510 0.0234 264.3637);
-  --accent: oklch(0.8242 0.0221 136.6092);
-  --accent-foreground: oklch(0.2417 0.0298 269.8827);
-  --destructive: oklch(0.5624 0.1743 26.1433);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.9251 0.0071 88.6450);
-  --input: oklch(0.85 0 0);
-  --ring: oklch(0.6333 0.0309 154.9039);
-  --chart-1: oklch(0.6333 0.0309 154.9039);
-  --chart-2: oklch(0.7209 0.0489 120.9474);
-  --chart-3: oklch(0.6744 0.0427 136.0110);
-  --chart-4: oklch(0.5510 0.0234 264.3637);
-  --chart-5: oklch(0.9251 0.0071 88.6450);
-  --sidebar: oklch(0.9845 0.0026 106.4477);
-  --sidebar-foreground: oklch(0.2417 0.0298 269.8827);
-  --sidebar-primary: oklch(43.978% 0.11542 148.527);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.9251 0.0071 88.6450);
-  --sidebar-accent-foreground: oklch(0.2417 0.0298 269.8827);
-  --sidebar-border: oklch(0.9251 0.0071 88.6450);
-  --sidebar-ring: oklch(0.6333 0.0309 154.9039);
-  --font-sans: Antic, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Signifier, Georgia, serif;
-  --font-mono: JetBrains Mono, Courier New, monospace;
-  --radius: 0.35rem;
->>>>>>> DEVELOPMENT
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -106,7 +63,6 @@
 }
 
 .dark {
-<<<<<<< refactor/enhancement/major-ui-revamp
   --background: oklch(0% 0 0);
   --foreground: oklch(92.88% 0.0126 255.5078);
   --card: oklch(20.46% 0 0);
@@ -143,48 +99,6 @@
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
   --radius: 0.5rem;
-=======
-  --background: oklch(0.1448 0 0);
-  --foreground: oklch(0.9702 0 0);
-  --card: oklch(0.1822 0 0);
-  --card-foreground: oklch(0.9702 0 0);
-  --popover: oklch(0.1822 0 0);
-  --popover-foreground: oklch(0.9702 0 0);
-  --primary: oklch(43.978% 0.11542 148.527);
-  --pricing-bg: oklch(33.405% 0.07637 149.956);
-  --pricing-foreground: oklch(82.898% 0.1751 150.185);
-  --pricing-card: oklch(47.246% 0.11803 149.227);
-  --pricing-button: oklch(62.212% 0.1601 148.774);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.2178 0 0);
-  --secondary-foreground: oklch(0.9702 0 0);
-  --muted: oklch(0.2178 0 0);
-  --muted-foreground: oklch(0.7058 0 0);
-  --accent: oklch(0.3709 0.0248 153.9823);
-  --accent-foreground: oklch(0.9702 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.2850 0 0);
-  --input: oklch(0.35 0 0);
-  --ring: oklch(0.6333 0.0309 154.9039);
-  --chart-1: oklch(0.6333 0.0309 154.9039);
-  --chart-2: oklch(0.7209 0.0489 120.9474);
-  --chart-3: oklch(0.6744 0.0427 136.0110);
-  --chart-4: oklch(0.5510 0.0234 264.3637);
-  --chart-5: oklch(0.5096 0.0289 152.3460);
-  --sidebar: oklch(0.1684 0 0);
-  --sidebar-foreground: oklch(0.9702 0 0);
-  --sidebar-primary: oklch(43.978% 0.11542 148.527);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.2178 0 0);
-  --sidebar-accent-foreground: oklch(0.9702 0 0);
-  --sidebar-border: oklch(0.2850 0 0);
-  --sidebar-ring: oklch(0.6333 0.0309 154.9039);
-  --font-sans: Antic, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Signifier, Georgia, serif;
-  --font-mono: JetBrains Mono, Courier New, monospace;
-  --radius: 0.35rem;
->>>>>>> DEVELOPMENT
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 3px;
@@ -256,19 +170,12 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
 
-<<<<<<< refactor/enhancement/major-ui-revamp
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-normal: var(--tracking-normal);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
-=======
-  --color-pricing-bg: var(--pricing-bg);
-  --color-pricing-foreground: var(--pricing-foreground);
-  --color-pricing-card: var(--pricing-card);
-  --color-pricing-button: var(--pricing-button);
->>>>>>> DEVELOPMENT
 }
 
 @layer base {
