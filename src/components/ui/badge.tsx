@@ -12,35 +12,35 @@ const badgeVariants = cva(
         default: 'bg-primary text-primary-foreground',
         outline: 'border-border bg-transparent dark:bg-input/32',
         secondary: 'bg-secondary text-secondary-foreground',
-        info: 'bg-info text-white',
-        success: 'bg-success text-white',
-        warning: 'bg-warning text-white',
-        destructive: 'bg-destructive text-white',
-        invert: 'bg-invert text-invert-foreground',
+        info: 'bg-secondary text-secondary-foreground',
+        success: 'bg-primary text-primary-foreground',
+        warning: 'bg-destructive text-destructive-foreground',
+        destructive: 'bg-destructive text-destructive-foreground',
+        invert: 'bg-foreground text-background',
         'primary-light':
           'bg-primary/10 border-none text-primary dark:bg-primary/20',
         'warning-light':
-          'bg-warning/10 border-none text-warning-foreground dark:bg-warning/20',
+          'bg-destructive/10 border-none text-destructive-foreground dark:bg-destructive/20',
         'success-light':
-          'bg-success/10 border-none text-success-foreground dark:bg-success/20',
+          'bg-primary/10 border-none text-primary dark:bg-primary/20',
         'info-light':
-          'bg-info/10 border-none text-info-foreground dark:bg-info/20',
+          'bg-secondary/10 border-none text-secondary-foreground dark:bg-secondary/20',
         'destructive-light':
           'bg-destructive/10 border-none text-destructive-foreground dark:bg-destructive/20',
         'invert-light':
-          'bg-invert/10 border-none text-foreground dark:bg-invert/20',
+          'bg-foreground/10 border-none text-foreground dark:bg-foreground/20',
         'primary-outline':
           'bg-background border-border text-primary dark:bg-input/30',
         'warning-outline':
-          'bg-background border-border text-warning-foreground dark:bg-input/30',
+          'bg-background border-border text-destructive-foreground dark:bg-input/30',
         'success-outline':
-          'bg-background border-border text-success-foreground dark:bg-input/30',
+          'bg-background border-border text-primary dark:bg-input/30',
         'info-outline':
-          'bg-background border-border text-info-foreground dark:bg-input/30',
+          'bg-background border-border text-secondary-foreground dark:bg-input/30',
         'destructive-outline':
           'bg-background border-border text-destructive-foreground dark:bg-input/30',
         'invert-outline':
-          'bg-background border-border text-invert-foreground dark:bg-input/30',
+          'bg-background border-border text-foreground dark:bg-input/30',
       },
       size: {
         xs: 'px-1 py-0.25 text-[0.6rem] leading-none h-4 min-w-4 gap-1',
