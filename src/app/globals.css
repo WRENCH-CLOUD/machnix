@@ -51,6 +51,10 @@
   --popover: oklch(1.0000 0 0);
   --popover-foreground: oklch(0.2417 0.0298 269.8827);
   --primary: oklch(43.978% 0.11542 148.527);
+  --pricing-bg: oklch(29.361% 0.07541 148.49);
+  --pricing-foreground: oklch(82.898% 0.1751 150.185);
+  --pricing-card: oklch(47.246% 0.11803 149.227);
+  --pricing-button: oklch(51.476% 0.12938 149.145);
   --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.8596 0.0291 119.9919);
   --secondary-foreground: oklch(0.2417 0.0298 269.8827);
@@ -106,6 +110,10 @@
   --popover: oklch(0.1822 0 0);
   --popover-foreground: oklch(0.9702 0 0);
   --primary: oklch(43.978% 0.11542 148.527);
+  --pricing-bg: oklch(33.405% 0.07637 149.956);
+  --pricing-foreground: oklch(82.898% 0.1751 150.185);
+  --pricing-card: oklch(47.246% 0.11803 149.227);
+  --pricing-button: oklch(62.212% 0.1601 148.774);
   --primary-foreground: oklch(0 0 0);
   --secondary: oklch(0.2178 0 0);
   --secondary-foreground: oklch(0.9702 0 0);
@@ -202,6 +210,11 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  --color-pricing-bg: var(--pricing-bg);
+  --color-pricing-foreground: var(--pricing-foreground);
+  --color-pricing-card: var(--pricing-card);
+  --color-pricing-button: var(--pricing-button);
 }
 
 @layer base {

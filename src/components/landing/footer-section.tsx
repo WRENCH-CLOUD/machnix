@@ -1,92 +1,110 @@
 "use client"
 
-import { Linkedin,  Instagram} from "lucide-react"
+import { Linkedin, Instagram } from "lucide-react"
 
 export function FooterSection() {
   return (
-    <footer className="w-full max-w-[1320px] mx-auto px-5 flex flex-col md:flex-row justify-between items-start gap-8 md:gap-0 py-10 md:py-[70px]">
-      {/* Left Section: Logo, Description, Social Links */}
-      <div className="flex flex-col justify-start items-start gap-8 p-4 md:p-8">
-        <div className="flex gap-3 items-stretch justify-center">
-          <div className="text-center text-foreground text-xl font-semibold leading-4">Wrench Cloud</div>
-        </div>
-        <div className="flex justify-start items-start gap-3">
-          <a href="https://www.linkedin.com/company/wrenchcloud" aria-label="LinkedIn" className="w-4 h-4 flex items-center justify-center">
-            <Linkedin className="w-full h-full text-muted-foreground" />
-          </a>
-          <a href="https://www.instagram.com/wrenchcloud.in" aria-label="Instagram" className="w-4 h-4 flex items-center justify-center">
-            <Instagram className="w-full h-full text-muted-foreground" />
-          </a>
-        </div>
-      </div>
-      {/* Right Section: Product, Company, Resources */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 p-4 md:p-8 w-full md:w-auto">
-        <div className="flex flex-col justify-start items-start gap-3">
-          <h3 className="text-muted-foreground text-sm font-medium leading-5">Product</h3>
-          <div className="flex flex-col justify-end items-start gap-2">
-            <a href="#features-section" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Features
-            </a>
-            <a href="#pricing-section" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Pricing
-            </a>
-            {/* <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Digital Inspections
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Multi-Shop
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Integrations
-            </a> */}
+    <footer className="w-full border-t border-border bg-background">
+      <div className="max-w-[1320px] mx-auto px-6 py-14">
+
+        {/* Top Section */}
+        <div className="flex flex-col md:flex-row justify-between gap-12">
+
+          {/* Brand */}
+          <div className="flex flex-col gap-6 max-w-sm">
+
+            <h2 className="text-xl font-semibold tracking-tight">
+              <span className="text-primary">Wrench</span> Cloud
+            </h2>
+
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Modern cloud software built for garages and workshops to manage
+              operations, track services, and streamline workflow.
+            </p>
+
+            {/* Socials */}
+            <div className="flex gap-4">
+              <a
+                href="https://www.linkedin.com/company/wrenchcloud"
+                aria-label="LinkedIn"
+                className="p-2 rounded-md border border-border hover:border-primary hover:text-primary transition"
+              >
+                <Linkedin className="w-5 h-5" />
+              </a>
+
+              <a
+                href="https://www.instagram.com/wrenchcloud.in"
+                aria-label="Instagram"
+                className="p-2 rounded-md border border-border hover:border-primary hover:text-primary transition"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+            </div>
+
+          </div>
+
+          {/* Links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+
+            {/* Product */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Product
+              </h3>
+
+              <a
+                href="#features-section"
+                className="text-sm text-foreground hover:text-primary transition"
+              >
+                Features
+              </a>
+
+              <a
+                href="#pricing-section"
+                className="text-sm text-foreground hover:text-primary transition"
+              >
+                Pricing
+              </a>
+            </div>
+
+            {/* Contact */}
+            <div className="flex flex-col gap-3 max-w-xs">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Contact
+              </h3>
+
+              <p className="text-sm text-muted-foreground">
+                Questions or feedback? We'd love to hear from you.
+              </p>
+
+              <a
+                href="mailto:info@wrenchcloud.com"
+                className="text-sm text-primary hover:underline"
+              >
+                info@wrenchcloud.com
+              </a>
+            </div>
+
           </div>
         </div>
-        {/* <div className="flex flex-col justify-start items-start gap-3">
-          <h3 className="text-muted-foreground text-sm font-medium leading-5">Company</h3>
-          <div className="flex flex-col justify-center items-start gap-2">
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              About us
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Our team
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Careers
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Brand
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Contact
-            </a>
-          </div>
-        </div> */}
-        {/* <div className="flex flex-col justify-start items-start gap-3">
-          <h3 className="text-muted-foreground text-sm font-medium leading-5">Resources</h3>
-          <div className="flex flex-col justify-center items-start gap-2">
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Terms of use
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              API Reference
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Documentation
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Community
-            </a>
-            <a href="#" className="text-foreground text-sm font-normal leading-5 hover:underline">
-              Support
-            </a>
-          </div>
-        </div> */}
-        <div>
-          <h3 className="text-muted-foreground text-sm font-medium leading-5">Contact and feedback</h3>
-          <p className="text-foreground text-sm font-normal leading-5 mt-2">
-            We’d love to hear from you! If you have any questions, feedback, or just want to say hi, feel free to reach out to us at <a href="mailto:info@wrenchcloud.com" className="text-primary hover:underline">info@wrenchcloud.com</a>
+
+        {/* Divider */}
+        <div className="my-10 border-t border-border" />
+
+        {/* Bottom */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+
+          <p>
+            © {new Date().getFullYear()} Wrench Cloud. All rights reserved.
           </p>
+
+          <div className="flex gap-6">
+            <a className="hover:text-primary transition">Privacy</a>
+            <a className="hover:text-primary transition">Terms</a>
+          </div>
+
         </div>
+
       </div>
     </footer>
   )
