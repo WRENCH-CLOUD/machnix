@@ -21,11 +21,11 @@ const buttonVariants = cva(
           'hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
         success:
-          'bg-success text-white shadow-sm hover:bg-success/90 active:bg-success/80',
+          'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 active:bg-emerald-700',
         warning:
-          'bg-warning text-white shadow-sm hover:bg-warning/90 active:bg-warning/80',
+          'bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:bg-amber-700',
         info:
-          'bg-info text-white shadow-sm hover:bg-info/90 active:bg-info/80',
+          'bg-sky-500 text-white shadow-sm hover:bg-sky-600 active:bg-sky-700',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
