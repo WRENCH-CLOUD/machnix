@@ -1,27 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { CreateEstimateUseCase } from "@/modules/estimate/application/create-estimate.use-case";
-import { createClient } from "@/lib/supabase/server";
+import { apiGuardWrite } from '@/lib/auth/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const tenantId =
-      user.app_metadata.tenant_id || user.user_metadata.tenant_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: "Tenant context missing" },
-        { status: 400 }
-      );
-    }
+    const guard = await apiGuardWrite(request, 'create-estimate');
+    if (!guard.ok) return guard.response;
+    const { supabase, tenantId, userId } = guard;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new CreateEstimateUseCase(repository);
@@ -56,7 +42,6 @@ export async function POST(request: NextRequest) {
           jobcard_id: (current as any).jobcardId,
           estimate_number: (current as any).estimateNumber,
           status: (current as any).status,
-          description: (current as any).description,
           labor_total: (current as any).laborTotal ?? 0,
           parts_total: (current as any).partsTotal ?? 0,
           subtotal: (current as any).subtotal ?? 0,
@@ -84,7 +69,6 @@ export async function POST(request: NextRequest) {
       customerId: raw.customer_id,
       vehicleId: raw.vehicle_id,
       jobcardId,
-      description: raw.description,
       laborTotal: raw.labor_total ?? 0,
       partsTotal: raw.parts_total ?? 0,
       taxAmount: raw.tax_amount ?? 0,
@@ -93,7 +77,7 @@ export async function POST(request: NextRequest) {
       validUntil: raw.valid_until ? new Date(raw.valid_until) : undefined,
     };
 
-    const estimate = await useCase.execute(dto, tenantId, user.id);
+    const estimate = await useCase.execute(dto, tenantId, userId);
 
     const apiEstimate = {
       id: (estimate as any).id,
@@ -103,7 +87,6 @@ export async function POST(request: NextRequest) {
       jobcard_id: (estimate as any).jobcardId,
       estimate_number: (estimate as any).estimateNumber,
       status: (estimate as any).status,
-      description: (estimate as any).description,
       labor_total: (estimate as any).laborTotal ?? 0,
       parts_total: (estimate as any).partsTotal ?? 0,
       subtotal: (estimate as any).subtotal ?? 0,

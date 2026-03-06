@@ -91,6 +91,7 @@ export class SupabaseVehicleRepository extends BaseSupabaseRepository<Vehicle> i
       .select('id, vehicle_id, created_at, status')
       .eq('tenant_id', tenantId)
       .in('vehicle_id', vehicleIds)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     // Group jobs by vehicle_id

@@ -173,10 +173,10 @@ export function generateDummyDVIItems(templateType: string = 'full', jobId: stri
 /**
  * Generate dummy parts for a job
  */
-export function generateDummyParts(jobId: string = 'default'): DummyPart[] {
-  // Return empty array - parts should be added manually
-  return []
-}
+// export function generateDummyParts(jobId: string = 'default'): DummyPart[] {
+//   // Return empty array - parts should be added manually
+//   return []
+// }
 
 /**
  * Generate dummy activity timeline for a job

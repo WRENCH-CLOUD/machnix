@@ -38,10 +38,11 @@ export class CreateJobUseCase {
     // Generate job number (format: JOB-YYYYMMDD-XXXX)
     const jobNumber = generateFormattedId('JOB')
 
+    const complaintText = dto.notes?.trim() || dto.description?.trim()
+
     const details = {
       ...(dto.details || {}),
-      complaints: dto.description,
-      description: dto.description,
+      complaints: complaintText,
       serviceType: dto.serviceType,
       priority: dto.priority,
       estimatedCompletion: dto.estimatedCompletion,
@@ -53,8 +54,8 @@ export class CreateJobUseCase {
       customerId: dto.customerId,
       vehicleId: dto.vehicleId,
       status: 'received' as JobStatus,
-      description: dto.description,
-      notes: dto.notes,
+      description: complaintText,
+      notes: complaintText,
       assignedMechanicId: dto.assignedMechanicId,
       details,
       createdBy,
@@ -68,7 +69,6 @@ export class CreateJobUseCase {
           customerId: dto.customerId,
           vehicleId: dto.vehicleId,
           jobcardId: job.id,
-          description: dto.description || 'Service estimate',
           laborTotal: 0,
           partsTotal: 0,
           taxAmount: 0,

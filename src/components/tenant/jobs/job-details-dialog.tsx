@@ -6,7 +6,6 @@ import {
   CreditCard,
   Car,
   ChevronDown,
-  AlertTriangle,
   RefreshCw,
   Printer,
   CheckCircle2,
@@ -27,7 +26,7 @@ import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { JobOverview } from "./job-overview";
 import { JobParts, type Part } from "./job-parts";
 import { JobInvoice } from "./job-invoice";
-import { JobTasks } from "./job-tasks";
+import { AdvancedTaskPanel } from "./advance-task-model";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
@@ -424,10 +423,10 @@ export function JobDetailsDialog({
               <TabsContent value="tasks" className="m-0 h-full">
                 <ScrollArea className="h-[calc(100vh-280px)]">
                   <div className="p-4 md:p-6">
-                    <JobTasks
+                    <AdvancedTaskPanel
                       jobId={job.id}
                       disabled={job.status === "completed" || job.status === "cancelled"}
-                      searchInventory={searchInventory as any}
+                      searchInventory={searchInventory}
                     />
                   </div>
                 </ScrollArea>

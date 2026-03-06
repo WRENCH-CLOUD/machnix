@@ -6,6 +6,7 @@ import { InventoryAllocationService } from '@/modules/inventory/application/inve
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { z } from 'zod'
 import type { TaskStatus } from '@/modules/job/domain/task.entity'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Simplified status transitions (manager workflow)
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
@@ -43,23 +44,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { userId, tenantId } = auth
 
     // Rate limit
-    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'update-task-status')
+    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'update-task-status')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
     }
 
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const supabase = await createClient()
 
     // Parse and validate body
     const body = await request.json()
@@ -129,7 +124,7 @@ export async function PATCH(
             task.inventoryItemId,
             task.qty,
             task.jobcardId,
-            user.id,
+            userId,
           )
 
           // Link allocation to task
@@ -168,8 +163,8 @@ export async function PATCH(
     // Update task status
     const updatedTask = await taskRepository.updateStatus(taskId, {
       taskStatus: newStatus,
-      approvedBy: newStatus === 'APPROVED' ? user.id : undefined,
-      completedBy: newStatus === 'COMPLETED' ? user.id : undefined,
+      approvedBy: newStatus === 'APPROVED' ? userId : undefined,
+      completedBy: newStatus === 'COMPLETED' ? userId : undefined,
     })
 
     return NextResponse.json({

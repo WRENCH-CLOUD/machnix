@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { GetItemsUseCase } from '@/modules/inventory/application/get-items.use-case'
 import { CreateItemUseCase } from '@/modules/inventory/application/create-item.use-case'
+import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 const createSchema = z.object({
   stockKeepingUnit: z.string().optional(),
@@ -15,20 +16,13 @@ const createSchema = z.object({
   metadata: z.record(z.any()).optional()
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
+
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
-
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
     const useCase = new GetItemsUseCase(repository)
     const items = await useCase.execute()
@@ -42,17 +36,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const auth = requireAuth(request)
+    if (isAuthError(auth)) return auth
+    const { tenantId } = auth
 
     const json = await request.json()
     const result = createSchema.safeParse(json)
@@ -61,6 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error.errors }, { status: 400 })
     }
 
+    const supabase = await createClient()
     const repository = new SupabaseInventoryRepository(supabase, tenantId)
     const useCase = new CreateItemUseCase(repository)
     const item = await useCase.execute(result.data)
@@ -69,7 +56,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Error creating inventory item:', error)
     if (error.message?.includes('already exists')) {
-        return NextResponse.json({ error: error.message }, { status: 409 })
+      return NextResponse.json({ error: error.message }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
