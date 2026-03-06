@@ -2,26 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { RemoveEstimateItemUseCase } from "@/modules/estimate/application/remove-estimate-item.use-case";
 import { UpdateEstimateItemUseCase } from "@/modules/estimate/application/update-estimate-item.use-case";
-import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
+import { createClient } from "@/lib/supabase/server";
+import { createInventoryAllocationService } from "@/modules/inventory/application/inventory-allocation.service";
+import { InsufficientStockError } from "@/modules/inventory/domain/allocation.entity";
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ itemId: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
+    }
+
     const { itemId } = await context.params;
-    const idError = validateRouteId(itemId, 'estimate-item');
-    if (idError) return idError;
-
-    const guard = await apiGuardWrite(request, 'remove-estimate-item');
-    if (!guard.ok) return guard.response;
-    const { supabase, tenantId } = guard;
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
-    const useCase = new RemoveEstimateItemUseCase(repository);
+    const allocationService = createInventoryAllocationService(supabase, tenantId);
+    const useCase = new RemoveEstimateItemUseCase(repository, allocationService, supabase, tenantId);
 
-    await useCase.execute(itemId);
+    const result = await useCase.execute(itemId, user.id);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      released_stock: result.releasedStock ?? null,
+    });
   } catch (error: any) {
     console.error("Error removing estimate item:", error);
     return NextResponse.json(
@@ -36,27 +48,57 @@ export async function PATCH(
   context: { params: Promise<{ itemId: string }> }
 ) {
   try {
-    const { itemId } = await context.params;
-    const idError = validateRouteId(itemId, 'estimate-item');
-    if (idError) return idError;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const guard = await apiGuardWrite(request, 'update-estimate-item');
-    if (!guard.ok) return guard.response;
-    const { supabase, tenantId } = guard;
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Tenant context missing" }, { status: 400 });
+    }
 
     const body = await request.json();
+    const { itemId } = await context.params;
 
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
-    const useCase = new UpdateEstimateItemUseCase(repository);
+    const allocationService = createInventoryAllocationService(supabase, tenantId);
+    const useCase = new UpdateEstimateItemUseCase(repository, allocationService);
 
-    const item = await useCase.execute({
-      ...body,
+    const result = await useCase.execute({
       itemId,
+      customName: body.custom_name,
+      customPartNumber: body.custom_part_number,
+      description: body.description,
+      qty: body.qty,
+      unitPrice: body.unit_price,
+      laborCost: body.labor_cost,
+      createdBy: user.id,
     });
 
-    return NextResponse.json(item);
+    return NextResponse.json({
+      ...result.item,
+      allocation_adjusted: result.allocationAdjusted ?? false,
+      new_allocation_id: result.newAllocationId ?? null,
+    });
   } catch (error: any) {
     console.error("Error updating estimate item:", error);
+
+    // Handle insufficient stock error specifically
+    if (error instanceof InsufficientStockError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'INSUFFICIENT_STOCK',
+          requested: error.requested,
+          available: error.available,
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || "Failed to update estimate item" },
       { status: 400 }

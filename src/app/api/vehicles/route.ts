@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseVehicleRepository } from '@/modules/vehicle/infrastructure/vehicle.repository.supabase'
 import { GetAllVehiclesUseCase } from '@/modules/vehicle/application/get-all-vehicles.use-case'
-import { apiGuardRead } from '@/lib/auth/api-guard'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const guard = await apiGuardRead(request)
-    if (!guard.ok) return guard.response
-    const { supabase, tenantId } = guard
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     const { searchParams } = new URL(request.url)
     const customerId = searchParams.get('customerId') || undefined

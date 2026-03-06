@@ -5,7 +5,6 @@ import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.reposi
 import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
 import { z } from 'zod'
 import type { TaskActionType } from '@/modules/job/domain/task.entity'
-import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Validation schemas
 const createTaskSchema = z.object({
@@ -46,15 +45,22 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
     }
 
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { tenantId } = auth
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
+    }
 
     // Check if we want items included
     const { searchParams } = new URL(request.url)
     const withItems = searchParams.get('with_items') === 'true'
 
-    const supabase = await createClient()
     const repository = new SupabaseTaskRepository(supabase, tenantId)
 
     const tasks = withItems
@@ -86,14 +92,22 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid job ID format' }, { status: 400 })
     }
 
-    const auth = requireAuth(request)
-    if (isAuthError(auth)) return auth
-    const { userId, tenantId } = auth
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Rate limit
-    const rateLimitResult = checkUserRateLimit(userId, RATE_LIMITS.WRITE, 'create-task')
+    const rateLimitResult = checkUserRateLimit(user.id, RATE_LIMITS.WRITE, 'create-task')
     if (!rateLimitResult.success) {
       return createRateLimitResponse(rateLimitResult)
+    }
+
+    const tenantId = user.app_metadata?.tenant_id || user.user_metadata?.tenant_id
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
     }
 
     // Parse and validate body
@@ -108,8 +122,6 @@ export async function POST(
     }
 
     const input = validationResult.data
-
-    const supabase = await createClient()
 
     // Verify job exists and belongs to tenant
     const { data: job, error: jobError } = await supabase
@@ -177,7 +189,7 @@ export async function POST(
       laborCostSnapshot: input.laborCostSnapshot,
       taxRateSnapshot: input.taxRateSnapshot,
       showInEstimate: input.showInEstimate,
-      createdBy: userId,
+      createdBy: user.id,
     })
 
     // Sync task to estimate for customer visibility
