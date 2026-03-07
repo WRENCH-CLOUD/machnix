@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { ColumnDef } from "@tanstack/react-table";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -48,6 +50,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable } from "@/components/ui/data-grid";
+import { ViewToggle, ViewMode } from "@/components/common/view-toggle";
+import { GridPagination } from "@/components/common/grid-pagination";
 import { VehicleViewModel, VehicleFormData } from "@/lib/transformers";
 import { VehicleDetailDialog } from "@/components/tenant/vehicles/vehicle-detail-dialog";
 import { VehicleEditDialog } from "@/components/tenant/vehicles/vehicle-edit-dialog";
@@ -102,6 +107,9 @@ export function VehiclesView({
   });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   // Dialog states
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleViewModel | null>(null);
@@ -126,6 +134,125 @@ export function VehiclesView({
         (v.ownerName || "").toLowerCase().includes(q)
     );
   }, [vehicles, searchQuery]);
+
+  // Reset to page 1 when search changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(filteredVehicles.length / pageSize);
+  const paginatedVehicles = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredVehicles.slice(start, start + pageSize);
+  }, [filteredVehicles, currentPage, pageSize]);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
+
+  // Table columns
+  const vehicleColumns: ColumnDef<VehicleViewModel>[] = useMemo(() => [
+    {
+      accessorKey: "makeName",
+      header: "Vehicle",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Car className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <div className="font-medium">
+              {row.original.makeName || "Unknown"} {row.original.modelName || "Unknown"}
+            </div>
+            <div className="text-xs text-muted-foreground font-mono">{row.original.regNo}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "regNo",
+      header: "Reg No.",
+      cell: ({ row }) => (
+        <span className="font-mono text-sm">{row.original.regNo}</span>
+      ),
+    },
+    {
+      accessorKey: "year",
+      header: "Year",
+      cell: ({ row }) => row.original.year || "—",
+    },
+    {
+      accessorKey: "ownerName",
+      header: "Owner",
+      cell: ({ row }) => row.original.ownerName || "—",
+    },
+    {
+      accessorKey: "odometer",
+      header: "Odometer",
+      cell: ({ row }) =>
+        row.original.odometer
+          ? `${row.original.odometer.toLocaleString("en-IN")} km`
+          : "—",
+    },
+    {
+      accessorKey: "totalJobs",
+      header: "Jobs",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.original.totalJobs || 0}</Badge>
+      ),
+    },
+    {
+      accessorKey: "lastService",
+      header: "Last Service",
+      cell: ({ row }) =>
+        row.original.lastService
+          ? new Date(row.original.lastService).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "N/A",
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewDetails(row.original)}>
+              View History
+            </DropdownMenuItem>
+            {onEditVehicle && (
+              <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+                Edit Vehicle
+              </DropdownMenuItem>
+            )}
+            {onCreateJob && (
+              <DropdownMenuItem onClick={() => handleCreateJob(row.original)}>
+                Create Job
+              </DropdownMenuItem>
+            )}
+            {onDeleteVehicle && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(row.original)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      meta: { headerClassName: "w-[50px]" },
+    },
+  ], [onEditVehicle, onDeleteVehicle, onCreateJob]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -388,15 +515,18 @@ export function VehiclesView({
           </motion.div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full mt-5 mb-5 sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by make, model, reg no..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-9 md:h-10 bg-background"
-          />
+        {/* Search + View Toggle */}
+        <div className="flex items-center gap-3 mt-5 mb-5">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by make, model, reg no..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-9 md:h-10 bg-background"
+            />
+          </div>
+          <ViewToggle value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 
@@ -443,124 +573,143 @@ export function VehiclesView({
         )}
 
         {/* Vehicle Grid */}
-        {!loading && !error && filteredVehicles.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredVehicles.map((vehicle, index) => (
-              <motion.div
-                key={vehicle.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card
-                  className="hover:border-primary/50 transition-colors cursor-pointer group"
-                  onClick={() => handleViewDetails(vehicle)}
+        {!loading && !error && filteredVehicles.length > 0 && viewMode === "grid" && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedVehicles.map((vehicle, index) => (
+                <motion.div
+                  key={vehicle.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                          <Car className="w-6 h-6 text-primary" />
+                  <Card
+                    className="hover:border-primary/50 transition-colors cursor-pointer group"
+                    onClick={() => handleViewDetails(vehicle)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <Car className="w-6 h-6 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base">
+                              {vehicle.makeName || "Unknown"}{" "}
+                              {vehicle.modelName || "Unknown"}
+                            </CardTitle>
+                            <CardDescription className="font-mono">
+                              {vehicle.regNo}
+                            </CardDescription>
+                          </div>
                         </div>
-                        <div>
-                          <CardTitle className="text-base">
-                            {vehicle.makeName || "Unknown"}{" "}
-                            {vehicle.modelName || "Unknown"}
-                          </CardTitle>
-                          <CardDescription className="font-mono">
-                            {vehicle.regNo}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(vehicle); }}>
-                            View History
-                          </DropdownMenuItem>
-                          {onEditVehicle && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(vehicle); }}>
-                              Edit Vehicle
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(vehicle); }}>
+                              View History
                             </DropdownMenuItem>
-                          )}
-                          {onCreateJob && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(vehicle); }}>
-                              Create Job
-                            </DropdownMenuItem>
-                          )}
-                          {onDeleteVehicle && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={(e) => { e.stopPropagation(); handleDelete(vehicle); }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                            {onEditVehicle && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(vehicle); }}>
+                                Edit Vehicle
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-4 text-sm">
-                      {vehicle.year && (
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {vehicle.year}
-                        </span>
+                            )}
+                            {onCreateJob && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(vehicle); }}>
+                                Create Job
+                              </DropdownMenuItem>
+                            )}
+                            {onDeleteVehicle && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(vehicle); }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-4 text-sm">
+                        {vehicle.year && (
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {vehicle.year}
+                          </span>
+                        )}
+                      </div>
+                      {vehicle.odometer && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Gauge className="w-3.5 h-3.5" />
+                          <span>{vehicle.odometer.toLocaleString("en-IN")} km</span>
+                        </div>
                       )}
-                    </div>
-                    {vehicle.odometer && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Gauge className="w-3.5 h-3.5" />
-                        <span>{vehicle.odometer.toLocaleString("en-IN")} km</span>
-                      </div>
-                    )}
-                    {vehicle.ownerName && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <User className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span>{vehicle.ownerName}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <div className="text-center">
-                        <div className="text-lg font-semibold">
-                          {vehicle.totalJobs || 0}
+                      {vehicle.ownerName && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>{vehicle.ownerName}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Total Jobs
+                      )}
+                      <div className="flex items-center justify-between pt-3 border-t border-border">
+                        <div className="text-center">
+                          <div className="text-lg font-semibold">
+                            {vehicle.totalJobs || 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Total Jobs
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium">
-                          {vehicle.lastService
-                            ? new Date(vehicle.lastService).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )
-                            : "N/A"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Last Service
+                        <div className="text-center">
+                          <div className="text-sm font-medium">
+                            {vehicle.lastService
+                              ? new Date(vehicle.lastService).toLocaleDateString(
+                                "en-IN",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )
+                              : "N/A"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Last Service
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            <GridPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredVehicles.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </>
+        )}
+
+        {/* Table View */}
+        {!loading && !error && filteredVehicles.length > 0 && viewMode === "table" && (
+          <DataTable
+            columns={vehicleColumns}
+            data={filteredVehicles}
+            onRowClick={handleViewDetails}
+          />
         )}
 
         {/* Detail Dialog */}

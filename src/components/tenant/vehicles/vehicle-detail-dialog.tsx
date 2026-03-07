@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Car,
   Calendar,
@@ -17,7 +19,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehicleViewModel } from "@/lib/transformers";
 
 interface VehicleDetailDialogProps {
@@ -37,29 +38,42 @@ export function VehicleDetailDialog({
   onDelete,
   onCreateJob,
 }: VehicleDetailDialogProps) {
-  if (!vehicle || !isOpen) return null;
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const prevIsOpenRef = useRef(false);
 
-  return (
+  // Reset to details tab when dialog opens
+  if (isOpen && !prevIsOpenRef.current) {
+    setActiveTab("details");
+  }
+  prevIsOpenRef.current = isOpen;
+
+  if (!vehicle || !isOpen || typeof window === "undefined") return null;
+
+  const dialogContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
-          onClick={onClose}
+          className="fixed inset-0 z-100 bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-2xl bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl h-150 bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col"
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-xl bg-linear-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
                   <Car className="w-8 h-8 text-primary" />
                 </div>
                 <div className="flex-1">
@@ -95,29 +109,46 @@ export function VehicleDetailDialog({
               </Button>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-              <div className="border-b border-border px-6 flex-none">
-                <TabsList className="h-12 bg-transparent border-0 p-0 gap-6">
-                  <TabsTrigger
-                    value="details"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Details
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="history"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
-                  >
-                    <Wrench className="w-4 h-4 mr-2" />
-                    Service History
-                  </TabsTrigger>
-                </TabsList>
+            {/* Custom Tab Bar */}
+            <div className="border-b border-border px-6 flex-none">
+              <div className="flex gap-6 h-12">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab("details");
+                  }}
+                  className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "details"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab("history");
+                  }}
+                  className={`flex items-center gap-2 h-12 text-sm font-medium border-b-2 transition-colors ${activeTab === "history"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                  <Wrench className="w-4 h-4" />
+                  Service History
+                </button>
               </div>
+            </div>
 
-              <div className="flex-1 overflow-y-auto">
-                <TabsContent value="details" className="m-0 p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto">
+              {/* Details Tab */}
+              {activeTab === "details" && (
+                <div className="p-6 space-y-6">
                   {/* Vehicle Information */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -202,7 +233,7 @@ export function VehicleDetailDialog({
                       Service Statistics
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-center">
+                      <div className="bg-linear-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-center">
                         <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                           <Wrench className="w-5 h-5 text-emerald-500" />
                         </div>
@@ -213,7 +244,7 @@ export function VehicleDetailDialog({
                           Total Services
                         </div>
                       </div>
-                      <div className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center">
+                      <div className="bg-linear-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center">
                         <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-amber-500/20 flex items-center justify-center">
                           <Calendar className="w-5 h-5 text-amber-500" />
                         </div>
@@ -235,9 +266,12 @@ export function VehicleDetailDialog({
                       </div>
                     </div>
                   </div>
-                </TabsContent>
+                </div>
+              )}
 
-                <TabsContent value="history" className="m-0 p-6 space-y-4">
+              {/* History Tab */}
+              {activeTab === "history" && (
+                <div className="p-6 space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     Service History
                   </h3>
@@ -282,9 +316,9 @@ export function VehicleDetailDialog({
                       )}
                     </div>
                   )}
-                </TabsContent>
-              </div>
-            </Tabs>
+                </div>
+              )}
+            </div>
 
             {/* Footer Actions */}
             <div className="border-t border-border p-4 bg-secondary/30">
@@ -323,4 +357,6 @@ export function VehicleDetailDialog({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(dialogContent, document.body);
 }
