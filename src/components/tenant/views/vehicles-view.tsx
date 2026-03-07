@@ -52,6 +52,7 @@ import { VehicleViewModel, VehicleFormData } from "@/lib/transformers";
 import { VehicleDetailDialog } from "@/components/tenant/vehicles/vehicle-detail-dialog";
 import { VehicleEditDialog } from "@/components/tenant/vehicles/vehicle-edit-dialog";
 import { VehicleDeleteDialog } from "@/components/tenant/vehicles/vehicle-delete-dialog";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 interface VehicleEditFormData {
   make: string;
@@ -316,13 +317,14 @@ export function VehiclesView({
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2" dir="ltr">
                     <Label>Owner Phone (for linking)</Label>
-                    <Input
-                      placeholder="+91 99999 99999"
+                    <PhoneInput
+                      defaultCountry="IN"
+                      placeholder="9999999999"
                       value={formData.ownerPhone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, ownerPhone: e.target.value })
+                      onChange={(val) =>
+                        setFormData({ ...formData, ownerPhone: val ? String(val) : "" })
                       }
                     />
                   </div>

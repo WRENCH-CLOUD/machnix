@@ -30,6 +30,13 @@ import {
   PopoverContent,
   PopoverAnchor,
 } from "@/components/ui/popover";
+import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+} from "@/components/ui/autocomplete";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
@@ -290,11 +297,6 @@ export function JobParts({
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
-                            {item.custom_part_number && (
-                              <p className="text-xs text-muted-foreground font-mono break-all">
-                                #{item.custom_part_number}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -475,125 +477,69 @@ export function JobParts({
                   className="grid grid-cols-12 gap-3 items-center border border-dashed border-border rounded-lg p-2"
                 >
                   <div className="col-span-3">
-                    <div className="relative">
-                      <Popover
-                        open={!!openComboboxes[part.id]}
-                        onOpenChange={(open) => toggleCombobox(part.id, open)}
-                      >
-                        <PopoverAnchor asChild>
-                          <div className="relative">
-                            <Input
-                              placeholder="Type part name..."
-                              value={part.name}
-                              onChange={(e) => {
-                                updatePart(part.id, "name", e.target.value);
-                                // If user types, unlink inventory item unless they re-select
-                                if (part.inventoryItemId) {
-                                  updatePart(
-                                    part.id,
-                                    "inventoryItemId",
-                                    undefined
-                                  );
-                                }
-                                toggleCombobox(part.id, true);
-                              }}
-                              onFocus={() => toggleCombobox(part.id, true)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCombobox(part.id, true);
-                              }}
-                              autoComplete="off"
-                              className={cn(
-                                "h-9",
-                                part.inventoryItemId &&
-                                "border-emerald-500 pr-8 ring-emerald-500/20"
-                              )}
-                              disabled={isEstimateLocked}
-                            />
-                            {part.inventoryItemId && (
-                              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <Check className="h-4 w-4 text-emerald-500" />
-                              </div>
+                    <Autocomplete
+                      items={
+                        searchInventory
+                          ? searchInventory(part.name || "", 50)
+                          : inventoryItems?.filter((item) => {
+                            if (!part.name) return true;
+                            const search = part.name.toLowerCase();
+                            return (
+                              item.name.toLowerCase().includes(search) ||
+                              item.stockKeepingUnit?.toLowerCase().includes(search)
+                            );
+                          }).slice(0, 50) || []
+                      }
+                      value={part.name}
+                      onValueChange={(val: any) => {
+                        if (typeof val === 'string') {
+                          updatePart(part.id, "name", val);
+                          if (part.inventoryItemId) {
+                            const selectedItem = inventoryItems?.find((i) => i.id === part.inventoryItemId);
+                            if (selectedItem && selectedItem.name !== val) {
+                              updatePart(part.id, "inventoryItemId", undefined);
+                            }
+                          }
+                        } else if (val) {
+                          updatePartFromInventory(part.id, val);
+                        }
+                      }}
+
+                      itemToStringValue={(item: any) => item?.name || ""}
+                      filter={null}
+                    >
+                      <AutocompleteInput
+                        placeholder="Type part name..."
+                        autoComplete="off"
+                        className={cn(
+                          "h-9 px-3",
+                          part.inventoryItemId &&
+                          "border-emerald-500 ring-emerald-500/20"
+                        )}
+                        disabled={isEstimateLocked}
+                      />
+                      {!isEstimateLocked && (
+                        <AutocompleteContent className="w-[300px] p-0" align="start" showBackdrop={false}>
+                          <AutocompleteList>
+                            {(item: any) => (
+                              <AutocompleteItem
+                                key={item.id}
+                                value={item}
+                                onClick={() => updatePartFromInventory(part.id, item)}
+                                className="flex flex-col items-start px-2 py-1.5 cursor-pointer rounded-sm"
+                              >
+                                <span className="font-medium text-sm">{item.name}</span>
+                                {item.stockKeepingUnit && (
+                                  <span className="text-xs text-muted-foreground mt-0.5">
+                                    SKU: {item.stockKeepingUnit}
+                                  </span>
+                                )}
+                              </AutocompleteItem>
                             )}
-                          </div>
-                        </PopoverAnchor>
-                        <PopoverContent
-                          className="w-[300px] p-0"
-                          align="start"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
-                        >
-                          <Command shouldFilter={false}>
-                            <CommandList>
-                              {(() => {
-                                // Use optimized search function if available (from inventory snapshot)
-                                // Falls back to client-side filter if not
-                                const filteredInventory = searchInventory
-                                  ? searchInventory(part.name || "", 50)
-                                  : inventoryItems?.filter(
-                                    (item) => {
-                                      if (!part.name) return true;
-                                      const search = part.name.toLowerCase();
-                                      return (
-                                        item.name
-                                          .toLowerCase()
-                                          .includes(search) ||
-                                        item.stockKeepingUnit
-                                          ?.toLowerCase()
-                                          .includes(search)
-                                      );
-                                    }
-                                  ).slice(0, 50);
-
-                                if (filteredInventory?.length === 0) {
-                                  return (
-                                    <CommandEmpty>
-                                      No parts found.
-                                    </CommandEmpty>
-                                  );
-                                }
-
-                                return (
-                                  <CommandGroup heading="Inventory">
-                                    {filteredInventory
-                                      ?.map((item) => (
-                                        <CommandItem
-                                          key={item.id}
-                                          value={`${item.name} ${item.stockKeepingUnit || ""}`}
-                                          onSelect={() => {
-                                            updatePartFromInventory(
-                                              part.id,
-                                              item
-                                            );
-                                            toggleCombobox(part.id, false);
-                                          }}
-                                        >
-                                          <div className="flex flex-col">
-                                            <span>{item.name}</span>
-                                            {item.stockKeepingUnit && (
-                                              <span className="text-xs text-muted-foreground">
-                                                SKU: {item.stockKeepingUnit}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <Check
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              part.inventoryItemId ===
-                                                item.id
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                  </CommandGroup>
-                                );
-                              })()}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                          </AutocompleteList>
+                        </AutocompleteContent>
+                      )}
+                    </Autocomplete>
                   </div>
                   <div className="col-span-2">
                     <Input

@@ -48,24 +48,26 @@ export class TaskEstimateSyncService {
       return null
     }
 
-    // If task has an inventory item, look up its name for the estimate
+    // If task has an inventory item, look up its name and SKU for the estimate
     let inventoryItemName: string | undefined
+    let inventoryItemSku: string | undefined
     if (task.inventoryItemId) {
       const { data: item } = await this.supabase
         .schema('tenant')
         .from('inventory_items')
-        .select('name')
+        .select('name, stock_keeping_unit')
         .eq('id', task.inventoryItemId)
         .eq('tenant_id', this.tenantId)
         .single()
 
       if (item) {
         inventoryItemName = item.name
+        inventoryItemSku = item.stock_keeping_unit ?? undefined
       }
     }
 
     // Build estimate item data from task
-    const itemData = this.buildEstimateItemFromTask(task, inventoryItemName)
+    const itemData = this.buildEstimateItemFromTask(task, inventoryItemName, inventoryItemSku)
 
     if (task.estimateItemId) {
       // Update existing estimate item
@@ -114,7 +116,7 @@ export class TaskEstimateSyncService {
     return estimates.length > 0 ? { id: estimates[0].id } : null
   }
 
-  private buildEstimateItemFromTask(task: JobCardTask, inventoryItemName?: string): EstimateItemInput {
+  private buildEstimateItemFromTask(task: JobCardTask, inventoryItemName?: string, inventoryItemSku?: string): EstimateItemInput {
     const isReplaced = task.actionType === 'REPLACED'
 
     // Use inventory item name for the estimate when available, fall back to task name
@@ -122,7 +124,8 @@ export class TaskEstimateSyncService {
 
     return {
       partId: isReplaced ? task.inventoryItemId : undefined,
-      customName: task.taskName,
+      customName: displayName,
+      customPartNumber: isReplaced ? inventoryItemSku : undefined,
       qty: isReplaced ? (task.qty || 1) : 1,
       unitPrice: isReplaced ? (task.unitPriceSnapshot || 0) : 0,
       laborCost: task.laborCostSnapshot || 0,
@@ -142,6 +145,7 @@ export class TaskEstimateSyncService {
         estimate_id: estimateId,
         part_id: item.partId || null,
         custom_name: item.customName,
+        custom_part_number: item.customPartNumber || null,
         qty: item.qty,
         unit_price: item.unitPrice,
         labor_cost: item.laborCost,
@@ -169,6 +173,7 @@ export class TaskEstimateSyncService {
       .update({
         part_id: item.partId || null,
         custom_name: item.customName,
+        custom_part_number: item.customPartNumber || null,
         qty: item.qty,
         unit_price: item.unitPrice,
         labor_cost: item.laborCost,
@@ -253,6 +258,7 @@ export class TaskEstimateSyncService {
 interface EstimateItemInput {
   partId?: string
   customName: string
+  customPartNumber?: string
   qty: number
   unitPrice: number
   laborCost: number

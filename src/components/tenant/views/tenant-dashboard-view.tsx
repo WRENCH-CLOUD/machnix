@@ -73,7 +73,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 ">
+    <div className="space-y-4 md:space-y-6 p-6">
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         {stats.map((stat, i) => (

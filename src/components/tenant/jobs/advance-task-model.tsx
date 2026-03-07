@@ -45,6 +45,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Autocomplete,
+    AutocompleteContent,
+    AutocompleteInput,
+    AutocompleteItem,
+    AutocompleteList,
+} from "@/components/ui/autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -330,74 +337,67 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                         <span className="text-muted-foreground/50 font-normal">(optional)</span>
                     </Label>
 
-                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <div
-                                role="button"
-                                className={cn(
-                                    "flex h-11 w-full items-center gap-2 rounded-md border bg-background/70 px-4 text-base cursor-pointer transition-all",
-                                    form.selectedItem
-                                        ? "border-emerald-500/50 ring-1 ring-emerald-500/20"
-                                        : "border-border/60 hover:border-border"
-                                )}
-                                onClick={() => setPopoverOpen(true)}
+                    {form.selectedItem ? (
+                        <div
+                            className="flex h-11 w-full items-center gap-2 rounded-md border border-emerald-500/50 bg-background/70 px-4 text-base ring-1 ring-emerald-500/20"
+                        >
+                            <RiBox3Line className="h-5 w-5 text-emerald-400 shrink-0" />
+                            <span className="flex-1 truncate">{form.selectedItem.name}</span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    patch({ selectedItem: null, inventorySearch: "", qty: 1 });
+                                }}
+                                className="text-muted-foreground hover:text-foreground rounded"
                             >
-                                {form.selectedItem ? (
-                                    <>
-                                        <RiBox3Line className="h-5 w-5 text-emerald-400 shrink-0" />
-                                        <span className="flex-1 truncate">{form.selectedItem.name}</span>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                patch({ selectedItem: null, inventorySearch: "", qty: 1 });
-                                            }}
-                                            className="text-muted-foreground hover:text-foreground rounded"
-                                        >
-                                            <RiCloseLine className="h-5 w-5" />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <RiBox3Line className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <span className="flex-1 text-muted-foreground">Search inventory...</span>
-                                        <RiArrowDownSLine className="h-5 w-5 text-muted-foreground" />
-                                    </>
-                                )}
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-[340px] p-0 shadow-xl border-border/60" onOpenAutoFocus={(e) => e.preventDefault()}>
-                            <div className="p-2 border-b border-border/40">
-                                <Input
+                                <RiCloseLine className="h-5 w-5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <Autocomplete
+                            items={searchResults}
+                            value={form.inventorySearch}
+                            onValueChange={(val: any) => {
+                                if (typeof val === 'string') {
+                                    patch({ inventorySearch: val });
+                                } else if (val) {
+                                    patch({ selectedItem: val, inventorySearch: val.name, qty: 1 });
+                                }
+                            }}
+                            itemToStringValue={(item: any) => item?.name || ""}
+                            filter={null}
+                        >
+                            <div className="relative">
+                                <RiBox3Line className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground shrink-0 z-10" />
+                                <AutocompleteInput
                                     autoFocus
-                                    placeholder="Search by name, SKU..."
-                                    value={form.inventorySearch}
-                                    onChange={(e) => patch({ inventorySearch: e.target.value })}
-                                    className="h-10 bg-muted/50 border-border/40 text-base focus-visible:ring-primary/40"
+                                    placeholder="Search inventory..."
+                                    className="pl-10 h-11 bg-background/70 border-border/60 text-base focus-visible:ring-primary/40"
                                 />
+                                <RiArrowDownSLine className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
                             </div>
-                            <div className="max-h-56 overflow-y-auto">
+                            <AutocompleteContent align="start" className="w-[340px] p-0 shadow-xl border-border/60" showBackdrop={false}>
                                 {searchResults.length > 0 ? (
-                                    <div className="p-1.5 space-y-0.5">
-                                        {searchResults.map((item) => {
+                                    <AutocompleteList className="p-1.5 space-y-0.5">
+                                        {(item: any) => {
                                             const avail = item.stockOnHand;
-                                            const isSelected = form.selectedItem?.id === item.id;
                                             const outOfStock = avail <= 0;
                                             return (
-                                                <button
+                                                <AutocompleteItem
                                                     key={item.id}
+                                                    value={item}
                                                     disabled={outOfStock}
-                                                    className={cn(
-                                                        "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors",
-                                                        isSelected ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/70",
-                                                        outOfStock && "opacity-40 cursor-not-allowed"
-                                                    )}
                                                     onClick={() => {
                                                         if (outOfStock) return;
                                                         patch({ selectedItem: item, inventorySearch: item.name, qty: 1 });
-                                                        setPopoverOpen(false);
                                                     }}
+                                                    className={cn(
+                                                        "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors cursor-pointer",
+                                                        "hover:bg-muted/70",
+                                                        outOfStock && "opacity-40 cursor-not-allowed hover:bg-transparent"
+                                                    )}
                                                 >
-                                                    <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex items-start justify-between gap-3 w-full">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-medium truncate">{item.name}</p>
                                                             {item.stockKeepingUnit && (
@@ -411,10 +411,10 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                                             </p>
                                                         </div>
                                                     </div>
-                                                </button>
+                                                </AutocompleteItem>
                                             );
-                                        })}
-                                    </div>
+                                        }}
+                                    </AutocompleteList>
                                 ) : form.inventorySearch.trim() ? (
                                     <div className="py-10 text-center text-base text-muted-foreground">No items found</div>
                                 ) : (
@@ -423,9 +423,9 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                         <p className="text-sm text-muted-foreground">Start typing to search inventory</p>
                                     </div>
                                 )}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                            </AutocompleteContent>
+                        </Autocomplete>
+                    )}
 
                     {qtyExceeds && (
                         <p className="flex items-center gap-1 text-sm text-amber-400">

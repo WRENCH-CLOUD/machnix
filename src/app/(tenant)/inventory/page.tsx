@@ -23,6 +23,14 @@ import { TransactionHistory } from "@/components/inventory/TransactionHistory";
 import { ImportInventoryModal } from "@/components/inventory/ImportInventoryModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+  AutocompleteStatus,
+} from "@/components/ui/autocomplete";
 
 interface AllocationWithRelations {
   id: string;
@@ -86,12 +94,22 @@ export default function InventoryPage() {
     setAllocationsLoading(true);
     try {
       const res = await fetch("/api/inventory/allocations?with_relations=true&status=reserved&limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch allocations:", errorData);
+        toast.error(errorData.error || "Failed to load reserved stock");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setReservedAllocations(data);
+      } else {
+        console.warn("Unexpected allocations response format:", data);
+        setReservedAllocations([]);
       }
     } catch (error) {
       console.error("Failed to fetch allocations", error);
+      toast.error("Failed to load reserved stock");
     } finally {
       setAllocationsLoading(false);
     }
@@ -101,12 +119,22 @@ export default function InventoryPage() {
     setTransactionsLoading(true);
     try {
       const res = await fetch("/api/inventory/transactions?limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch transactions:", errorData);
+        toast.error(errorData.error || "Failed to load recent activity");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setRecentTransactions(data);
+      } else {
+        console.warn("Unexpected transactions response format:", data);
+        setRecentTransactions([]);
       }
     } catch (error) {
       console.error("Failed to fetch transactions", error);
+      toast.error("Failed to load recent activity");
     } finally {
       setTransactionsLoading(false);
     }
@@ -423,13 +451,64 @@ export default function InventoryPage() {
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search items..."
-            className="pl-8"
+          <Autocomplete
+            items={filteredItems}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+            onValueChange={(val: any) => {
+              if (typeof val === 'string') {
+                setSearch(val);
+              } else if (val) {
+                // If an item is received
+                setSearch(val.name);
+              } else {
+                setSearch("");
+              }
+            }}
+            itemToStringValue={(item: any) => item?.name || ""}
+            filter={null} // filtering is handled by filteredItems computation
+          >
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+              <AutocompleteInput
+                placeholder="Search items..."
+                className="pl-8"
+                showClear
+              />
+            </div>
+            {search && (
+              <AutocompleteContent align="start" showBackdrop={false} className="w-[300px]">
+                <AutocompleteStatus>
+                  {filteredItems.length === 0
+                    ? `No items found`
+                    : `${filteredItems.length} item(s) found`}
+                </AutocompleteStatus>
+                {filteredItems.length > 0 && (
+                  <AutocompleteList>
+                    {(item: InventoryItem) => (
+                      <AutocompleteItem
+                        key={item.id}
+                        value={item}
+                        className="rounded-lg cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 truncate w-full">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{item.name}</div>
+                            <div className="text-muted-foreground truncate text-xs flex justify-between">
+                              <span>SKU: {item.stockKeepingUnit || "-"}</span>
+                              <span className="font-semibold text-foreground">Stock: {item.stockOnHand}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </AutocompleteItem>
+                    )}
+                  </AutocompleteList>
+                )}
+              </AutocompleteContent>
+            )}
+          </Autocomplete>
         </div>
         {/* Filter button placeholder */}
         <Button variant="outline" size="icon">
@@ -468,7 +547,7 @@ export default function InventoryPage() {
 
       {viewingHistoryItem && (
         <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-175">
             <DialogHeader>
               <DialogTitle>Transaction History</DialogTitle>
               <DialogDescription>
