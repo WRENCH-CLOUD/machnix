@@ -65,7 +65,82 @@ export function FooterSection() {
               >
                 Pricing
               </a>
+
+              {/* <a
+                href="#"
+                className="text-sm text-foreground hover:text-primary transition"
+              >
+                Digital Inspections
+              </a>
+
+              <a
+                href="#"
+                className="text-sm text-foreground hover:text-primary transition"
+              >
+                Multi-Shop
+              </a>
+
+              <a
+                href="#"
+                className="text-sm text-foreground hover:text-primary transition"
+              >
+                Integrations
+              </a> */}
             </div>
+
+            {/* Company */}
+            {/* <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Company
+              </h3>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                About us
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Our team
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Careers
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Brand
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Contact
+              </a>
+            </div> */}
+
+            {/* Resources */}
+            {/* <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Resources
+              </h3>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Terms of use
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                API Reference
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Documentation
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Community
+              </a>
+
+              <a href="#" className="text-sm text-foreground hover:text-primary transition">
+                Support
+              </a>
+            </div> */}
 
             {/* Contact */}
             <div className="flex flex-col gap-3 max-w-xs">
