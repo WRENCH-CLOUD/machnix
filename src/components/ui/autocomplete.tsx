@@ -4,8 +4,7 @@ import { Autocomplete as AutocompletePrimitive } from "@base-ui/react/autocomple
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { XIcon, ChevronsUpDownIcon } from "lucide-react"
+import { XIcon, ChevronsUpDownIcon, Loader2Icon } from "lucide-react"
 
 const inputVariants = cva(
   "outline-none flex w-full text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&[readonly]]:bg-muted/80 [&[readonly]]:cursor-not-allowed border border-input focus-visible:border-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg bg-transparent dark:bg-input/30 text-sm transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-[3px]",
@@ -37,11 +36,13 @@ function AutocompleteInput({
   size = "default",
   showClear = false,
   showTrigger = false,
+  isLoading = false,
   ...props
 }: Omit<AutocompletePrimitive.Input.Props, "size"> &
   VariantProps<typeof inputVariants> & {
     showClear?: boolean
     showTrigger?: boolean
+    isLoading?: boolean
   }) {
   return (
     <div className="relative w-full">
@@ -51,8 +52,9 @@ function AutocompleteInput({
         className={cn(inputVariants({ size }), className)}
         {...props}
       />
-      {showTrigger && <AutocompleteTrigger />}
-      {showClear && <AutocompleteClear />}
+      {isLoading && <Loader2Icon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+      {showTrigger && !isLoading && <AutocompleteTrigger />}
+      {showClear && !isLoading && <AutocompleteClear />}
     </div>
   )
 }
@@ -97,7 +99,7 @@ function AutocompletePositioner({
   return (
     <AutocompletePrimitive.Positioner
       data-slot="autocomplete-positioner"
-      className={cn("z-50 outline-none", className)}
+      className={cn("z-[100] outline-none pointer-events-auto", className)}
       {...props}
     />
   )
@@ -105,29 +107,17 @@ function AutocompletePositioner({
 
 function AutocompleteList({
   className,
-  scrollAreaClassName,
   ...props
-}: AutocompletePrimitive.List.Props & {
-  scrollAreaClassName?: string
-  scrollFade?: boolean
-  scrollbarGutter?: boolean
-}) {
+}: AutocompletePrimitive.List.Props) {
   return (
-    <ScrollArea
+    <AutocompletePrimitive.List
+      data-slot="autocomplete-list"
       className={cn(
-        "size-full min-h-0 **:data-[slot=scroll-area-viewport]:h-full **:data-[slot=scroll-area-viewport]:overscroll-contain",
-        scrollAreaClassName
+        "flex-1 overflow-y-auto not-empty:px-1 not-empty:py-1 not-empty:scroll-py-1 in-data-has-overflow-y:me-3",
+        className
       )}
-    >
-      <AutocompletePrimitive.List
-        data-slot="autocomplete-list"
-        className={cn(
-          "not-empty:px-1 not-empty:py-1 not-empty:scroll-py-1 in-data-has-overflow-y:me-3",
-          className
-        )}
-        {...props}
-      />
-    </ScrollArea>
+      {...props}
+    />
   )
 }
 
@@ -163,7 +153,7 @@ function AutocompleteItem({
     <AutocompletePrimitive.Item
       data-slot="autocomplete-item"
       className={cn(
-        "text-foreground data-highlighted:text-foreground data-highlighted:before:bg-accent gap-1.5 rounded-md px-1.5 py-1 text-sm data-highlighted:before:rounded-sm [&_svg:not([class*='size-'])]:size-4 relative flex cursor-default items-center outline-hidden transition-colors select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:relative data-highlighted:z-0 data-highlighted:before:absolute data-highlighted:before:inset-x-0 data-highlighted:before:inset-y-0 data-highlighted:before:z-[-1] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([role=img]):not([class*=text-])]:opacity-60",
+        "text-foreground data-highlighted:text-foreground data-highlighted:before:bg-accent gap-1.5 rounded-md px-1.5 py-1 text-sm data-highlighted:before:rounded-sm [&_svg:not([class*='size-'])]:size-4 relative flex cursor-pointer items-center outline-hidden transition-colors select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:relative data-highlighted:z-0 data-highlighted:before:absolute data-highlighted:before:inset-x-0 data-highlighted:before:inset-y-0 data-highlighted:before:z-[-1] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([role=img]):not([class*=text-])]:opacity-60",
         className
       )}
       {...props}
@@ -207,7 +197,7 @@ function AutocompleteContent({
           <AutocompletePrimitive.Popup
             data-slot="autocomplete-popup"
             className={cn(
-              "bg-popover text-popover-foreground rounded-lg shadow-md ring-foreground/10 flex max-h-[min(var(--available-height),24rem)] w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) scroll-pt-2 scroll-pb-2 flex-col overscroll-contain py-0.5 ring-1 transition-[scale,opacity] has-data-starting-style:scale-98 has-data-starting-style:opacity-0 has-data-[side=none]:scale-100 has-data-[side=none]:transition-none",
+              "bg-popover text-popover-foreground rounded-lg shadow-md ring-foreground/10 flex max-h-[min(var(--available-height),24rem)] w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) scroll-pt-2 scroll-pb-2 flex-col overflow-hidden overscroll-contain py-0.5 ring-1 transition-[scale,opacity] has-data-starting-style:scale-98 has-data-starting-style:opacity-0 has-data-[side=none]:scale-100 has-data-[side=none]:transition-none",
               className
             )}
             {...props}

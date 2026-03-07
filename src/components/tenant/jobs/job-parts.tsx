@@ -297,11 +297,6 @@ export function JobParts({
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
-                            {item.custom_part_number && (
-                              <p className="text-xs text-muted-foreground font-mono break-all">
-                                #{item.custom_part_number}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -513,23 +508,16 @@ export function JobParts({
                       itemToStringValue={(item: any) => item?.name || ""}
                       filter={null}
                     >
-                      <div className="relative">
-                        <AutocompleteInput
-                          placeholder="Type part name..."
-                          autoComplete="off"
-                          className={cn(
-                            "h-9 px-3",
-                            part.inventoryItemId &&
-                            "border-emerald-500 pr-8 ring-emerald-500/20"
-                          )}
-                          disabled={isEstimateLocked}
-                        />
-                        {part.inventoryItemId && (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                            <Check className="h-4 w-4 text-emerald-500" />
-                          </div>
+                      <AutocompleteInput
+                        placeholder="Type part name..."
+                        autoComplete="off"
+                        className={cn(
+                          "h-9 px-3",
+                          part.inventoryItemId &&
+                          "border-emerald-500 ring-emerald-500/20"
                         )}
-                      </div>
+                        disabled={isEstimateLocked}
+                      />
                       {!isEstimateLocked && (
                         <AutocompleteContent className="w-[300px] p-0" align="start" showBackdrop={false}>
                           <AutocompleteList>
@@ -540,17 +528,7 @@ export function JobParts({
                                 onClick={() => updatePartFromInventory(part.id, item)}
                                 className="flex flex-col items-start px-2 py-1.5 cursor-pointer rounded-sm"
                               >
-                                <div className="flex w-full justify-between items-center text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <Check
-                                    className={cn(
-                                      "h-4 w-4 shrink-0",
-                                      part.inventoryItemId === item.id
-                                        ? "opacity-100 text-emerald-500"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                </div>
+                                <span className="font-medium text-sm">{item.name}</span>
                                 {item.stockKeepingUnit && (
                                   <span className="text-xs text-muted-foreground mt-0.5">
                                     SKU: {item.stockKeepingUnit}

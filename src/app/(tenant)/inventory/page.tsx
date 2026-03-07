@@ -94,12 +94,22 @@ export default function InventoryPage() {
     setAllocationsLoading(true);
     try {
       const res = await fetch("/api/inventory/allocations?with_relations=true&status=reserved&limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch allocations:", errorData);
+        toast.error(errorData.error || "Failed to load reserved stock");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setReservedAllocations(data);
+      } else {
+        console.warn("Unexpected allocations response format:", data);
+        setReservedAllocations([]);
       }
     } catch (error) {
       console.error("Failed to fetch allocations", error);
+      toast.error("Failed to load reserved stock");
     } finally {
       setAllocationsLoading(false);
     }
@@ -109,12 +119,22 @@ export default function InventoryPage() {
     setTransactionsLoading(true);
     try {
       const res = await fetch("/api/inventory/transactions?limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch transactions:", errorData);
+        toast.error(errorData.error || "Failed to load recent activity");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setRecentTransactions(data);
+      } else {
+        console.warn("Unexpected transactions response format:", data);
+        setRecentTransactions([]);
       }
     } catch (error) {
       console.error("Failed to fetch transactions", error);
+      toast.error("Failed to load recent activity");
     } finally {
       setTransactionsLoading(false);
     }

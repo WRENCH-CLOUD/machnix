@@ -377,54 +377,52 @@ function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventor
                                 <RiArrowDownSLine className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
                             </div>
                             <AutocompleteContent align="start" className="w-[340px] p-0 shadow-xl border-border/60" showBackdrop={false}>
-                                <div className="max-h-56">
-                                    {searchResults.length > 0 ? (
-                                        <AutocompleteList className="p-1.5 space-y-0.5">
-                                            {(item: any) => {
-                                                const avail = item.stockOnHand;
-                                                const outOfStock = avail <= 0;
-                                                return (
-                                                    <AutocompleteItem
-                                                        key={item.id}
-                                                        value={item}
-                                                        disabled={outOfStock}
-                                                        onClick={() => {
-                                                            if (outOfStock) return;
-                                                            patch({ selectedItem: item, inventorySearch: item.name, qty: 1 });
-                                                        }}
-                                                        className={cn(
-                                                            "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors cursor-pointer",
-                                                            "hover:bg-muted/70",
-                                                            outOfStock && "opacity-40 cursor-not-allowed hover:bg-transparent"
-                                                        )}
-                                                    >
-                                                        <div className="flex items-start justify-between gap-3 w-full">
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium truncate">{item.name}</p>
-                                                                {item.stockKeepingUnit && (
-                                                                    <p className="text-sm text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="shrink-0 text-right">
-                                                                <p className="text-sm font-semibold">₹{item.sellPrice?.toFixed(0)}</p>
-                                                                <p className={cn("text-sm mt-0.5", avail > 0 ? "text-emerald-400" : "text-red-400")}>
-                                                                    {avail > 0 ? `${avail} avail` : "Out of stock"}
-                                                                </p>
-                                                            </div>
+                                {searchResults.length > 0 ? (
+                                    <AutocompleteList className="p-1.5 space-y-0.5">
+                                        {(item: any) => {
+                                            const avail = item.stockOnHand;
+                                            const outOfStock = avail <= 0;
+                                            return (
+                                                <AutocompleteItem
+                                                    key={item.id}
+                                                    value={item}
+                                                    disabled={outOfStock}
+                                                    onClick={() => {
+                                                        if (outOfStock) return;
+                                                        patch({ selectedItem: item, inventorySearch: item.name, qty: 1 });
+                                                    }}
+                                                    className={cn(
+                                                        "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors cursor-pointer",
+                                                        "hover:bg-muted/70",
+                                                        outOfStock && "opacity-40 cursor-not-allowed hover:bg-transparent"
+                                                    )}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3 w-full">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium truncate">{item.name}</p>
+                                                            {item.stockKeepingUnit && (
+                                                                <p className="text-sm text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
+                                                            )}
                                                         </div>
-                                                    </AutocompleteItem>
-                                                );
-                                            }}
-                                        </AutocompleteList>
-                                    ) : form.inventorySearch.trim() ? (
-                                        <div className="py-10 text-center text-base text-muted-foreground">No items found</div>
-                                    ) : (
-                                        <div className="py-10 text-center">
-                                            <RiBox3Line className="h-10 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                                            <p className="text-sm text-muted-foreground">Start typing to search inventory</p>
-                                        </div>
-                                    )}
-                                </div>
+                                                        <div className="shrink-0 text-right">
+                                                            <p className="text-sm font-semibold">₹{item.sellPrice?.toFixed(0)}</p>
+                                                            <p className={cn("text-sm mt-0.5", avail > 0 ? "text-emerald-400" : "text-red-400")}>
+                                                                {avail > 0 ? `${avail} avail` : "Out of stock"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </AutocompleteItem>
+                                            );
+                                        }}
+                                    </AutocompleteList>
+                                ) : form.inventorySearch.trim() ? (
+                                    <div className="py-10 text-center text-base text-muted-foreground">No items found</div>
+                                ) : (
+                                    <div className="py-10 text-center">
+                                        <RiBox3Line className="h-10 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                                        <p className="text-sm text-muted-foreground">Start typing to search inventory</p>
+                                    </div>
+                                )}
                             </AutocompleteContent>
                         </Autocomplete>
                     )}
