@@ -10,8 +10,8 @@ export function PricingSection() {
   const plans = [
     {
       name: "Basic",
-      monthlyPrice: "Coming Soon",
-      annualPrice: "Coming Soon",
+      monthlyPrice: "Coming Soon", //TODO: Update to the real price
+      annualPrice: "Coming Soon", //TODO: Update to the real price
       description: "Perfect for small shops getting started.",
       features: [
         "Up to 50 jobs/month",
@@ -20,6 +20,11 @@ export function PricingSection() {
         "Customer notifications",
         "Branded invoices",
       ],
+
+      // buttonText: "Get Started",
+      // buttonClass:
+      //   "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
+
       button: "Coming Soon",
     },
     {
