@@ -1,49 +1,47 @@
 import React from "react"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Header } from "./header"
 import { CallbackForm } from "./callback-form"
 import styles from "./hero-section.module.css"
+import {
+  ClipboardList,
+  CalendarClock,
+  MessageSquareText,
+  LucideIcon,
+} from "lucide-react"
 
-const blocks = [
-  { x: "8%", y: "18%", s: "56px", o: 0.16 },
-  { x: "18%", y: "34%", s: "82px", o: 0.12 },
-  { x: "10%", y: "62%", s: "64px", o: 0.1 },
-  { x: "34%", y: "14%", s: "48px", o: 0.12 },
-  { x: "42%", y: "42%", s: "96px", o: 0.08 },
-  { x: "56%", y: "22%", s: "64px", o: 0.1 },
-  { x: "62%", y: "58%", s: "76px", o: 0.09 },
-  { x: "72%", y: "16%", s: "60px", o: 0.1 },
-  { x: "78%", y: "38%", s: "110px", o: 0.07 },
-  { x: "86%", y: "62%", s: "74px", o: 0.09 },
-  { x: "90%", y: "28%", s: "58px", o: 0.1 },
-  { x: "92%", y: "74%", s: "52px", o: 0.1 },
-] as const
+type Card = {
+  title: string
+  desc: string
+  icon: LucideIcon
+}
+
+const cards: Card[] = [
+  {
+    title: "Job Management",
+    desc: "Track repairs from vehicle intake to delivery with real-time status updates. Monitor active jobs and technician progress easily.",
+    icon: ClipboardList,
+  },
+  {
+    title: "Smart Scheduling",
+    desc: "Optimize technician schedules and workshop bays with intelligent scheduling. Plan services, avoid conflicts, and improve shop efficiency.",
+    icon: MessageSquareText,
+  },
+  {
+    title: "Customer Updates",
+    desc: "Keep customers informed with live updates, service approvals, and instant invoice notifications.",
+    icon: CalendarClock,
+  },
+]
 
 export function HeroSection() {
   return (
     <section
       className="flex flex-col items-center text-center relative mx-auto rounded-2xl overflow-hidden my-6 py-0 px-4
-         w-full min-h-[600px] md:w-[1220px] md:min-h-[900px] lg:min-h-[1100px] md:px-0"
+         w-full min-h-[600px] md:w-[1220px] md:min-h-[600px] lg:min-h-[900px] md:px-0"
     >
       {/* Background layers */}
       <div className={styles.heroBg}>
-        <div className={styles.blocks} aria-hidden="true">
-          {blocks.map((block, index) => (
-            <span
-              key={`${block.x}-${block.y}-${block.s}-${index}`}
-              className={styles.block}
-              style={
-                {
-                  "--x": block.x,
-                  "--y": block.y,
-                  "--s": block.s,
-                  "--o": String(block.o),
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </div>
 
       {/* Header positioned at top of hero container */}
       <div className="absolute top-0 left-0 right-0 z-20">
@@ -69,20 +67,22 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Dashboard Preview Image */}
-      <div className="relative z-10 mt-10 md:mt-14 lg:mt-16 w-full max-w-[1160px] px-4">
-        <div className="bg-gradient-to-b from-emerald-500/30 to-transparent rounded-2xl p-1 md:p-2 shadow-2xl">
-          <Image
-            src="/dashboard-page.jpeg"
-            alt="Wrench Cloud Dashboard Preview"
-            width={1160}
-            height={800}
-            className="w-full h-auto object-cover rounded-xl shadow-lg border border-white/10"
-            priority
-            sizes="(max-width: 768px) 92vw, 1160px"
-            quality={85}
-          />
-        </div>
+      {/* Cards Section */}
+      <div className="relative mt-16 z-10 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl px-4 pb-20">
+        {cards.map((card, index) => (
+          <div
+            key={index}
+            className="flex flex-col items-center text-center p-6 rounded-xl border border-border bg-background/60 backdrop-blur-sm"
+          >
+            <div className="p-3 rounded-lg border border-[var(--primary)] text-[var(--primary)] w-fit mb-4">
+              <card.icon className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
+
+            <p className="text-sm text-muted-foreground">{card.desc}</p>
+          </div>
+        ))}
       </div>
       </div>
     </section>
