@@ -20,7 +20,6 @@ interface CustomerFormData {
   phone: string;
   email: string;
   address: string;
-  notes: string;
 }
 
 interface CustomerEditDialogProps {
@@ -47,7 +46,6 @@ export function CustomerEditDialog({
     phone: "",
     email: "",
     address: "",
-    notes: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +57,6 @@ export function CustomerEditDialog({
         phone: customer.phone || "",
         email: customer.email || "",
         address: customer.address || "",
-        notes: "",
       });
     }
   }, [customer]);
@@ -158,19 +155,7 @@ export function CustomerEditDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-                placeholder="Any additional notes about this customer"
-                rows={2}
-              />
             </div>
-          </div>
 
           <DialogFooter>
             <Button

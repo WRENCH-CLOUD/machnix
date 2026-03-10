@@ -8,11 +8,11 @@ import { TenantSettings } from '../domain/tenant-settings.entity'
 export class AdminSupabaseTenantRepository implements TenantRepository {
   constructor(private readonly supabase: SupabaseClient) { }
 
-  async getSettings(tenantId: string): Promise<TenantSettings | null> {
+  async getSettings(): Promise<TenantSettings | null> {
     return null
   }
 
-  async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
+  async updateSettings(): Promise<void> {
     // Not implemented for admin
   }
 

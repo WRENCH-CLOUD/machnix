@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
 import { ApproveEstimateUseCase } from '@/modules/estimate/application/approve-estimate.use-case'
-import { createClient } from '@/lib/supabase/server'
+import { apiGuardAdmin, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function POST(
   request: NextRequest,
@@ -9,17 +9,12 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const idError = validateRouteId(id, 'estimate')
+    if (idError) return idError
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const tenantId = user.app_metadata.tenant_id || user.user_metadata.tenant_id
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant context missing' }, { status: 400 })
-    }
+    const guard = await apiGuardAdmin(request, 'approve-estimate')
+    if (!guard.ok) return guard.response
+    const { supabase, tenantId } = guard
 
     const body = await request.json()
     const { approvedBy } = body as { approvedBy: string }

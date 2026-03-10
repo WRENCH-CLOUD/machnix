@@ -6,7 +6,6 @@ export interface CreateCustomerDTO {
   phone?: string
   email?: string
   address?: string
-  notes?: string
 }
 
 /**

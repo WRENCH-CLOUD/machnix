@@ -9,6 +9,7 @@ import { transformDatabaseJobToUI, type UIJob } from "@/modules/job/application/
 import { type JobStatus } from "@/modules/job/domain/job.entity"
 import { api } from "@/lib/supabase/client"
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog"
+// import { toast } from "sonner"
 
 export default function AllJobsPage() {
   const { tenantId } = useAuth()
@@ -51,6 +52,13 @@ export default function AllJobsPage() {
     }
     transformJobs()
   }, [dbJobs])
+
+  // Keep selected job in sync so details panel reflects refreshed complaints/notes too
+  useEffect(() => {
+    if (!selectedJob) return
+    const fresh = transformedJobs.find((j) => j.id === selectedJob.id)
+    if (fresh) setSelectedJob(fresh)
+  }, [transformedJobs, selectedJob?.id])
 
   const handleJobClick = async (job: UIJob) => {
     setSelectedJob(job)
@@ -129,6 +137,22 @@ export default function AllJobsPage() {
     }
   }
 
+  const handleDeleteJob = async (jobId: string) => {
+  try {
+    const res = await api.delete(`/api/jobs/${jobId}`)
+    if (!res.ok) throw new Error('Failed to delete job')
+
+    if (selectedJob?.id === jobId) {
+      setSelectedJob(null)
+    }
+
+    await invalidateJobs()
+  } catch (err) {
+    console.error('Error deleting job:', err)
+    alert('Failed to delete job')
+  }
+}
+
   if (isLoading) {
     return null; // Layout handles auth loading, page handles data loading
   }
@@ -138,6 +162,8 @@ export default function AllJobsPage() {
       <AllJobsView
         jobs={transformedJobs}
         onJobClick={handleJobClick}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDeleteJob}
       />
 
       {selectedJob && (

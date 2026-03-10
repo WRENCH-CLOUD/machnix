@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, Mail, MapPin, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
+import { Phone, Mail, Car, User, Clock, FileText, Save, HardHat, Hash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
+import { InvisibleTextarea } from "@/components/ui/input-invesible";
 import { Button } from "@/components/ui/button";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { enrichJobWithDummyData } from "@/shared/utils/dvi-dummy-data";
@@ -54,7 +54,6 @@ export function JobOverview({
   isEditable = true,
   onMechanicChange,
   estimate,
-  searchInventory,
 }: JobOverviewProps) {
   // Enrich job with dummy data if needed (legacy behavior)
   const enrichedJob = enrichJobWithDummyData(job);
@@ -256,7 +255,8 @@ export function JobOverview({
           </CardHeader>
           <CardContent>
             {isEditable && onUpdateNotes ? (
-              <Textarea
+              <InvisibleTextarea
+                isMultiline
                 value={localNotes}
                 onChange={(e) => handleNotesChange(e.target.value)}
                 onFocus={() => setIsNotesEditing(true)}
@@ -265,8 +265,8 @@ export function JobOverview({
                 }}
                 placeholder="Add notes or customer complaints..."
                 className={cn(
-                  "min-h-[80px] resize-none transition-colors",
-                  isNotesEditing && "border-primary"
+                  "min-h-[80px] transition-colors",
+                  isNotesEditing && "ring-1 ring-primary"
                 )}
               />
             ) : (
