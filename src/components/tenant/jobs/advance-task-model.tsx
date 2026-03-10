@@ -804,7 +804,7 @@ function TaskRow({
                                 )}
 
                                 {/* Cost summary grid */}
-                                <div>
+                                {/* <div>
                                     <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Cost Breakdown</p>
                                     <div className="grid grid-cols-3 gap-2">
                                         {[
@@ -826,7 +826,7 @@ function TaskRow({
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </div> */} {/*TODO: remove or revamp @msv6264*/}
 
                                 {/* Audit trail */}
                                 <div className="space-y-1.5">
