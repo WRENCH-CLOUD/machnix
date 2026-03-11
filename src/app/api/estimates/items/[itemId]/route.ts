@@ -46,13 +46,22 @@ export async function PATCH(
 
     const body = await request.json();
 
+    // Accept both API snake_case and internal camelCase field names.
+    // Frontend sends snake_case (unit_price/labor_cost), while use-case expects camelCase.
+    const normalizedInput = {
+      itemId,
+      qty: body.qty,
+      customName: body.customName ?? body.custom_name,
+      customPartNumber: body.customPartNumber ?? body.custom_part_number,
+      unitPrice: body.unitPrice ?? body.unit_price,
+      laborCost: body.laborCost ?? body.labor_cost,
+      createdBy: body.createdBy ?? body.created_by,
+    };
+
     const repository = new SupabaseEstimateRepository(supabase, tenantId);
     const useCase = new UpdateEstimateItemUseCase(repository);
 
-    const item = await useCase.execute({
-      ...body,
-      itemId,
-    });
+    const item = await useCase.execute(normalizedInput);
 
     return NextResponse.json(item);
   } catch (error: any) {

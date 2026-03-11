@@ -261,7 +261,9 @@ export function useEstimateByJob(
     queryFn: async (): Promise<Estimate | null> => {
       if (!jobId) return null;
 
-      const res = await api.get(`/api/estimates/by-job/${jobId}`);
+      const res = await api.get(`/api/estimates/by-job/${jobId}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         return res.json();
       }
@@ -349,6 +351,7 @@ export class StockError extends Error {
 
 export function useAddEstimateItem(jobId: string) {
   const queryClient = useQueryClient();
+  const cacheKey = queryKeys.estimates.byJob(jobId);
 
   return useMutation({
     mutationFn: async ({
@@ -357,7 +360,7 @@ export function useAddEstimateItem(jobId: string) {
     }: {
       estimateId: string;
       item: {
-        partId?: string; // Inventory Item ID
+        partId?: string;
         name: string;
         partNumber?: string;
         quantity: number;
@@ -388,14 +391,42 @@ export function useAddEstimateItem(jobId: string) {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    onMutate: async ({ item }) => {
+      await queryClient.cancelQueries({ queryKey: cacheKey });
+      const previous = queryClient.getQueryData(cacheKey);
+
+      queryClient.setQueryData(cacheKey, (old: any) => {
+        if (!old) return old;
+        const optimisticItem = {
+          id: `optimistic-${Date.now()}`,
+          custom_name: item.name,
+          custom_part_number: item.partNumber ?? null,
+          qty: item.quantity,
+          unit_price: item.unitPrice,
+          labor_cost: item.laborCost ?? 0,
+        };
+        return {
+          ...old,
+          estimate_items: [...(old.estimate_items ?? []), optimisticItem],
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(cacheKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: cacheKey });
     },
   });
 }
 
 export function useRemoveEstimateItem(jobId: string) {
   const queryClient = useQueryClient();
+  const cacheKey = queryKeys.estimates.byJob(jobId);
 
   return useMutation({
     mutationFn: async (itemId: string) => {
@@ -403,8 +434,27 @@ export function useRemoveEstimateItem(jobId: string) {
       if (!res.ok) throw new Error("Failed to remove item");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: cacheKey });
+      const previous = queryClient.getQueryData(cacheKey);
+
+      queryClient.setQueryData(cacheKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          estimate_items: (old.estimate_items ?? []).filter((i: any) => i.id !== itemId),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(cacheKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: cacheKey });
       // Reverse sync: task's showInEstimate may have changed, refresh tasks
       queryClient.invalidateQueries({ queryKey: ["tasks", "job", jobId] });
     },
@@ -413,6 +463,7 @@ export function useRemoveEstimateItem(jobId: string) {
 
 export function useUpdateEstimateItem(jobId: string) {
   const queryClient = useQueryClient();
+  const cacheKey = queryKeys.estimates.byJob(jobId);
 
   return useMutation({
     mutationFn: async ({
@@ -441,8 +492,36 @@ export function useUpdateEstimateItem(jobId: string) {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.estimates.byJob(jobId) });
+    onMutate: async ({ itemId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: cacheKey });
+      const previous = queryClient.getQueryData(cacheKey);
+
+      queryClient.setQueryData(cacheKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          estimate_items: (old.estimate_items ?? []).map((item: any) =>
+            item.id !== itemId
+              ? item
+              : {
+                  ...item,
+                  qty: updates.qty ?? item.qty,
+                  unit_price: updates.unitPrice ?? item.unit_price,
+                  labor_cost: updates.laborCost ?? item.labor_cost,
+                }
+          ),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(cacheKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: cacheKey });
     },
   });
 }
