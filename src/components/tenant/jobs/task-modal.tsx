@@ -74,8 +74,8 @@ export function TaskModal({
     const [description, setDescription] = useState(initialData?.description || "");
     const [inventorySearch, setInventorySearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-    const [qty, setQty] = useState(initialData?.qty || 1);
-    const [laborCost, setLaborCost] = useState(initialData?.laborCostSnapshot || 0);
+    const [qty, setQty] = useState<string>(String(initialData?.qty ?? 1));
+    const [laborCost, setLaborCost] = useState<string>(String(initialData?.laborCostSnapshot ?? 0));
     const [openCombobox, setOpenCombobox] = useState(false);
     const [showInEstimate, setShowInEstimate] = useState(initialData?.showInEstimate ?? true);
 
@@ -107,29 +107,32 @@ export function TaskModal({
             } else {
                 setSelectedItem(null);
             }
-            setQty(initialData?.qty || 1);
-            setLaborCost(initialData?.laborCostSnapshot || 0);
+            setQty(String(initialData?.qty ?? 1));
+            setLaborCost(String(initialData?.laborCostSnapshot ?? 0));
         }
     }, [isOpen, initialData, initialInventoryItem]);
 
     const handleSubmit = () => {
         if (!taskName.trim()) return;
 
+        const parsedQty = parseInt(qty) || 0;
+        const parsedLaborCost = parseFloat(laborCost) || 0;
+
         // Auto-derive action type from inventory selection
-        const derivedActionType: TaskActionType = (selectedItem && qty > 0) ? "REPLACED" : "LABOR_ONLY";
+        const derivedActionType: TaskActionType = (selectedItem && parsedQty > 0) ? "REPLACED" : "LABOR_ONLY";
 
         const data: CreateTaskInput = {
             taskName: taskName.trim(),
             description: description.trim() || undefined,
             actionType: derivedActionType,
-            laborCostSnapshot: laborCost,
+            laborCostSnapshot: parsedLaborCost,
             showInEstimate,
         };
 
         // If inventory item selected, include inventory details
-        if (selectedItem && qty > 0) {
+        if (selectedItem && parsedQty > 0) {
             data.inventoryItemId = selectedItem.id;
-            data.qty = qty;
+            data.qty = parsedQty;
             data.unitPriceSnapshot = selectedItem.sellPrice ?? selectedItem.unitCost ?? 0;
             data.taxRateSnapshot = 18; // Default GST rate
         }
@@ -187,7 +190,7 @@ export function TaskModal({
                             type="number"
                             min={0}
                             value={laborCost}
-                            onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => setLaborCost(e.target.value)}
                             placeholder="0"
                         />
                     </div>
@@ -213,7 +216,7 @@ export function TaskModal({
                                         } else if (val) {
                                             setSelectedItem(val);
                                             setInventorySearch(val.name);
-                                            setQty(1);
+                                            setQty("1");
                                         }
                                     }}
                                     itemToStringValue={(item: any) => item?.name || ""}
@@ -241,7 +244,7 @@ export function TaskModal({
                                                                 if (outOfStock) return;
                                                                 setSelectedItem(item);
                                                                 setInventorySearch(item.name);
-                                                                setQty(1);
+                                                                setQty("1");
                                                             }}
                                                             className={cn(
                                                                 "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors cursor-pointer",
@@ -288,9 +291,9 @@ export function TaskModal({
                                         min={1}
                                         max={getStockAvailable(selectedItem)}
                                         value={qty}
-                                        onChange={(e) => setQty(parseInt(e.target.value) || 1)}
+                                        onChange={(e) => setQty(e.target.value)}
                                     />
-                                    {qty > getStockAvailable(selectedItem) && (
+                                    {(parseInt(qty) || 0) > getStockAvailable(selectedItem) && (
                                         <p className="text-xs text-destructive flex items-center gap-1">
                                             <AlertTriangle className="h-3 w-3" />
                                             Only {getStockAvailable(selectedItem)} available

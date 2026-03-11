@@ -111,9 +111,9 @@ export function JobParts({
   // Editing state for estimate items
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{
-    qty: number;
-    unitPrice: number;
-    laborCost: number;
+    qty: string;
+    unitPrice: string;
+    laborCost: string;
   } | null>(null);
 
   // Combobox state per part row (keyed by part.id)
@@ -208,9 +208,9 @@ export function JobParts({
   const startEditItem = (item: EstimateItemMinimal) => {
     setEditingItemId(item.id);
     setEditValues({
-      qty: item.qty,
-      unitPrice: Number(item.unit_price),
-      laborCost: Number(item.labor_cost) || 0,
+      qty: String(item.qty),
+      unitPrice: String(Number(item.unit_price)),
+      laborCost: String(Number(item.labor_cost) || 0),
     });
   };
 
@@ -222,9 +222,9 @@ export function JobParts({
   const saveEdit = async () => {
     if (editingItemId && editValues && onUpdateItem) {
       await onUpdateItem(editingItemId, {
-        qty: editValues.qty,
-        unitPrice: editValues.unitPrice,
-        laborCost: editValues.laborCost,
+        qty: parseInt(editValues.qty) || 1,
+        unitPrice: parseFloat(editValues.unitPrice) || 0,
+        laborCost: parseFloat(editValues.laborCost) || 0,
       });
       cancelEdit();
     }
@@ -258,180 +258,6 @@ export function JobParts({
               the invoice is generated.
             </AlertDescription>
           </Alert>
-        )}
-
-        {/* Estimate Items (Parts already in estimate) */}
-        {estimateItems.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Estimate Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
-                  <div className="col-span-3">Item</div>
-                  <div className="col-span-2">Part Identity.</div>
-                  <div className="col-span-1">Qty</div>
-                  <div className="col-span-2">Unit Price</div>
-                  <div className="col-span-2">Labor</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-
-                {/* Estimate Items List */}
-                {estimateItems.map((item) => {
-                  const isEditing = editingItemId === item.id;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${isEditing
-                        ? "bg-blue-500/5 border border-blue-500/20"
-                        : "bg-emerald-500/5 border border-emerald-500/20"
-                        }`}
-                    >
-                      <div className="col-span-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <div className="text-sm text-muted-foreground">
-                          {item.custom_part_number || "-"}
-                        </div>
-                      </div>
-                      <div className="col-span-1">
-                        {isEditing && editValues ? (
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editValues.qty}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                qty: parseInt(e.target.value) || 1,
-                              })
-                            }
-                            className="h-8 text-sm"
-                          />
-                        ) : (
-                          <div className="text-sm">{item.qty}</div>
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        {isEditing && editValues ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              value={editValues.unitPrice}
-                              onChange={(e) =>
-                                setEditValues({
-                                  ...editValues,
-                                  unitPrice: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 pl-5 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-sm">
-                            ₹{Number(item.unit_price).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        {isEditing && editValues ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              value={editValues.laborCost}
-                              onChange={(e) =>
-                                setEditValues({
-                                  ...editValues,
-                                  laborCost: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 pl-5 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-sm">
-                            ₹{Number(item.labor_cost || 0).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-2 flex gap-1 justify-end">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="default"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={saveEdit}
-                              title="Save changes"
-                            >
-                              <Check className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={cancelEdit}
-                              title="Cancel editing"
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground h-8 w-8"
-                              onClick={() => startEditItem(item)}
-                              disabled={isEstimateLocked}
-                              title={
-                                isEstimateLocked
-                                  ? "Cannot modify - estimate is locked"
-                                  : "Edit item"
-                              }
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive h-8 w-8"
-                              onClick={() => onRemoveItem(item.id)}
-                              disabled={isEstimateLocked}
-                              title={
-                                isEstimateLocked
-                                  ? "Cannot modify - estimate is locked"
-                                  : "Remove item"
-                              }
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Temporary Parts (Not yet added to estimate) */}
@@ -561,7 +387,7 @@ export function JobParts({
                         updatePart(
                           part.id,
                           "quantity",
-                          Number.parseInt(e.target.value) || 1
+                          Number.parseInt(e.target.value) || 0
                         )
                       }
                       className="h-9"
@@ -644,7 +470,183 @@ export function JobParts({
             </div>
           </CardContent>
         </Card>
+        
 
+        {/* Estimate Items (Parts already in estimate) */}
+        {estimateItems.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Estimate Items
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+                  <div className="col-span-3">Item</div>
+                  <div className="col-span-2">Part Identity.</div>
+                  <div className="col-span-1">Qty</div>
+                  <div className="col-span-2">Unit Price</div>
+                  <div className="col-span-2">Labor</div>
+                  <div className="col-span-2 text-right">Actions</div>
+                </div>
+
+                {/* Estimate Items List */}
+                {estimateItems.map((item) => {
+                  const isEditing = editingItemId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${isEditing
+                        ? "bg-blue-500/5 border border-blue-500/20"
+                        : "bg-emerald-500/5 border border-emerald-500/20"
+                        }`}
+                    >
+                      <div className="col-span-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="text-sm text-muted-foreground">
+                          {item.custom_part_number || "-"}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        {isEditing && editValues ? (
+                          <Input
+                            type="number"
+                            min="1"
+                            value={editValues.qty}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                qty: e.target.value,
+                              })
+                            }
+                            className="h-8 text-sm"
+                          />
+                        ) : (
+                          <div className="text-sm">{item.qty}</div>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        {isEditing && editValues ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                              ₹
+                            </span>
+                            <Input
+                              type="number"
+                              value={editValues.unitPrice}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  unitPrice: e.target.value,
+                                })
+                              }
+                              className="h-8 pl-5 text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm">
+                            ₹{Number(item.unit_price).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        {isEditing && editValues ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                              ₹
+                            </span>
+                            <Input
+                              type="number"
+                              value={editValues.laborCost}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  laborCost: e.target.value,
+                                })
+                              }
+                              className="h-8 pl-5 text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm">
+                            ₹{Number(item.labor_cost || 0).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-2 flex gap-1 justify-end">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={saveEdit}
+                              title="Save changes"
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={cancelEdit}
+                              title="Cancel editing"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground h-8 w-8"
+                              onClick={() => startEditItem(item)}
+                              disabled={isEstimateLocked}
+                              title={
+                                isEstimateLocked
+                                  ? "Cannot modify - estimate is locked"
+                                  : "Edit item"
+                              }
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive h-8 w-8"
+                              onClick={() => onRemoveItem(item.id)}
+                              disabled={isEstimateLocked}
+                              title={
+                                isEstimateLocked
+                                  ? "Cannot modify - estimate is locked"
+                                  : "Remove item"
+                              }
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* parts Subtotal and Tax with print option */}
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4 text-sm">
