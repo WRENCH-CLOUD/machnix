@@ -57,6 +57,8 @@ interface KanbanBoardProps {
     onDragOver?: (event: DragOverEvent) => void
     /** Called when a card is dropped */
     onDragEnd: (event: DragEndEvent) => void
+    /** Called when a drag is cancelled (e.g. Escape key) */
+    onDragCancel?: () => void
     /** Whether the board is on a mobile device — adjusts column widths & touch tolerance */
     isMobile?: boolean
     /** Collision detection strategy (defaults to closestCorners) */
@@ -71,6 +73,7 @@ function KanbanBoard({
     onDragStart,
     onDragOver,
     onDragEnd,
+    onDragCancel,
     isMobile = false,
     collisionDetection = closestCorners,
     overlay,
@@ -101,6 +104,7 @@ function KanbanBoard({
                 onDragStart={onDragStart}
                 onDragOver={onDragOver}
                 onDragEnd={onDragEnd}
+                onDragCancel={onDragCancel}
             >
                 <div
                     data-slot="kanban-board"
@@ -127,6 +131,8 @@ interface KanbanColumnProps {
     /** Unique column identifier used for the droppable zone */
     id: string
     children: ReactNode
+    /** Externally controlled highlight — use when child sortables steal isOver */
+    isActive?: boolean
     /** Optional right-click handler */
     onContextMenu?: (e: React.MouseEvent) => void
     className?: string
@@ -135,11 +141,14 @@ interface KanbanColumnProps {
 function KanbanColumn({
     id,
     children,
+    isActive,
     onContextMenu,
     className,
 }: KanbanColumnProps) {
     const { isMobile } = useKanban()
     const { setNodeRef, isOver } = useDroppable({ id })
+
+    const highlighted = isActive ?? isOver
 
     return (
         <div
@@ -148,7 +157,7 @@ function KanbanColumn({
             className={cn(
                 "shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all snap-start",
                 isMobile ? "w-[calc(100vw-3rem)] min-w-70" : "w-72 lg:w-80",
-                isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20",
+                highlighted && "border-primary/50 bg-primary/5 ring-2 ring-primary/20",
                 className,
             )}
             onContextMenu={onContextMenu}

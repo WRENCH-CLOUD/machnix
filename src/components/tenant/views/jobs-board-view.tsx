@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import {
+  pointerWithin,
+  closestCorners,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +67,19 @@ const COLUMNS: { id: JobStatus; label: string }[] = [
 ];
 
 const statusOrder: JobStatus[] = COLUMNS.map((column) => column.id);
+
+/* -------------------------------------------------------------------------- */
+/*  Custom collision detection — pointer-within first, closest-corners        */
+/*  fallback for better multi-container kanban accuracy                       */
+/* -------------------------------------------------------------------------- */
+
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  return closestCorners(args);
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Job Card Body — Domain-specific card content                              */
@@ -196,6 +216,7 @@ export function JobBoardView({
     status: JobStatus;
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [mechanicFilter, setMechanicFilter] = useState<string>("");
   const [mechanics, setMechanics] = useState<{ id: string; name: string }[]>(
     [],
@@ -280,10 +301,12 @@ export function JobBoardView({
         acc[status] = uiJobs.filter((job) => {
           if (job.status !== status) return false;
 
-          const updatedDate = new Date(job.updatedAt);
-          updatedDate.setHours(0, 0, 0, 0);
+          const completedDate = job.completedAt
+            ? new Date(job.completedAt)
+            : new Date(job.updatedAt);
+          completedDate.setHours(0, 0, 0, 0);
 
-          return updatedDate.getTime() === today.getTime();
+          return completedDate.getTime() === today.getTime();
         });
       } else {
         acc[status] = uiJobs.filter((job) => job.status === status);
@@ -305,7 +328,55 @@ export function JobBoardView({
     if (job) setActiveJob(job);
   };
 
-  const handleDragOver = (_event: DragOverEvent) => { };
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || !activeJob) {
+      setActiveColumnId(null);
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    if (activeId === overId) return;
+
+    // Determine which column the pointer is over
+    let targetStatus: JobStatus | undefined;
+
+    if (statusOrder.some((s) => overId === `droppable-${s}`)) {
+      targetStatus = statusOrder.find((s) => overId === `droppable-${s}`);
+    } else {
+      const overJob = uiJobs.find((j) => j.id === overId);
+      if (overJob) {
+        targetStatus = overJob.status as JobStatus;
+      }
+    }
+
+    if (!targetStatus) {
+      setActiveColumnId(null);
+      return;
+    }
+
+    // Highlight the target column
+    setActiveColumnId(`droppable-${targetStatus}`);
+
+    // Already in the right column — nothing to do
+    const currentItem = uiJobs.find((j) => j.id === activeId);
+    if (!currentItem || currentItem.status === targetStatus) return;
+
+    // Validate against the ORIGINAL status from drag start
+    if (!validateStatusTransition(activeJob.status, targetStatus)) return;
+
+    // Move the item to the new column for visual feedback
+    const updatedAt = new Date().toISOString();
+    setUiJobs((prev) =>
+      prev.map((job) =>
+        job.id === activeId
+          ? { ...job, status: targetStatus as string, updatedAt, updated_at: updatedAt }
+          : job,
+      ),
+    );
+  };
 
   const validateStatusTransition = (
     fromStatus: string,
@@ -325,8 +396,21 @@ export function JobBoardView({
     const { active, over } = event;
     const draggedJob = activeJob;
     setActiveJob(null);
+    setActiveColumnId(null);
 
-    if (!over || !draggedJob) return;
+    if (!over || !draggedJob) {
+      // No valid drop target — revert any optimistic moves from handleDragOver
+      if (draggedJob) {
+        setUiJobs((prev) =>
+          prev.map((job) =>
+            job.id === draggedJob.id
+              ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+              : job,
+          ),
+        );
+      }
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -344,41 +428,80 @@ export function JobBoardView({
       }
     }
 
-    if (targetStatus && draggedJob.status !== targetStatus) {
-      const isValidTransition = validateStatusTransition(
-        draggedJob.status,
-        targetStatus,
-      );
-
-      if (!isValidTransition) {
-        return;
-      }
-
-      // Update UI immediately to keep drag/drop smooth.
-      const updatedAt = new Date().toISOString();
-      const previousUiJobs = uiJobs;
+    // No valid target or same as original — revert
+    if (!targetStatus || draggedJob.status === targetStatus) {
       setUiJobs((prev) =>
         prev.map((job) =>
           job.id === activeId
-            ? {
+            ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+            : job,
+        ),
+      );
+      return;
+    }
+
+    const isValidTransition = validateStatusTransition(
+      draggedJob.status,
+      targetStatus,
+    );
+
+    if (!isValidTransition) {
+      // Revert the optimistic update from handleDragOver
+      setUiJobs((prev) =>
+        prev.map((job) =>
+          job.id === activeId
+            ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+            : job,
+        ),
+      );
+      return;
+    }
+
+    // Finalize the move with updated timestamp
+    const updatedAt = new Date().toISOString();
+    setUiJobs((prev) =>
+      prev.map((job) =>
+        job.id === activeId
+          ? {
               ...job,
               status: targetStatus as string,
               updatedAt,
               updated_at: updatedAt,
             }
+          : job,
+      ),
+    );
+
+    if (onStatusChange) {
+      try {
+        await onStatusChange(activeId, targetStatus);
+      } catch (error) {
+        console.error("Failed to update job status:", error);
+        // Revert on API failure
+        setUiJobs((prev) =>
+          prev.map((job) =>
+            job.id === activeId
+              ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+              : job,
+          ),
+        );
+      }
+    }
+  };
+
+  const handleDragCancel = () => {
+    if (activeJob) {
+      // Revert to original status from before the drag started
+      setUiJobs((prev) =>
+        prev.map((job) =>
+          job.id === activeJob.id
+            ? { ...job, status: activeJob.status, updatedAt: activeJob.updatedAt, updated_at: activeJob.updated_at }
             : job,
         ),
       );
-
-      if (onStatusChange) {
-        try {
-          await onStatusChange(activeId, targetStatus);
-        } catch (error) {
-          console.error("Failed to update job status:", error);
-          setUiJobs(previousUiJobs);
-        }
-      }
     }
+    setActiveJob(null);
+    setActiveColumnId(null);
   };
 
   /* ---- Context menu ---- */
@@ -574,9 +697,11 @@ export function JobBoardView({
       <div className="flex-1 overflow-hidden px-3 md:px-6 py-3 md:py-4">
         <KanbanBoard
           isMobile={isMobile}
+          collisionDetection={kanbanCollisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
           overlay={
             activeJob ? (
               <Card className="group relative bg-card border-border/50">
@@ -596,6 +721,7 @@ export function JobBoardView({
               <KanbanColumn
                 key={status}
                 id={`droppable-${status}`}
+                isActive={activeColumnId === `droppable-${status}`}
                 onContextMenu={(e) => handleContextMenu(e, status)}
               >
                 <KanbanColumnHeader
