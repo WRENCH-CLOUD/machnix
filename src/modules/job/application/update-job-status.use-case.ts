@@ -138,6 +138,7 @@ export class UpdateJobStatusUseCase {
         taxAmount: estimate.taxAmount,
         discountAmount: estimate.discountAmount,
         totalAmount: estimate.totalAmount,
+        balance: estimate.totalAmount - (invoiceWithRelations.paidAmount ?? 0),
         metadata: {
           ...(invoiceWithRelations.metadata || {}),
           source: 'estimate',

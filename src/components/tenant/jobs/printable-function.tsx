@@ -77,13 +77,11 @@ export const usePrintableFunctions = ({
 
     const partsSubtotal = estimateItems.reduce(
       (acc: number, item: { qty: number; unit_price: number }) =>
-        acc + item.qty * item.unit_price,
-      0
+        acc + item.qty * item.unit_price, 0
     );
     const laborSubtotal = estimateItems.reduce(
       (acc: number, item: { labor_cost?: number }) =>
-        acc + (item.labor_cost || 0),
-      0
+        acc + (item.labor_cost || 0), 0
     );
     const subtotal = partsSubtotal + laborSubtotal;
 
