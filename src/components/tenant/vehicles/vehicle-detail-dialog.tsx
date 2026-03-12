@@ -97,13 +97,13 @@ export function VehicleDetailDialog({
             <TabsList className="h-10 bg-transparent border-0 p-0 gap-6">
               <TabsTrigger
                 value="details"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none px-0 h-10 text-sm font-semibold"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none p-2 h-10 text-sm font-semibold"
               >
                 Details
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none px-0 h-10 text-sm text-muted-foreground data-[state=active]:text-foreground"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none p-2 h-10 text-sm text-muted-foreground data-[state=active]:text-foreground"
               >
                 Service History
               </TabsTrigger>
