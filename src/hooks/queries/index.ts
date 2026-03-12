@@ -420,6 +420,7 @@ export function useAddEstimateItem(jobId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: cacheKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
     },
   });
 }
@@ -455,6 +456,7 @@ export function useRemoveEstimateItem(jobId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: cacheKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
       // Reverse sync: task's showInEstimate may have changed, refresh tasks
       queryClient.invalidateQueries({ queryKey: ["tasks", "job", jobId] });
     },
@@ -522,6 +524,7 @@ export function useUpdateEstimateItem(jobId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: cacheKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.byJob(jobId) });
     },
   });
 }

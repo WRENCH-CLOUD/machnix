@@ -8,10 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, ClipboardList, Users, Car, Loader2, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { InvisibleInput } from "../ui/input-invesible"
 
 interface SearchResult {
   id: string
@@ -66,7 +66,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               type: "customer",
               title: c.name,
               subtitle: c.phone || c.email || "No contact info",
-              href: `/customers`
+              href: `/customers?customerId=${c.id}`
             })
           })
         }
@@ -112,7 +112,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               type: "vehicle",
               title: v.licensePlate || "Unknown Vehicle",
               subtitle: `${v.make || ''} ${v.model || ''}`.trim() || 'No details',
-              href: `/vehicles`
+              href: `/vehicles?vehicleId=${v.id}`
             })
           })
         }
@@ -165,20 +165,16 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden" showCloseButton={false}>
         <DialogTitle className="sr-only">Global Search</DialogTitle>
-        <DialogDescription className="sr-only">
-          Search for jobs, customers, and vehicles across the platform.
-        </DialogDescription>
-        <div className="flex items-center border-b px-3">
-          <Search className="w-4 h-4 text-muted-foreground mr-2" />
-          <Input
+        <div className="flex items-center border-b">
+          <Search className="w-4 h-4 text-muted-foreground mr-2 ml-2" />
+          <InvisibleInput
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search jobs, customers, vehicles..."
-            className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+            className="placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 focus-visible:ring-offset-transparent"
           />
-          {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
         </div>
 
         {query.trim() && (
@@ -197,7 +193,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors",
                         index === selectedIndex
-                          ? "bg-accent text-accent-foreground"
+                          ? "bg-accent"
                           : "hover:bg-muted"
                       )}
                     >
@@ -232,7 +228,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
           </div>
         )}
 
-        <div className="hidden sm:flex items-center justify-between px-3 py-2 border-t bg-muted/50 text-xs text-muted-foreground">
+        <div className="hidden sm:flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground">
           <div className="flex gap-2">
             <kbd className="px-1.5 py-0.5 bg-background border rounded text-[10px]">↑↓</kbd>
             <span>Navigate</span>

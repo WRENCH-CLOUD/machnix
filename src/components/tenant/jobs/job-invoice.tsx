@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditCard, Download, Check, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,7 +46,13 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
+  console.log("Tenant in JobInvoice:", tenantDetails);
 
+
+  // Local string state so the input can be emptied without snapping back to "0"
+  const [discountInput, setDiscountInput] = useState(() =>
+    discountPercentage > 0 ? String(discountPercentage) : ""
+  );
 
   // Check if editing is allowed (only locked when job is completed)
   const isCompleted = job.status === "completed";
@@ -122,8 +129,11 @@ export function JobInvoice({
             min={0}
             max={100}
             step={0.5}
-            value={discountPercentage}
-            onChange={(e) => onDiscountChange?.(parseFloat(e.target.value) || 0)}
+            value={discountInput}
+            onChange={(e) => {
+              setDiscountInput(e.target.value);
+              onDiscountChange?.(parseFloat(e.target.value) || 0);
+            }}
             className="w-24"
             disabled={!canEdit}
           />
@@ -238,7 +248,10 @@ export function JobInvoice({
                     </p>
                   </div>
                   <div className="text-right">
-                    <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3>
+                    {/* <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3> */}
+                    <h3 className="font-bold text-red-600 text-xl">
+                      TENANT: {tenantDetails?.name}
+                    </h3>
                     <p className="text-sm text-gray-600">
                       {tenantDetails.address}
                     </p>

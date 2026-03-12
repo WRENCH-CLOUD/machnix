@@ -22,11 +22,11 @@ export function ResizableSidebarWrapper({
 }: ResizableSidebarWrapperProps) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [sidebarWidth, setSidebarWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
-  
+
   // Calculate max width based on container width
   const getMaxWidth = useCallback(() => {
     if (!containerRef.current) return 600;
@@ -41,11 +41,11 @@ export function ResizableSidebarWrapper({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !containerRef.current) return;
-    
+
     const containerRect = containerRef.current.getBoundingClientRect();
     const newWidth = e.clientX - containerRect.left;
     const maxWidth = getMaxWidth();
-    
+
     setSidebarWidth(Math.min(Math.max(newWidth, minWidth), maxWidth));
   }, [isResizing, getMaxWidth, minWidth]);
 
@@ -74,11 +74,11 @@ export function ResizableSidebarWrapper({
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
   // Collapsed sidebar width (icon only mode)
-  const collapsedWidth = 52;
+  const collapsedWidth = 60;
   const currentWidth = isCollapsed ? collapsedWidth : sidebarWidth;
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="flex h-screen w-full overflow-hidden"
     >
@@ -102,13 +102,13 @@ export function ResizableSidebarWrapper({
             "relative w-1 flex-shrink-0 cursor-col-resize",
             "group/resize",
             "transition-colors duration-200",
-            isResizing 
-              ? "bg-primary/20" 
+            isResizing
+              ? "bg-primary/20"
               : "bg-transparent hover:bg-primary/10"
           )}
         >
           {/* Visual indicator line */}
-          <div 
+          <div
             className={cn(
               "absolute inset-y-0 left-1/2 -translate-x-1/2 w-px",
               "bg-border/50",
@@ -117,9 +117,9 @@ export function ResizableSidebarWrapper({
               "group-hover/resize:bg-primary/30"
             )}
           />
-          
+
           {/* Grip handle */}
-          <div 
+          <div
             className={cn(
               "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
               "w-4 h-8 flex items-center justify-center",

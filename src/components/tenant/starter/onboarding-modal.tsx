@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, Building2, MapPin, Phone, FileText, Sparkles, Lock, Eye, EyeOff } from 'lucide-react'
@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { useCompleteOnboarding, OnboardingStatus } from '@/hooks/use-onboarding'
 
 const INDIAN_STATES = [
@@ -112,6 +113,7 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
     formState: { errors },
     trigger,
     watch,
+    control,
     setValue,
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -360,13 +362,18 @@ export function OnboardingModal({ initialData, onComplete }: OnboardingModalProp
                     <Label htmlFor="businessPhone">
                       Business Phone <span className="text-destructive">*</span>
                     </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="businessPhone"
-                        placeholder="e.g., 9876543210"
-                        {...register('businessPhone')}
-                        className={`pl-9 ${errors.businessPhone ? 'border-destructive' : ''}`}
+                    <div className="relative" dir="ltr">
+                      <Controller
+                        name="businessPhone"
+                        control={control}
+                        render={({ field }) => (
+                          <PhoneInput
+                            {...field}
+                            defaultCountry="IN"
+                            placeholder="e.g. +91 9876543210"
+                            className={errors.businessPhone ? 'border-destructive' : ''}
+                          />
+                        )}
                       />
                     </div>
                     {errors.businessPhone && (

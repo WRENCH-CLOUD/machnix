@@ -4,13 +4,30 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const alertVariants = cva(
-  'relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current',
+  [
+    'relative w-full text-sm border has-[>svg]:grid-cols-[calc(var(--spacing)*3)_1fr] grid-cols-[0_1fr] grid gap-y-0.5 items-center [&>svg:not([class*=size-])]:size-4',
+    'has-[>[data-slot=alert-title]+[data-slot=alert-description]]:[&_[data-slot=alert-action]]:sm:row-end-3',
+    'has-[>[data-slot=alert-title]+[data-slot=alert-description]]:items-start',
+    'has-[>[data-slot=alert-title]+[data-slot=alert-description]]:[&_svg]:translate-y-0.5',
+    'rounded-lg',
+    'px-3',
+    'py-2.5',
+    'has-[>svg]:gap-x-2.5',
+  ],
   {
     variants: {
       variant: {
         default: 'bg-card text-card-foreground',
         destructive:
-          'text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90',
+          'border-destructive/30 bg-destructive/4 [&>svg]:text-destructive',
+        info:
+          'border-blue-500/30 bg-blue-500/5 [&>svg]:text-blue-500',
+        success:
+          'border-emerald-500/30 bg-emerald-500/5 [&>svg]:text-emerald-500',
+        warning:
+          'border-amber-500/30 bg-amber-500/5 [&>svg]:text-amber-500',
+        invert:
+          'border-foreground bg-foreground text-background [&_[data-slot=alert-description]]:text-background/70',
       },
     },
     defaultVariants: {
@@ -63,4 +80,17 @@ function AlertDescription({
   )
 }
 
-export { Alert, AlertTitle, AlertDescription }
+function AlertAction({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="alert-action"
+      className={cn(
+        'flex gap-1.5 max-sm:col-start-2 max-sm:mt-2 max-sm:justify-start sm:col-start-3 sm:row-start-1 sm:justify-end sm:self-center',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription, AlertAction }

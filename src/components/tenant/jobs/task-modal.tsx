@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
     Package,
-    Check,
     Loader2,
     AlertTriangle,
 } from "lucide-react";
@@ -15,6 +14,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Autocomplete,
+    AutocompleteContent,
+    AutocompleteInput,
+    AutocompleteItem,
+    AutocompleteList,
+} from "@/components/ui/autocomplete";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -68,8 +74,8 @@ export function TaskModal({
     const [description, setDescription] = useState(initialData?.description || "");
     const [inventorySearch, setInventorySearch] = useState("");
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-    const [qty, setQty] = useState(initialData?.qty || 1);
-    const [laborCost, setLaborCost] = useState(initialData?.laborCostSnapshot || 0);
+    const [qty, setQty] = useState<string>(String(initialData?.qty ?? 1));
+    const [laborCost, setLaborCost] = useState<string>(String(initialData?.laborCostSnapshot ?? 0));
     const [openCombobox, setOpenCombobox] = useState(false);
     const [showInEstimate, setShowInEstimate] = useState(initialData?.showInEstimate ?? true);
 
@@ -101,29 +107,32 @@ export function TaskModal({
             } else {
                 setSelectedItem(null);
             }
-            setQty(initialData?.qty || 1);
-            setLaborCost(initialData?.laborCostSnapshot || 0);
+            setQty(String(initialData?.qty ?? 1));
+            setLaborCost(String(initialData?.laborCostSnapshot ?? 0));
         }
     }, [isOpen, initialData, initialInventoryItem]);
 
     const handleSubmit = () => {
         if (!taskName.trim()) return;
 
+        const parsedQty = parseInt(qty) || 0;
+        const parsedLaborCost = parseFloat(laborCost) || 0;
+
         // Auto-derive action type from inventory selection
-        const derivedActionType: TaskActionType = (selectedItem && qty > 0) ? "REPLACED" : "LABOR_ONLY";
+        const derivedActionType: TaskActionType = (selectedItem && parsedQty > 0) ? "REPLACED" : "LABOR_ONLY";
 
         const data: CreateTaskInput = {
             taskName: taskName.trim(),
             description: description.trim() || undefined,
             actionType: derivedActionType,
-            laborCostSnapshot: laborCost,
+            laborCostSnapshot: parsedLaborCost,
             showInEstimate,
         };
 
         // If inventory item selected, include inventory details
-        if (selectedItem && qty > 0) {
+        if (selectedItem && parsedQty > 0) {
             data.inventoryItemId = selectedItem.id;
-            data.qty = qty;
+            data.qty = parsedQty;
             data.unitPriceSnapshot = selectedItem.sellPrice ?? selectedItem.unitCost ?? 0;
             data.taxRateSnapshot = 18; // Default GST rate
         }
@@ -181,7 +190,7 @@ export function TaskModal({
                             type="number"
                             min={0}
                             value={laborCost}
-                            onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => setLaborCost(e.target.value)}
                             placeholder="0"
                         />
                     </div>
@@ -195,84 +204,82 @@ export function TaskModal({
                             </Label>
 
                             <div className="relative">
-                                <div className="relative">
-                                    <Input
-                                        placeholder="Search parts to auto-fill..."
-                                        value={inventorySearch}
-                                        onChange={(e) => {
-                                            setInventorySearch(e.target.value);
+                                <Autocomplete
+                                    items={searchResults}
+                                    value={inventorySearch}
+                                    onValueChange={(val: any) => {
+                                        if (typeof val === 'string') {
+                                            setInventorySearch(val);
                                             if (selectedItem) {
-                                                setSelectedItem(null); // Unlink if user types
+                                                setSelectedItem(null);
                                             }
-                                            setOpenCombobox(true);
-                                        }}
-                                        onFocus={() => setOpenCombobox(true)}
-                                        onBlur={() => {
-                                            // Small delay to allow click events to process if clicking an item
-                                            setTimeout(() => setOpenCombobox(false), 200);
-                                        }}
+                                        } else if (val) {
+                                            setSelectedItem(val);
+                                            setInventorySearch(val.name);
+                                            setQty("1");
+                                        }
+                                    }}
+                                    itemToStringValue={(item: any) => item?.name || ""}
+                                    filter={null}
+                                >
+                                    <AutocompleteInput
+                                        placeholder="Search parts to auto-fill..."
                                         className={cn(
-                                            "pr-8",
                                             selectedItem && "border-emerald-500 ring-emerald-500/20"
                                         )}
                                     />
-                                    {selectedItem && (
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <Check className="h-4 w-4 text-emerald-500" />
-                                        </div>
-                                    )}
-                                </div>
 
-                                {/* Custom Dropdown List - Replaces Popover to avoid Modal focus issues */}
-                                {openCombobox && searchResults.length > 0 && (
-                                    <div className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95 overflow-hidden">
-                                        <div className="max-h-[200px] overflow-y-auto p-1">
-                                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                                Inventory
-                                            </div>
-                                            {searchResults.map((item) => (
-                                                <div
-                                                    key={item.id}
-                                                    className={cn(
-                                                        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                                        selectedItem?.id === item.id && "bg-accent text-accent-foreground"
-                                                    )}
-                                                    onMouseDown={(e) => e.preventDefault()} // Prevent blur on Input
-                                                    onClick={() => {
-                                                        setSelectedItem(item);
-                                                        setInventorySearch(item.name);
-                                                        setQty(1);
-                                                        setOpenCombobox(false);
-                                                    }}
-                                                >
-                                                    <div className="flex flex-col">
-                                                        <span>{item.name}</span>
-                                                        {item.stockKeepingUnit && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                SKU: {item.stockKeepingUnit}
-                                                            </span>
-                                                        )}
-                                                        <span className={cn(
-                                                            "text-xs",
-                                                            getStockAvailable(item) > 0 ? "text-green-500" : "text-red-500"
-                                                        )}>
-                                                            {getStockAvailable(item)} available @ ₹{item.sellPrice?.toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                    {selectedItem?.id === item.id && (
-                                                        <Check className="ml-auto h-4 w-4" />
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {openCombobox && searchResults.length === 0 && inventorySearch && (
-                                    <div className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border bg-popover text-popover-foreground shadow-md p-4 text-sm text-center text-muted-foreground">
-                                        No parts found.
-                                    </div>
-                                )}
+                                    <AutocompleteContent align="start" className="w-[340px] p-0 shadow-xl border-border/60" showBackdrop={false}>
+                                        {searchResults.length > 0 ? (
+                                            <AutocompleteList className="p-1.5 space-y-0.5">
+                                                {(item: any) => {
+                                                    const avail = getStockAvailable(item);
+                                                    const outOfStock = avail <= 0;
+                                                    return (
+                                                        <AutocompleteItem
+                                                            key={item.id}
+                                                            value={item}
+                                                            disabled={outOfStock}
+                                                            onClick={() => {
+                                                                if (outOfStock) return;
+                                                                setSelectedItem(item);
+                                                                setInventorySearch(item.name);
+                                                                setQty("1");
+                                                            }}
+                                                            className={cn(
+                                                                "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors cursor-pointer",
+                                                                selectedItem?.id === item.id ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/70",
+                                                                outOfStock && "opacity-40 cursor-not-allowed hover:bg-transparent"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3 w-full">
+                                                                <div className="flex-1 min-w-0 flex flex-col items-start text-left">
+                                                                    <p className="font-medium truncate text-left">{item.name}</p>
+                                                                    {item.stockKeepingUnit && (
+                                                                        <p className="text-sm text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
+                                                                    )}
+                                                                    <span className={cn(
+                                                                        "text-xs mt-1",
+                                                                        avail > 0 ? "text-emerald-500" : "text-red-500"
+                                                                    )}>
+                                                                        {avail > 0 ? `${avail} available` : "Out of stock"}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="shrink-0 text-right">
+                                                                    <p className="text-sm font-semibold">₹{item.sellPrice?.toFixed(2)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </AutocompleteItem>
+                                                    );
+                                                }}
+                                            </AutocompleteList>
+                                        ) : inventorySearch.trim() ? (
+                                            <div className="py-10 text-center text-sm text-muted-foreground">No parts found.</div>
+                                        ) : (
+                                            <div className="py-10 text-center text-sm text-muted-foreground">Type to search inventory</div>
+                                        )}
+                                    </AutocompleteContent>
+                                </Autocomplete>
                             </div>
 
                             {selectedItem && (
@@ -284,9 +291,9 @@ export function TaskModal({
                                         min={1}
                                         max={getStockAvailable(selectedItem)}
                                         value={qty}
-                                        onChange={(e) => setQty(parseInt(e.target.value) || 1)}
+                                        onChange={(e) => setQty(e.target.value)}
                                     />
-                                    {qty > getStockAvailable(selectedItem) && (
+                                    {(parseInt(qty) || 0) > getStockAvailable(selectedItem) && (
                                         <p className="text-xs text-destructive flex items-center gap-1">
                                             <AlertTriangle className="h-3 w-3" />
                                             Only {getStockAvailable(selectedItem)} available

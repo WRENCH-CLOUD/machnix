@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { VehiclesView } from "@/components/tenant/views/vehicles-view";
 import { useVehicles, useVehicleMakes, useInvalidateQueries } from "@/hooks";
 import { VehicleViewModel, VehicleFormData, transformVehicleToViewModel } from "@/lib/transformers";
@@ -17,6 +17,8 @@ interface VehicleEditFormData {
 
 export default function VehiclesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialVehicleId = searchParams.get("vehicleId");
   const { data: vehiclesData, isLoading, error } = useVehicles();
   const { data: makesData } = useVehicleMakes();
   const { invalidateVehicles } = useInvalidateQueries();
@@ -119,6 +121,7 @@ export default function VehiclesPage() {
       onDeleteVehicle={handleDeleteVehicle}
       onRetry={invalidateVehicles}
       onCreateJob={handleCreateJob}
+      initialVehicleId={initialVehicleId}
     />
   );
 }

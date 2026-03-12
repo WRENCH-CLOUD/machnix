@@ -48,6 +48,7 @@ export interface UIJob {
   tax: number
   createdAt: Date | string
   updatedAt: Date | string
+  completedAt?: Date | string | null
   created_at?: Date | string
   updated_at?: Date | string
   estimatedCompletion?: Date | string
@@ -98,6 +99,7 @@ export async function transformDatabaseJobToUI(dbJob: JobCardWithRelations): Pro
     complaints: extractComplaints(dbJob.details, dbJob),
     createdAt: dbJob.createdAt,
     updatedAt: dbJob.updatedAt,
+    completedAt: dbJob.completedAt ?? null,
     // Keep legacy snake_case fields for compatibility if needed, otherwise remove them
     created_at: dbJob.createdAt,
     updated_at: dbJob.updatedAt,

@@ -12,8 +12,6 @@ import {
   MoreHorizontal,
   Calendar,
   ArrowUpDown,
-  Trash2,
-  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +23,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -122,12 +119,12 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
 
   const SortIndicator = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+      return <ArrowUpDown className="size-3.5 ml-1 opacity-40" />;
     }
     return sortOrder === "asc" ? (
-      <ChevronUp className="w-4 h-4 ml-1" />
+      <ChevronUp className="size-3.5 ml-1" />
     ) : (
-      <ChevronDown className="w-4 h-4 ml-1" />
+      <ChevronDown className="size-3.5 ml-1" />
     );
   };
 
@@ -191,7 +188,8 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
           </div>
         )
       },
-      cell: ({ row }) => <span className="font-mono font-medium">{row.getValue("jobNumber")}</span>
+      cell: ({ row }) => <span className="font-mono text-sm font-medium">{row.getValue("jobNumber")}</span>,
+      meta: { cellClassName: "max-w-[180px] whitespace-nowrap" },
     },
     {
       id: "customer",
@@ -203,11 +201,12 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
         )
       },
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.original.customer.name}</div>
-          <div className="text-sm text-muted-foreground">{row.original.customer.phone}</div>
+        <div className="min-w-0">
+          <div className="font-medium truncate">{row.original.customer.name}</div>
+          <div className="text-xs text-muted-foreground truncate">{row.original.customer.phone}</div>
         </div>
-      )
+      ),
+      meta: { cellClassName: "max-w-[180px]" },
     },
     {
       id: "vehicle",
@@ -219,13 +218,14 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
         )
       },
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium">
+        <div className="min-w-0">
+          <div className="font-medium truncate">
             {row.original.vehicle.make} {row.original.vehicle.model}
           </div>
-          <div className="text-sm text-muted-foreground">{row.original.vehicle.regNo}</div>
+          <div className="text-xs text-muted-foreground truncate">{row.original.vehicle.regNo}</div>
         </div>
-      )
+      ),
+      meta: { cellClassName: "max-w-[200px]" },
     },
     {
       id: "mechanic",
@@ -234,13 +234,13 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
         const mechanic = row.original.mechanic;
         return mechanic ? (
           <div className="flex items-center gap-2">
-            <Avatar className="w-6 h-6">
+            <Avatar className="size-6">
               <AvatarImage src={mechanic.avatar || "/placeholder.svg"} />
-              <AvatarFallback>
+              <AvatarFallback className="text-xs">
                 {mechanic.name ? mechanic.name.charAt(0) : "M"}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm">{mechanic.name}</span>
+            <span className="text-sm truncate">{mechanic.name}</span>
           </div>
         ) : (
           <span className="text-muted-foreground text-sm">Unassigned</span>
@@ -277,8 +277,8 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
       cell: ({ row }) => {
         const date = row.original.createdAt instanceof Date ? row.original.createdAt : new Date(row.original.createdAt as any);
         return (
-          <div className="flex items-center gap-1 text-muted-foreground text-sm">
-            <Calendar className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-muted-foreground text-sm whitespace-nowrap">
+            <Calendar className="size-3" />
             {date.toLocaleDateString("en-IN", {
               day: "2-digit",
               month: "short",
@@ -293,7 +293,7 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
       cell: ({ row }) => {
         const total = (row.original as any).partsTotal + (row.original as any).laborTotal + (row.original as any).tax;
         return (
-          <div className="text-right font-medium">
+          <div className="text-right font-medium tabular-nums whitespace-nowrap">
             {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
           </div>
         )
@@ -310,16 +310,14 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
         <DropdownMenu>
           <DropdownMenuTrigger
             asChild
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
+            onClick={(e) => e.stopPropagation()}
           >
             <Button
               variant="ghost"
               size="icon"
-              className="opacity-0 group-hover:opacity-100"
+              className="size-8 opacity-0 group-hover/row:opacity-100 transition-opacity"
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <MoreHorizontal className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -329,73 +327,74 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
                 onJobClick(row.original);
               }}
             >
-              <Eye className="w-4 h-4 mr-2" />
+              <Eye className="size-4 mr-2" />
               View Details
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      )
+      ),
+      meta: { headerClassName: "w-[50px]", cellClassName: "w-[50px]" },
     },
   ], [sortField, sortOrder, onJobClick]);
 
 
+  const statItems = [
+    { label: "Total Jobs", value: stats.total, color: "text-primary" },
+    { label: "Received", value: stats.received, color: "text-blue-500" },
+    { label: "Working", value: stats.working, color: "text-amber-500" },
+    { label: "Ready", value: stats.ready, color: "text-emerald-500" },
+    { label: "Completed", value: stats.completed, color: "text-slate-400" },
+  ];
+
   return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="px-4 py-6 md:px-6 space-y-6 max-w-full overflow-hidden">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg md:text-2xl font-bold text-foreground">All Jobs</h1>
-          <p className="text-muted-foreground text-xs md:text-sm">Manage and track all job cards</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">All Jobs</h1>
+          <p className="text-sm text-muted-foreground">Manage and track all job cards</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent w-fit" onClick={handleExportCSV}>
-          <Download className="w-4 h-4" />
-          <span className="hidden sm:inline">Export</span> CSV
+        <Button variant="outline" size="sm" className="gap-2 w-fit" onClick={handleExportCSV}>
+          <Download className="size-4" />
+          Export CSV
         </Button>
       </div>
 
-      {/* Stats Grid - responsive: 3 on first row, 2 on second for mobile */}
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
-        {[
-          { label: "Total Jobs", value: stats.total, color: "bg-primary/10 text-primary" },
-          { label: "Received", value: stats.received, color: "bg-blue-500/10 text-blue-500" },
-          { label: "Working", value: stats.working, color: "bg-amber-500/10 text-amber-500" },
-          { label: "Ready", value: stats.ready, color: "bg-emerald-500/10 text-emerald-500" },
-          { label: "Completed", value: stats.completed, color: "bg-slate-500/10 text-slate-400" },
-        ].map((stat, index) => (
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {statItems.map((stat) => (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "bg-card border border-border rounded-xl p-2 md:p-4",
-              index >= 3 && "col-span-1 md:col-span-1" // Last two take normal width on mobile
-            )}
+            className="bg-card border border-border rounded-lg px-4 py-3"
           >
-            <div className="text-[10px] md:text-sm text-muted-foreground truncate">{stat.label}</div>
-            <div className={`text-lg md:text-2xl font-bold mt-0.5 md:mt-1 ${stat.color.split(" ")[1]}`}>
+            <div className="text-xs text-muted-foreground">{stat.label}</div>
+            <div className={cn("text-2xl font-bold mt-1 tabular-nums", stat.color)}>
               {stat.value}
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Search and Filter - stack on mobile */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-        <div className="relative flex-1 sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search jobs, customers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-9 md:h-10"
+            className="pl-9 h-9"
           />
         </div>
         <Select
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as JobStatus | "all")}
         >
-          <SelectTrigger className="w-full sm:w-48 h-9 md:h-10">
-            <Filter className="w-4 h-4 mr-2" />
+          <SelectTrigger className="w-full sm:w-44 h-9">
+            <Filter className="size-4 mr-2" />
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -410,15 +409,14 @@ export function AllJobsView({ jobs, onJobClick, onStatusChange, onDelete }: AllJ
       </div>
 
       {/* Table */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <DataTable
           data={filteredAndSortedJobs}
           columns={columns}
           onRowClick={onJobClick}
-          stretch={true}
         />
         {filteredAndSortedJobs.length === 0 && (
-          <div className="p-8 absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Empty>
               <EmptyMedia variant="icon">
                 <Filter className="size-6" />
