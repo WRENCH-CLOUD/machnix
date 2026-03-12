@@ -351,7 +351,7 @@ export function JobDetailsDialog({
                 {!isMechanicMode && (
                   <TabsTrigger
                     value="overview"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Overview
@@ -361,7 +361,7 @@ export function JobDetailsDialog({
                 {!isMechanicMode && (
                   <TabsTrigger
                     value="tasks"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Tasks
@@ -381,7 +381,7 @@ export function JobDetailsDialog({
                   <>
                     <TabsTrigger
                       value="parts"
-                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
                     >
                       <Car className="w-4 h-4 mr-2" />
                       Parts & Estimate
@@ -391,7 +391,7 @@ export function JobDetailsDialog({
                       disabled={
                         job.status !== "ready" && job.status !== "completed"
                       }
-                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
                       Invoice
