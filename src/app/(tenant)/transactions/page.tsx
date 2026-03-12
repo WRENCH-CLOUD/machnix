@@ -108,50 +108,46 @@ export default function TransactionsPage() {
             </div>
 
             {/* Filters */}
-            <Card>
-                <CardContent className="p-4">
-                    <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 min-w-[200px]">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search by ID, customer, vehicle, job..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-9"
-                                />
-                            </div>
-                        </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-[150px]">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="success">Success</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="initiated">Initiated</SelectItem>
-                                <SelectItem value="failed">Failed</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={modeFilter} onValueChange={setModeFilter}>
-                            <SelectTrigger className="w-[150px]">
-                                <SelectValue placeholder="Payment Mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Modes</SelectItem>
-                                {modes.map((mode) => (
-                                    <SelectItem key={mode} value={mode}>
-                                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
 
+            <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by ID, customer, vehicle, job..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="success">Success</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="initiated">Initiated</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={modeFilter} onValueChange={setModeFilter}>
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Payment Mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Modes</SelectItem>
+                        {modes.map((mode) => (
+                            <SelectItem key={mode} value={mode}>
+                                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
             {/* Transactions Table */}
             <Card>
                 <CardHeader>

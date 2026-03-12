@@ -6,18 +6,17 @@ import {
   Gauge,
   User,
   X,
-  Edit,
-  Trash2,
   Briefcase,
   Wrench,
   Palette,
   FileText,
+  History,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { VehicleViewModel } from "@/lib/transformers";
 
 interface VehicleDetailDialogProps {
@@ -27,6 +26,10 @@ interface VehicleDetailDialogProps {
   onEdit: (vehicle: VehicleViewModel) => void;
   onDelete: (vehicle: VehicleViewModel) => void;
   onCreateJob?: (vehicle: VehicleViewModel) => void;
+}
+
+function padNumber(n: number): string {
+  return n.toString().padStart(2, "0");
 }
 
 export function VehicleDetailDialog({
@@ -40,287 +43,272 @@ export function VehicleDetailDialog({
   if (!vehicle || !isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-2xl bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="w-full sm:max-w-[540px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl bg-card"
+        showCloseButton={false}
+      >
+        <VisuallyHidden>
+          <DialogTitle>Vehicle Details</DialogTitle>
+        </VisuallyHidden>
+
+        {/* Header */}
+        <div className="relative flex flex-col items-center pt-8 pb-2 px-6 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
           >
-            {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Car className="w-8 h-8 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-xl font-bold text-foreground">
-                      {vehicle.makeName || "Unknown"} {vehicle.modelName || "Unknown"}
-                    </h2>
-                    {vehicle.year && (
-                      <Badge
-                        variant="outline"
-                        className="bg-blue-500/10 text-blue-500 border-blue-500/30"
-                      >
-                        {vehicle.year}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-mono bg-muted px-2 py-0.5 rounded text-foreground">
-                      {vehicle.regNo}
-                    </span>
-                    {vehicle.ownerName && (
-                      <>
-                        <span>•</span>
-                        <User className="w-4 h-4" />
-                        <span>{vehicle.ownerName}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
+            <X className="w-5 h-5" />
+          </Button>
 
-            {/* Tabs */}
-            <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-              <div className="border-b border-border px-6 flex-none">
-                <TabsList className="h-12 bg-transparent border-0 gap-6">
-                  <TabsTrigger
-                    value="details"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Details
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="history"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
-                  >
-                    <Wrench className="w-4 h-4 mr-2" />
-                    Service History
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+          <div className="w-20 h-20 rounded-full border-2 border-border mb-4 bg-muted flex items-center justify-center">
+            <Car className="w-8 h-8 text-foreground" />
+          </div>
 
-              <div className="flex-1 overflow-y-auto">
-                <TabsContent value="details" className="m-0 p-6 space-y-6">
-                  {/* Vehicle Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Vehicle Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {vehicle.year && (
-                        <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
-                          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Year
-                            </p>
-                            <p className="font-medium text-foreground">
-                              {vehicle.year}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      {vehicle.color && (
-                        <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
-                          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                            <Palette className="w-5 h-5 text-purple-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Color
-                            </p>
-                            <p className="font-medium text-foreground capitalize">
-                              {vehicle.color}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      {vehicle.odometer && (
-                        <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl border border-border">
-                          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                            <Gauge className="w-5 h-5 text-amber-500" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Odometer
-                            </p>
-                            <p className="font-medium text-foreground">
-                              {vehicle.odometer.toLocaleString("en-IN")} km
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-xl font-bold text-foreground">
+              {vehicle.makeName || "Unknown"} {vehicle.modelName || "Unknown"}
+            </h2>
+            {vehicle.year && (
+              <Badge
+                variant="outline"
+                className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5"
+              >
+                {vehicle.year}
+              </Badge>
+            )}
+          </div>
 
-                  <Separator />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+            {vehicle.ownerName && (
+              <>
+                <User className="w-3.5 h-3.5" />
+                <span>{vehicle.ownerName}</span>
+              </>
+            )}
+          </div>
+        </div>
 
-                  {/* Owner Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Owner
-                    </h3>
-                    <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl border border-border">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary" />
+        {/* Tabs */}
+        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+          <div className="px-6 flex-none">
+            <TabsList className="h-10 bg-transparent border-0 p-0 gap-6">
+              <TabsTrigger
+                value="details"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none p-2 h-10 text-sm font-semibold"
+              >
+                Details
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-foreground rounded-none p-2 h-10 text-sm text-muted-foreground data-[state=active]:text-foreground"
+              >
+                Service History
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <TabsContent value="details" className="m-0 px-6 pt-6 pb-4 space-y-6">
+              {/* Vehicle Information */}
+              <div className="space-y-3">
+                <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">
+                  Vehicle Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {vehicle.year && (
+                    <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {vehicle.ownerName || "Unknown Owner"}
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">
+                          Year
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Vehicle Owner
+                        <p className="text-sm font-medium text-foreground">
+                          {vehicle.year}
                         </p>
                       </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Statistics */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Service Statistics
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-center">
-                        <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                          <Wrench className="w-5 h-5 text-emerald-500" />
-                        </div>
-                        <div className="text-2xl font-bold text-foreground">
-                          {vehicle.totalJobs || 0}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Total Services
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center">
-                        <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                          <Calendar className="w-5 h-5 text-amber-500" />
-                        </div>
-                        <div className="text-sm font-bold text-foreground">
-                          {vehicle.lastService
-                            ? new Date(vehicle.lastService).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                }
-                              )
-                            : "N/A"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Last Service
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="history" className="m-0 p-6 space-y-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Service History
-                  </h3>
-                  {vehicle.totalJobs && vehicle.totalJobs > 0 ? (
-                    <div className="space-y-3">
-                      {/* Placeholder for service history - you can expand this with actual job data */}
-                      <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl border border-border">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                          <Wrench className="w-5 h-5 text-emerald-500" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">
-                            {vehicle.totalJobs} service{vehicle.totalJobs > 1 ? "s" : ""} completed
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Last service on{" "}
-                            {vehicle.lastService
-                              ? new Date(vehicle.lastService).toLocaleDateString("en-IN", {
-                                  day: "2-digit",
-                                  month: "long",
-                                  year: "numeric",
-                                })
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Wrench className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">
-                        No service history for this vehicle
-                      </p>
-                      {onCreateJob && (
-                        <Button
-                          className="mt-4"
-                          onClick={() => onCreateJob(vehicle)}
-                        >
-                          <Briefcase className="w-4 h-4 mr-2" />
-                          Create First Job
-                        </Button>
-                      )}
                     </div>
                   )}
-                </TabsContent>
-              </div>
-            </Tabs>
-
-            {/* Footer Actions */}
-            <div className="border-t border-border p-4 bg-secondary/30">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {onCreateJob && (
-                  <Button
-                    className="flex-1"
-                    onClick={() => onCreateJob(vehicle)}
-                  >
-                    <Briefcase className="w-4 h-4 mr-2" />
-                    Create New Job
-                  </Button>
-                )}
-                <div className="flex gap-2 flex-1">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => onEdit(vehicle)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => onDelete(vehicle)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
+                  {vehicle.color && (
+                    <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Palette className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">
+                          Color
+                        </p>
+                        <p className="text-sm font-medium text-foreground capitalize">
+                          {vehicle.color}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {vehicle.odometer && (
+                    <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Gauge className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">
+                          Odometer
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {vehicle.odometer.toLocaleString("en-IN")} km
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">
+                        License
+                      </p>
+                      <p className="text-sm font-medium text-foreground font-mono">
+                        {vehicle.regNo}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+
+              {/* Owner */}
+              <div className="space-y-3">
+                <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">
+                  Owner
+                </h3>
+                <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">
+                      Vehicle Owner
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      {vehicle.ownerName || "Unknown Owner"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Metrics */}
+              <div className="space-y-3">
+                <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">
+                  Service Metrics
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-muted/40 border border-border/50 rounded-xl p-4 text-center">
+                    <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-muted flex items-center justify-center">
+                      <Wrench className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-2xl font-bold text-foreground tracking-tight">
+                      {padNumber(vehicle.totalJobs || 0)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mt-1">
+                      Total Services
+                    </div>
+                  </div>
+                  <div className="bg-muted/40 border border-border/50 rounded-xl p-4 text-center">
+                    <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-muted flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-lg font-bold text-foreground tracking-tight">
+                      {vehicle.lastService
+                        ? new Date(vehicle.lastService).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                            }
+                          )
+                        : "N/A"}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] mt-1">
+                      Last Service
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="m-0 px-6 pt-6 pb-4 space-y-3">
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.15em]">
+                Service History
+              </h3>
+              {vehicle.totalJobs && vehicle.totalJobs > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-4 py-3.5 bg-muted/40 rounded-xl border border-border/50">
+                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Wrench className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {vehicle.totalJobs} service{vehicle.totalJobs > 1 ? "s" : ""} completed
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Last service on{" "}
+                        {vehicle.lastService
+                          ? new Date(vehicle.lastService).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <History className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No service history available
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        {/* Footer Actions */}
+        <div className="border-t border-border/50 px-6 py-4 shrink-0">
+          <div className="flex items-center gap-3">
+            {onCreateJob && (
+              <Button
+                size="sm"
+                className="rounded-full px-5 text-xs font-semibold uppercase tracking-wider h-9"
+                onClick={() => onCreateJob(vehicle)}
+              >
+                Create Job
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full px-5 text-xs font-semibold uppercase tracking-wider h-9"
+              onClick={() => onEdit(vehicle)}
+            >
+              Modify Details
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-full px-5 text-xs font-semibold uppercase tracking-wider h-9 ml-auto"
+              onClick={() => onDelete(vehicle)}
+            >
+              Delete Vehicle
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -30,6 +30,13 @@ import {
   PopoverContent,
   PopoverAnchor,
 } from "@/components/ui/popover";
+import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+} from "@/components/ui/autocomplete";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { type JobStatus } from "@/modules/job/domain/job.entity";
@@ -104,9 +111,9 @@ export function JobParts({
   // Editing state for estimate items
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{
-    qty: number;
-    unitPrice: number;
-    laborCost: number;
+    qty: string;
+    unitPrice: string;
+    laborCost: string;
   } | null>(null);
 
   // Combobox state per part row (keyed by part.id)
@@ -201,9 +208,9 @@ export function JobParts({
   const startEditItem = (item: EstimateItemMinimal) => {
     setEditingItemId(item.id);
     setEditValues({
-      qty: item.qty,
-      unitPrice: Number(item.unit_price),
-      laborCost: Number(item.labor_cost) || 0,
+      qty: String(item.qty),
+      unitPrice: String(Number(item.unit_price)),
+      laborCost: String(Number(item.labor_cost) || 0),
     });
   };
 
@@ -215,9 +222,9 @@ export function JobParts({
   const saveEdit = async () => {
     if (editingItemId && editValues && onUpdateItem) {
       await onUpdateItem(editingItemId, {
-        qty: editValues.qty,
-        unitPrice: editValues.unitPrice,
-        laborCost: editValues.laborCost,
+        qty: parseInt(editValues.qty) || 1,
+        unitPrice: parseFloat(editValues.unitPrice) || 0,
+        laborCost: parseFloat(editValues.laborCost) || 0,
       });
       cancelEdit();
     }
@@ -251,185 +258,6 @@ export function JobParts({
               the invoice is generated.
             </AlertDescription>
           </Alert>
-        )}
-
-        {/* Estimate Items (Parts already in estimate) */}
-        {estimateItems.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Estimate Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
-                  <div className="col-span-3">Item</div>
-                  <div className="col-span-2">Part Identity.</div>
-                  <div className="col-span-1">Qty</div>
-                  <div className="col-span-2">Unit Price</div>
-                  <div className="col-span-2">Labor</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-
-                {/* Estimate Items List */}
-                {estimateItems.map((item) => {
-                  const isEditing = editingItemId === item.id;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${isEditing
-                        ? "bg-blue-500/5 border border-blue-500/20"
-                        : "bg-emerald-500/5 border border-emerald-500/20"
-                        }`}
-                    >
-                      <div className="col-span-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
-                            {item.custom_part_number && (
-                              <p className="text-xs text-muted-foreground font-mono break-all">
-                                #{item.custom_part_number}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <div className="text-sm text-muted-foreground">
-                          {item.custom_part_number || "-"}
-                        </div>
-                      </div>
-                      <div className="col-span-1">
-                        {isEditing && editValues ? (
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editValues.qty}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                qty: parseInt(e.target.value) || 1,
-                              })
-                            }
-                            className="h-8 text-sm"
-                          />
-                        ) : (
-                          <div className="text-sm">{item.qty}</div>
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        {isEditing && editValues ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              value={editValues.unitPrice}
-                              onChange={(e) =>
-                                setEditValues({
-                                  ...editValues,
-                                  unitPrice: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 pl-5 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-sm">
-                            ₹{Number(item.unit_price).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        {isEditing && editValues ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              value={editValues.laborCost}
-                              onChange={(e) =>
-                                setEditValues({
-                                  ...editValues,
-                                  laborCost: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 pl-5 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-sm">
-                            ₹{Number(item.labor_cost || 0).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-2 flex gap-1 justify-end">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="default"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={saveEdit}
-                              title="Save changes"
-                            >
-                              <Check className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={cancelEdit}
-                              title="Cancel editing"
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground h-8 w-8"
-                              onClick={() => startEditItem(item)}
-                              disabled={isEstimateLocked}
-                              title={
-                                isEstimateLocked
-                                  ? "Cannot modify - estimate is locked"
-                                  : "Edit item"
-                              }
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive h-8 w-8"
-                              onClick={() => onRemoveItem(item.id)}
-                              disabled={isEstimateLocked}
-                              title={
-                                isEstimateLocked
-                                  ? "Cannot modify - estimate is locked"
-                                  : "Remove item"
-                              }
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Temporary Parts (Not yet added to estimate) */}
@@ -475,125 +303,69 @@ export function JobParts({
                   className="grid grid-cols-12 gap-3 items-center border border-dashed border-border rounded-lg p-2"
                 >
                   <div className="col-span-3">
-                    <div className="relative">
-                      <Popover
-                        open={!!openComboboxes[part.id]}
-                        onOpenChange={(open) => toggleCombobox(part.id, open)}
-                      >
-                        <PopoverAnchor asChild>
-                          <div className="relative">
-                            <Input
-                              placeholder="Type part name..."
-                              value={part.name}
-                              onChange={(e) => {
-                                updatePart(part.id, "name", e.target.value);
-                                // If user types, unlink inventory item unless they re-select
-                                if (part.inventoryItemId) {
-                                  updatePart(
-                                    part.id,
-                                    "inventoryItemId",
-                                    undefined
-                                  );
-                                }
-                                toggleCombobox(part.id, true);
-                              }}
-                              onFocus={() => toggleCombobox(part.id, true)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCombobox(part.id, true);
-                              }}
-                              autoComplete="off"
-                              className={cn(
-                                "h-9",
-                                part.inventoryItemId &&
-                                "border-emerald-500 pr-8 ring-emerald-500/20"
-                              )}
-                              disabled={isEstimateLocked}
-                            />
-                            {part.inventoryItemId && (
-                              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <Check className="h-4 w-4 text-emerald-500" />
-                              </div>
+                    <Autocomplete
+                      items={
+                        searchInventory
+                          ? searchInventory(part.name || "", 50)
+                          : inventoryItems?.filter((item) => {
+                            if (!part.name) return true;
+                            const search = part.name.toLowerCase();
+                            return (
+                              item.name.toLowerCase().includes(search) ||
+                              item.stockKeepingUnit?.toLowerCase().includes(search)
+                            );
+                          }).slice(0, 50) || []
+                      }
+                      value={part.name}
+                      onValueChange={(val: any) => {
+                        if (typeof val === 'string') {
+                          updatePart(part.id, "name", val);
+                          if (part.inventoryItemId) {
+                            const selectedItem = inventoryItems?.find((i) => i.id === part.inventoryItemId);
+                            if (selectedItem && selectedItem.name !== val) {
+                              updatePart(part.id, "inventoryItemId", undefined);
+                            }
+                          }
+                        } else if (val) {
+                          updatePartFromInventory(part.id, val);
+                        }
+                      }}
+
+                      itemToStringValue={(item: any) => item?.name || ""}
+                      filter={null}
+                    >
+                      <AutocompleteInput
+                        placeholder="Type part name..."
+                        autoComplete="off"
+                        className={cn(
+                          "h-9 px-3",
+                          part.inventoryItemId &&
+                          "border-emerald-500 ring-emerald-500/20"
+                        )}
+                        disabled={isEstimateLocked}
+                      />
+                      {!isEstimateLocked && (
+                        <AutocompleteContent className="w-[300px] p-0" align="start" showBackdrop={false}>
+                          <AutocompleteList>
+                            {(item: any) => (
+                              <AutocompleteItem
+                                key={item.id}
+                                value={item}
+                                onClick={() => updatePartFromInventory(part.id, item)}
+                                className="flex flex-col items-start px-2 py-1.5 cursor-pointer rounded-sm"
+                              >
+                                <span className="font-medium text-sm">{item.name}</span>
+                                {item.stockKeepingUnit && (
+                                  <span className="text-xs text-muted-foreground mt-0.5">
+                                    SKU: {item.stockKeepingUnit}
+                                  </span>
+                                )}
+                              </AutocompleteItem>
                             )}
-                          </div>
-                        </PopoverAnchor>
-                        <PopoverContent
-                          className="w-[300px] p-0"
-                          align="start"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
-                        >
-                          <Command shouldFilter={false}>
-                            <CommandList>
-                              {(() => {
-                                // Use optimized search function if available (from inventory snapshot)
-                                // Falls back to client-side filter if not
-                                const filteredInventory = searchInventory
-                                  ? searchInventory(part.name || "", 50)
-                                  : inventoryItems?.filter(
-                                    (item) => {
-                                      if (!part.name) return true;
-                                      const search = part.name.toLowerCase();
-                                      return (
-                                        item.name
-                                          .toLowerCase()
-                                          .includes(search) ||
-                                        item.stockKeepingUnit
-                                          ?.toLowerCase()
-                                          .includes(search)
-                                      );
-                                    }
-                                  ).slice(0, 50);
-
-                                if (filteredInventory?.length === 0) {
-                                  return (
-                                    <CommandEmpty>
-                                      No parts found.
-                                    </CommandEmpty>
-                                  );
-                                }
-
-                                return (
-                                  <CommandGroup heading="Inventory">
-                                    {filteredInventory
-                                      ?.map((item) => (
-                                        <CommandItem
-                                          key={item.id}
-                                          value={`${item.name} ${item.stockKeepingUnit || ""}`}
-                                          onSelect={() => {
-                                            updatePartFromInventory(
-                                              part.id,
-                                              item
-                                            );
-                                            toggleCombobox(part.id, false);
-                                          }}
-                                        >
-                                          <div className="flex flex-col">
-                                            <span>{item.name}</span>
-                                            {item.stockKeepingUnit && (
-                                              <span className="text-xs text-muted-foreground">
-                                                SKU: {item.stockKeepingUnit}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <Check
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              part.inventoryItemId ===
-                                                item.id
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                  </CommandGroup>
-                                );
-                              })()}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                          </AutocompleteList>
+                        </AutocompleteContent>
+                      )}
+                    </Autocomplete>
                   </div>
                   <div className="col-span-2">
                     <Input
@@ -615,7 +387,7 @@ export function JobParts({
                         updatePart(
                           part.id,
                           "quantity",
-                          Number.parseInt(e.target.value) || 1
+                          Number.parseInt(e.target.value) || 0
                         )
                       }
                       className="h-9"
@@ -698,7 +470,183 @@ export function JobParts({
             </div>
           </CardContent>
         </Card>
+        
 
+        {/* Estimate Items (Parts already in estimate) */}
+        {estimateItems.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Estimate Items
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-2">
+                  <div className="col-span-3">Item</div>
+                  <div className="col-span-2">Part Identity.</div>
+                  <div className="col-span-1">Qty</div>
+                  <div className="col-span-2">Unit Price</div>
+                  <div className="col-span-2">Labor</div>
+                  <div className="col-span-2 text-right">Actions</div>
+                </div>
+
+                {/* Estimate Items List */}
+                {estimateItems.map((item) => {
+                  const isEditing = editingItemId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`grid grid-cols-12 gap-3 items-center rounded-lg p-2 ${isEditing
+                        ? "bg-blue-500/5 border border-blue-500/20"
+                        : "bg-emerald-500/5 border border-emerald-500/20"
+                        }`}
+                    >
+                      <div className="col-span-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm warp-break-words">{item.custom_name}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="text-sm text-muted-foreground">
+                          {item.custom_part_number || "-"}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        {isEditing && editValues ? (
+                          <Input
+                            type="number"
+                            min="1"
+                            value={editValues.qty}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                qty: e.target.value,
+                              })
+                            }
+                            className="h-8 text-sm"
+                          />
+                        ) : (
+                          <div className="text-sm">{item.qty}</div>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        {isEditing && editValues ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                              ₹
+                            </span>
+                            <Input
+                              type="number"
+                              value={editValues.unitPrice}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  unitPrice: e.target.value,
+                                })
+                              }
+                              className="h-8 pl-5 text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm">
+                            ₹{Number(item.unit_price).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        {isEditing && editValues ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
+                              ₹
+                            </span>
+                            <Input
+                              type="number"
+                              value={editValues.laborCost}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  laborCost: e.target.value,
+                                })
+                              }
+                              className="h-8 pl-5 text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm">
+                            ₹{Number(item.labor_cost || 0).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-2 flex gap-1 justify-end">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={saveEdit}
+                              title="Save changes"
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={cancelEdit}
+                              title="Cancel editing"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground h-8 w-8"
+                              onClick={() => startEditItem(item)}
+                              disabled={isEstimateLocked}
+                              title={
+                                isEstimateLocked
+                                  ? "Cannot modify - estimate is locked"
+                                  : "Edit item"
+                              }
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive h-8 w-8"
+                              onClick={() => onRemoveItem(item.id)}
+                              disabled={isEstimateLocked}
+                              title={
+                                isEstimateLocked
+                                  ? "Cannot modify - estimate is locked"
+                                  : "Remove item"
+                              }
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* parts Subtotal and Tax with print option */}
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4 text-sm">
