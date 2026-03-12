@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
 import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
 import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
+import { syncInvoiceToEstimate } from "@/lib/utils/invoice-estimate-sync";
 
 export async function POST(
   request: NextRequest,
@@ -51,6 +52,9 @@ export async function POST(
         ? (item as any).createdAt.toISOString()
         : null,
     };
+
+    // Keep the invoice in sync with the updated estimate totals
+    await syncInvoiceToEstimate(supabase, tenantId, estimateId);
 
     return NextResponse.json(apiItem, { status: 201 });
   } catch (error: any) {

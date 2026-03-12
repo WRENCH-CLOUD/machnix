@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SupabaseMechanicRepository } from '@/modules/mechanic/infrastructure/mechanic.repository.supabase'
-import { GetMechanicsUseCase } from '@/modules/mechanic/application/get-mechanics.use-case'
-import { CreateMechanicUseCase } from '@/modules/mechanic/application/create-mechanic.use-case'
+import { GetMechanicsUseCase } from '@/modules/mechanic'
+import { CreateMechanicUseCase } from '@/modules/mechanic'
 import { apiGuardRead, apiGuardAdmin } from '@/lib/auth/api-guard'
 
 /**

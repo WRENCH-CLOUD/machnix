@@ -23,6 +23,14 @@ import { TransactionHistory } from "@/components/inventory/TransactionHistory";
 import { ImportInventoryModal } from "@/components/inventory/ImportInventoryModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+  AutocompleteStatus,
+} from "@/components/ui/autocomplete";
 
 interface AllocationWithRelations {
   id: string;
@@ -86,12 +94,22 @@ export default function InventoryPage() {
     setAllocationsLoading(true);
     try {
       const res = await fetch("/api/inventory/allocations?with_relations=true&status=reserved&limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch allocations:", errorData);
+        toast.error(errorData.error || "Failed to load reserved stock");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setReservedAllocations(data);
+      } else {
+        console.warn("Unexpected allocations response format:", data);
+        setReservedAllocations([]);
       }
     } catch (error) {
       console.error("Failed to fetch allocations", error);
+      toast.error("Failed to load reserved stock");
     } finally {
       setAllocationsLoading(false);
     }
@@ -101,12 +119,22 @@ export default function InventoryPage() {
     setTransactionsLoading(true);
     try {
       const res = await fetch("/api/inventory/transactions?limit=20");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch transactions:", errorData);
+        toast.error(errorData.error || "Failed to load recent activity");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setRecentTransactions(data);
+      } else {
+        console.warn("Unexpected transactions response format:", data);
+        setRecentTransactions([]);
       }
     } catch (error) {
       console.error("Failed to fetch transactions", error);
+      toast.error("Failed to load recent activity");
     } finally {
       setTransactionsLoading(false);
     }
@@ -314,77 +342,98 @@ export default function InventoryPage() {
   ], [setEditingItem, setAdjustingItem, setViewingHistoryItem]);
 
   const allocationColumns = useMemo<ColumnDef<AllocationWithRelations>[]>(() => [
-    { accessorKey: "itemName", header: "Item", cell: ({ row }) => <span className="font-medium">{row.original.itemName}</span> },
-    { accessorKey: "jobNumber", header: "Job", cell: ({ row }) => <Badge variant="outline">{row.original.jobNumber}</Badge> },
+    {
+      accessorKey: "itemName",
+      header: "Item",
+      cell: ({ row }) => (
+        <span className="font-medium truncate block max-w-[160px]" title={row.original.itemName}>
+          {row.original.itemName}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "jobNumber",
+      header: "Job",
+      cell: ({ row }) => <Badge variant="outline" className="font-mono text-xs">{row.original.jobNumber}</Badge>,
+    },
     {
       accessorKey: "quantityReserved",
       header: "Qty",
-      meta: { headerClassName: "text-right", cellClassName: "text-right" },
-      cell: ({ row }) => <span className="font-medium text-orange-600">{row.original.quantityReserved}</span>
+      meta: { headerClassName: "text-right w-[60px]", cellClassName: "text-right w-[60px]" },
+      cell: ({ row }) => <span className="font-medium text-orange-600 tabular-nums">{row.original.quantityReserved}</span>,
     },
     {
       accessorKey: "reservedAt",
       header: "Reserved",
-      cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatDate(row.original.reservedAt)}</span>
-    }
+      cell: ({ row }) => <span className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(row.original.reservedAt)}</span>,
+    },
   ], [formatDate]);
 
   const transactionColumns = useMemo<ColumnDef<TransactionWithItem>[]>(() => [
-    { accessorKey: "itemName", header: "Item", cell: ({ row }) => <span className="font-medium">{row.original.itemName || 'Unknown'}</span> },
+    {
+      accessorKey: "itemName",
+      header: "Item",
+      cell: ({ row }) => (
+        <span className="font-medium truncate block max-w-[140px]" title={row.original.itemName || 'Unknown'}>
+          {row.original.itemName || 'Unknown'}
+        </span>
+      ),
+    },
     {
       accessorKey: "transactionType",
       header: "Type",
       cell: ({ row }) => (
-        <Badge variant={getTransactionBadgeVariant(row.original.transactionType)}>
+        <Badge variant={getTransactionBadgeVariant(row.original.transactionType)} className="text-xs whitespace-nowrap">
           {row.original.transactionType.replace('_', ' ')}
         </Badge>
-      )
+      ),
     },
     {
       accessorKey: "quantity",
       header: "Qty",
-      meta: { headerClassName: "text-right", cellClassName: "text-right" },
+      meta: { headerClassName: "text-right w-[60px]", cellClassName: "text-right w-[60px]" },
       cell: ({ row }) => {
         const tx = row.original;
         const prefix = ['purchase', 'adjustment_in', 'return', 'unreserve'].includes(tx.transactionType) ? '+' : '-';
-        return <span className="font-medium">{prefix}{tx.quantity}</span>;
-      }
+        return <span className="font-medium tabular-nums">{prefix}{tx.quantity}</span>;
+      },
     },
     {
       accessorKey: "createdAt",
       header: "Date",
-      cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatDate(row.original.createdAt)}</span>
-    }
+      cell: ({ row }) => <span className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(row.original.createdAt)}</span>,
+    },
   ], [formatDate, getTransactionBadgeVariant]);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="px-4 py-6 md:px-6 space-y-6 max-w-full overflow-hidden">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Manage your parts and stock levels.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Import CSV
+          <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)}>
+            <Upload className="mr-2 size-4" /> Import CSV
           </Button>
-          <Button className="mr-4" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Item
+          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 size-4" /> Add Item
           </Button>
         </div>
       </div>
 
-      {/* Reserved Stock and Recent Transactions Grid Moved Up */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Reserved Stock & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Reserved Stock Card */}
-        <Card className="flex flex-col h-[350px]">
+        <Card className="flex flex-col min-h-[300px] max-h-[380px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Package className="h-5 w-5" />
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="size-4" />
                   Reserved Stock
                 </CardTitle>
                 <CardDescription>Parts currently reserved for jobs</CardDescription>
@@ -394,18 +443,18 @@ export default function InventoryPage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 min-h-0">
+          <CardContent className="flex-1 min-h-0 overflow-hidden">
             <DataTable columns={allocationColumns} data={reservedAllocations} pageSize={5} stretch={true} />
           </CardContent>
         </Card>
 
         {/* Recent Transactions Card */}
-        <Card className="flex flex-col h-[350px]">
+        <Card className="flex flex-col min-h-[300px] max-h-[380px]">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="size-4" />
                   Recent Activity
                 </CardTitle>
                 <CardDescription>Latest inventory operations</CardDescription>
@@ -415,26 +464,74 @@ export default function InventoryPage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 min-h-0">
+          <CardContent className="flex-1 min-h-0 overflow-hidden">
             <DataTable columns={transactionColumns} data={recentTransactions} pageSize={5} stretch={true} />
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Search */}
+      <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search items..."
-            className="pl-8"
+          <Autocomplete
+            items={filteredItems}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+            onValueChange={(val: any) => {
+              if (typeof val === 'string') {
+                setSearch(val);
+              } else if (val) {
+                // If an item is received
+                setSearch(val.name);
+              } else {
+                setSearch("");
+              }
+            }}
+            itemToStringValue={(item: any) => item?.name || ""}
+            filter={null} // filtering is handled by filteredItems computation
+          >
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+              <AutocompleteInput
+                placeholder="Search items..."
+                className="pl-8"
+                showClear
+              />
+            </div>
+            {search && (
+              <AutocompleteContent align="start" showBackdrop={false} className="w-[300px]">
+                <AutocompleteStatus>
+                  {filteredItems.length === 0
+                    ? `No items found`
+                    : `${filteredItems.length} item(s) found`}
+                </AutocompleteStatus>
+                {filteredItems.length > 0 && (
+                  <AutocompleteList>
+                    {(item: InventoryItem) => (
+                      <AutocompleteItem
+                        key={item.id}
+                        value={item}
+                        className="rounded-lg cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 truncate w-full">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{item.name}</div>
+                            <div className="text-muted-foreground truncate text-xs flex justify-between">
+                              <span>SKU: {item.stockKeepingUnit || "-"}</span>
+                              <span className="font-semibold text-foreground">Stock: {item.stockOnHand}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </AutocompleteItem>
+                    )}
+                  </AutocompleteList>
+                )}
+              </AutocompleteContent>
+            )}
+          </Autocomplete>
         </div>
-        {/* Filter button placeholder */}
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Main Inventory Table */}
@@ -468,7 +565,7 @@ export default function InventoryPage() {
 
       {viewingHistoryItem && (
         <Dialog open={!!viewingHistoryItem} onOpenChange={(open) => !open && setViewingHistoryItem(null)}>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-175">
             <DialogHeader>
               <DialogTitle>Transaction History</DialogTitle>
               <DialogDescription>

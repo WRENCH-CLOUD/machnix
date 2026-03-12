@@ -77,13 +77,11 @@ export const usePrintableFunctions = ({
 
     const partsSubtotal = estimateItems.reduce(
       (acc: number, item: { qty: number; unit_price: number }) =>
-        acc + item.qty * item.unit_price,
-      0
+        acc + item.qty * item.unit_price, 0
     );
     const laborSubtotal = estimateItems.reduce(
       (acc: number, item: { labor_cost?: number }) =>
-        acc + (item.labor_cost || 0),
-      0
+        acc + (item.labor_cost || 0), 0
     );
     const subtotal = partsSubtotal + laborSubtotal;
 
@@ -99,7 +97,7 @@ export const usePrintableFunctions = ({
     const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
       } ${job.vehicle?.model ?? ""}`.trim();
     const vehicleReg = job.vehicle?.regNo ?? "";
-
+    //TODO: note this is a hardcoded invoice look - we can enhance this in the future to support multiple templates and designs mentioned in issue #236
     const pdfContent = `
       <!DOCTYPE html>
       <html>
@@ -509,8 +507,16 @@ export const usePrintableFunctions = ({
       <body>
         <div class="header">
           <div class="header-left">
-            <h1>JOB CARD</h1>
-            <div class="job-number">#${escapeHtml(job.jobNumber)}</div>
+            <div style="font-weight: bold; font-size: 32px;">
+              ${escapeHtml(tenantDetails?.name || "Garage")}
+            </div>
+            <div style="font-size: 16px;">
+              ${escapeHtml(tenantDetails?.address || "")}
+            </div>
+            ${tenantDetails?.gstin
+              ? `<div style="font-size: 12px;">GSTIN: ${escapeHtml(tenantDetails.gstin)}</div>`
+              : ""
+            }
           </div>
           <div class="header-right">
             <div style="font-size: 14px; margin-bottom: 5px;">Created: ${new Date(job.createdAt).toLocaleDateString()}</div>

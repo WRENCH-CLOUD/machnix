@@ -2,26 +2,13 @@
 
 import { useEffect, useState } from "react";
 import {
-  DndContext,
-  DragOverlay,
+  pointerWithin,
   closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-  useDroppable,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,11 +33,19 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  KanbanBoard,
+  KanbanColumn,
+  KanbanColumnHeader,
+  KanbanColumnBody,
+  KanbanCard,
+} from "@/components/ui/kanban";
 import { cn } from "@/lib/utils";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
 import { statusConfig, type JobStatus } from "@/modules/job/domain/job.entity";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ConfirmDialog } from "@/components/ui/confirmDialog";
+
 interface JobBoardProps {
   jobs: UIJob[];
   loading?: boolean;
@@ -73,35 +68,22 @@ const COLUMNS: { id: JobStatus; label: string }[] = [
 
 const statusOrder: JobStatus[] = COLUMNS.map((column) => column.id);
 
-function DroppableColumn({
-  status,
-  children,
-  onContextMenu,
-  isMobile,
-}: {
-  status: JobStatus;
-  children: React.ReactNode;
-  onContextMenu?: (e: React.MouseEvent) => void;
-  isMobile?: boolean;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `droppable-${status}`,
-  });
+/* -------------------------------------------------------------------------- */
+/*  Custom collision detection — pointer-within first, closest-corners        */
+/*  fallback for better multi-container kanban accuracy                       */
+/* -------------------------------------------------------------------------- */
 
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "shrink-0 flex flex-col bg-secondary/30 rounded-xl border border-border h-full transition-all snap-start",
-        isMobile ? "w-[calc(100vw-3rem)] min-w-70" : "w-72 lg:w-80",
-        isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/20",
-      )}
-      onContextMenu={onContextMenu}
-    >
-      {children}
-    </div>
-  );
-}
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  return closestCorners(args);
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Job Card Body — Domain-specific card content                              */
+/* -------------------------------------------------------------------------- */
 
 function JobCardBody({
   job,
@@ -214,56 +196,9 @@ function JobCardBody({
   );
 }
 
-function SortableJobCard({
-  job,
-  onClick,
-  onStatusChange,
-  onDelete,
-}: {
-  job: UIJob;
-  onClick: () => void;
-  onStatusChange: (jobId: string, status: JobStatus) => void | Promise<void>;
-  onDelete: (jobId: string) => Promise<void>;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: job.id,
-    transition: {
-      duration: 200,
-      easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-    },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition || "transform 200ms cubic-bezier(0.25, 1, 0.5, 1)",
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const status = (job.status || "received") as JobStatus;
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card
-        className="group relative bg-card hover:shadow-md transition-all cursor-pointer border-border/50"
-        onClick={onClick}
-      >
-        <JobCardBody
-          job={job}
-          status={status}
-          onStatusChange={onStatusChange}
-          onDelete={onDelete}
-        />
-      </Card>
-    </div>
-  );
-}
+/* -------------------------------------------------------------------------- */
+/*  Job Board View                                                            */
+/* -------------------------------------------------------------------------- */
 
 export function JobBoardView({
   jobs,
@@ -281,6 +216,7 @@ export function JobBoardView({
     status: JobStatus;
   } | null>(null);
   const [activeJob, setActiveJob] = useState<UIJob | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [mechanicFilter, setMechanicFilter] = useState<string>("");
   const [mechanics, setMechanics] = useState<{ id: string; name: string }[]>(
     [],
@@ -356,23 +292,6 @@ export function JobBoardView({
     setUiJobs(filtered);
   }, [jobs, mechanicFilter, pendingDeleteJob]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: isMobile ? 10 : 5,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   const groupedJobs = statusOrder.reduce(
     (acc, status) => {
       if (status === "completed") {
@@ -382,10 +301,12 @@ export function JobBoardView({
         acc[status] = uiJobs.filter((job) => {
           if (job.status !== status) return false;
 
-          const updatedDate = new Date(job.updatedAt);
-          updatedDate.setHours(0, 0, 0, 0);
+          const completedDate = job.completedAt
+            ? new Date(job.completedAt)
+            : new Date(job.updatedAt);
+          completedDate.setHours(0, 0, 0, 0);
 
-          return updatedDate.getTime() === today.getTime();
+          return completedDate.getTime() === today.getTime();
         });
       } else {
         acc[status] = uiJobs.filter((job) => job.status === status);
@@ -399,15 +320,63 @@ export function JobBoardView({
     (status) => !hiddenStatuses.includes(status),
   );
 
+  /* ---- Drag handlers ---- */
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const job = uiJobs.find((j) => j.id === active.id);
-    if (job) {
-      setActiveJob(job);
-    }
+    if (job) setActiveJob(job);
   };
 
-  const handleDragOver = (_event: DragOverEvent) => { };
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || !activeJob) {
+      setActiveColumnId(null);
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    if (activeId === overId) return;
+
+    // Determine which column the pointer is over
+    let targetStatus: JobStatus | undefined;
+
+    if (statusOrder.some((s) => overId === `droppable-${s}`)) {
+      targetStatus = statusOrder.find((s) => overId === `droppable-${s}`);
+    } else {
+      const overJob = uiJobs.find((j) => j.id === overId);
+      if (overJob) {
+        targetStatus = overJob.status as JobStatus;
+      }
+    }
+
+    if (!targetStatus) {
+      setActiveColumnId(null);
+      return;
+    }
+
+    // Highlight the target column
+    setActiveColumnId(`droppable-${targetStatus}`);
+
+    // Already in the right column — nothing to do
+    const currentItem = uiJobs.find((j) => j.id === activeId);
+    if (!currentItem || currentItem.status === targetStatus) return;
+
+    // Validate against the ORIGINAL status from drag start
+    if (!validateStatusTransition(activeJob.status, targetStatus)) return;
+
+    // Move the item to the new column for visual feedback
+    const updatedAt = new Date().toISOString();
+    setUiJobs((prev) =>
+      prev.map((job) =>
+        job.id === activeId
+          ? { ...job, status: targetStatus as string, updatedAt, updated_at: updatedAt }
+          : job,
+      ),
+    );
+  };
 
   const validateStatusTransition = (
     fromStatus: string,
@@ -427,8 +396,21 @@ export function JobBoardView({
     const { active, over } = event;
     const draggedJob = activeJob;
     setActiveJob(null);
+    setActiveColumnId(null);
 
-    if (!over || !draggedJob) return;
+    if (!over || !draggedJob) {
+      // No valid drop target — revert any optimistic moves from handleDragOver
+      if (draggedJob) {
+        setUiJobs((prev) =>
+          prev.map((job) =>
+            job.id === draggedJob.id
+              ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+              : job,
+          ),
+        );
+      }
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -446,42 +428,83 @@ export function JobBoardView({
       }
     }
 
-    if (targetStatus && draggedJob.status !== targetStatus) {
-      const isValidTransition = validateStatusTransition(
-        draggedJob.status,
-        targetStatus,
-      );
-
-      if (!isValidTransition) {
-        return;
-      }
-
-      // Update UI immediately to keep drag/drop smooth.
-      const updatedAt = new Date().toISOString();
-      const previousUiJobs = uiJobs;
+    // No valid target or same as original — revert
+    if (!targetStatus || draggedJob.status === targetStatus) {
       setUiJobs((prev) =>
         prev.map((job) =>
           job.id === activeId
-            ? {
+            ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+            : job,
+        ),
+      );
+      return;
+    }
+
+    const isValidTransition = validateStatusTransition(
+      draggedJob.status,
+      targetStatus,
+    );
+
+    if (!isValidTransition) {
+      // Revert the optimistic update from handleDragOver
+      setUiJobs((prev) =>
+        prev.map((job) =>
+          job.id === activeId
+            ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+            : job,
+        ),
+      );
+      return;
+    }
+
+    // Finalize the move with updated timestamp
+    const updatedAt = new Date().toISOString();
+    setUiJobs((prev) =>
+      prev.map((job) =>
+        job.id === activeId
+          ? {
               ...job,
               status: targetStatus as string,
               updatedAt,
               updated_at: updatedAt,
             }
-            : job,
-        ),
-      );
+          : job,
+      ),
+    );
 
-      if (onStatusChange) {
-        try {
-          await onStatusChange(activeId, targetStatus);
-        } catch (error) {
-          console.error("Failed to update job status:", error);
-          setUiJobs(previousUiJobs);
-        }
+    if (onStatusChange) {
+      try {
+        await onStatusChange(activeId, targetStatus);
+      } catch (error) {
+        console.error("Failed to update job status:", error);
+        // Revert on API failure
+        setUiJobs((prev) =>
+          prev.map((job) =>
+            job.id === activeId
+              ? { ...job, status: draggedJob.status, updatedAt: draggedJob.updatedAt, updated_at: draggedJob.updated_at }
+              : job,
+          ),
+        );
       }
     }
   };
+
+  const handleDragCancel = () => {
+    if (activeJob) {
+      // Revert to original status from before the drag started
+      setUiJobs((prev) =>
+        prev.map((job) =>
+          job.id === activeJob.id
+            ? { ...job, status: activeJob.status, updatedAt: activeJob.updatedAt, updated_at: activeJob.updated_at }
+            : job,
+        ),
+      );
+    }
+    setActiveJob(null);
+    setActiveColumnId(null);
+  };
+
+  /* ---- Context menu ---- */
 
   const handleContextMenu = (e: React.MouseEvent, status: JobStatus) => {
     e.preventDefault();
@@ -501,6 +524,8 @@ export function JobBoardView({
   const handleClickOutside = () => {
     if (contextMenu) setContextMenu(null);
   };
+
+  /* ---- Render ---- */
 
   if (loading) {
     return (
@@ -670,87 +695,65 @@ export function JobBoardView({
       </div>
 
       <div className="flex-1 overflow-hidden px-3 md:px-6 py-3 md:py-4">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
+        <KanbanBoard
+          isMobile={isMobile}
+          collisionDetection={kanbanCollisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
-        >
-          <div
-            className={cn(
-              "flex gap-2 md:gap-3 h-full w-full overflow-x-auto pb-2",
-              isMobile && "snap-x snap-mandatory scroll-smooth",
-            )}
-          >
-            {visibleStatuses.map((status) => {
-              const statusInfo = statusConfig[status];
-              const columnJobs = groupedJobs[status];
-
-              return (
-                <DroppableColumn
-                  key={status}
-                  status={status}
-                  isMobile={isMobile}
-                  onContextMenu={(e) => handleContextMenu(e, status)}
-                >
-                  <div className="p-3 border-b border-border shrink-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={cn(
-                            "w-3 h-3 rounded-full",
-                            statusInfo.bgColor,
-                          )}
-                        />
-                        <h3 className="font-semibold text-foreground text-sm">
-                          {statusInfo.label}
-                        </h3>
-                      </div>
-                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                        {columnJobs.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <SortableContext
-                    items={columnJobs.map((job) => job.id)}
-                    strategy={verticalListSortingStrategy}
-                    id={`droppable-${status}`}
-                  >
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                      {columnJobs.map((job) => (
-                        <SortableJobCard
-                          key={job.id}
-                          job={job}
-                          onClick={() => onJobClick(job)}
-                          onStatusChange={onStatusChange}
-                          onDelete={handleDeleteWithUndo}
-                        />
-                      ))}
-                      {columnJobs.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground text-xs">
-                          No jobs in this status
-                        </div>
-                      )}
-                    </div>
-                  </SortableContext>
-                </DroppableColumn>
-              );
-            })}
-          </div>
-
-          <DragOverlay>
-            {activeJob ? (
+          onDragCancel={handleDragCancel}
+          overlay={
+            activeJob ? (
               <Card className="group relative bg-card border-border/50">
                 <JobCardBody
                   job={activeJob}
                   status={(activeJob.status || "received") as JobStatus}
                 />
               </Card>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            ) : null
+          }
+        >
+          {visibleStatuses.map((status) => {
+            const statusInfo = statusConfig[status];
+            const columnJobs = groupedJobs[status];
+
+            return (
+              <KanbanColumn
+                key={status}
+                id={`droppable-${status}`}
+                isActive={activeColumnId === `droppable-${status}`}
+                onContextMenu={(e) => handleContextMenu(e, status)}
+              >
+                <KanbanColumnHeader
+                  indicatorColor={statusInfo.bgColor}
+                  title={statusInfo.label}
+                  count={columnJobs.length}
+                />
+
+                <KanbanColumnBody
+                  itemIds={columnJobs.map((job) => job.id)}
+                  sortableId={`droppable-${status}`}
+                  emptyMessage="No jobs in this status"
+                >
+                  {columnJobs.map((job) => (
+                    <KanbanCard
+                      key={job.id}
+                      id={job.id}
+                      onClick={() => onJobClick(job)}
+                    >
+                      <JobCardBody
+                        job={job}
+                        status={(job.status || "received") as JobStatus}
+                        onStatusChange={onStatusChange}
+                        onDelete={handleDeleteWithUndo}
+                      />
+                    </KanbanCard>
+                  ))}
+                </KanbanColumnBody>
+              </KanbanColumn>
+            );
+          })}
+        </KanbanBoard>
       </div>
 
       {contextMenu && (

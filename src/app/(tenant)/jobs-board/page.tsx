@@ -153,6 +153,7 @@ export default function JobsPage() {
               status,
               updatedAt,
               updated_at: updatedAt,
+              ...(status === 'completed' ? { completedAt: updatedAt } : {}),
             }
             : job
         )
