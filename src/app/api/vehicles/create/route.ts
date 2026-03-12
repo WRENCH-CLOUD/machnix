@@ -14,18 +14,18 @@ export async function POST(request: NextRequest) {
 
     // Validate registration number format (Indian standard)
     const regNo = (body.reg_no || body.regNo || body.licensePlate || "").toUpperCase()
-    const regNoRegex = /^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/
+    // const regNoRegex = /^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/
     
     if (!regNo) {
       return NextResponse.json({ error: 'Registration number is required' }, { status: 400 })
     }
     
-    if (!regNoRegex.test(regNo)) {
-      return NextResponse.json(
-        { error: 'Invalid vehicle registration format. Expected format like MH12AB1234' },
-        { status: 400 }
-      )
-    }
+    // if (!regNoRegex.test(regNo)) {
+    //   return NextResponse.json(
+    //     { error: 'Invalid vehicle registration format. Expected format like MH12AB1234' },
+    //     { status: 400 }
+    //   )
+    // }
 
     // If ownerPhone is provided, look up the customer
     let customerId = body.customerId
