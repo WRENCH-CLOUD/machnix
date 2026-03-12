@@ -512,7 +512,7 @@ export const usePrintableFunctions = ({
             <div style="font-weight: bold; font-size: 32px;">
               ${escapeHtml(tenantDetails?.name || "Garage")}
             </div>
-            <div style="font-size: 18px;">
+            <div style="font-size: 16px;">
               ${escapeHtml(tenantDetails?.address || "")}
             </div>
             ${tenantDetails?.gstin
