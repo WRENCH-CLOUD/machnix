@@ -98,17 +98,17 @@ export function VehicleDetailDialog({
             {/* Tabs */}
             <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
               <div className="border-b border-border px-6 flex-none">
-                <TabsList className="h-12 bg-transparent border-0 p-0 gap-6">
+                <TabsList className="h-12 bg-transparent border-0 gap-6">
                   <TabsTrigger
                     value="details"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Details
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-2 h-12"
                   >
                     <Wrench className="w-4 h-4 mr-2" />
                     Service History
