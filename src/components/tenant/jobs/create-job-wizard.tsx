@@ -441,9 +441,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                       const val = e.target.value.toUpperCase();
                       setNewVehicle({ ...newVehicle, reg_no: val });
                     }}
-                    className={newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
+                    className={newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
                   />
-                  {newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
+                  {newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
                     <p className="text-[10px] text-destructive">Invalid Indian vehicle registration format (e.g. MH12AB1234)</p>
                   )}
                 </div>
@@ -463,7 +463,6 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   !newVehicle.makeId ||
                   !newVehicle.modelId ||
                   !newVehicle.reg_no ||
-                  !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ||
                   loading
                 }
               >
