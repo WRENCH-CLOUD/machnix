@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CustomersView, CustomerWithStats, CustomerFormData } from "@/components/tenant/customers/customers-view";
 import { useCustomers, useInvalidateQueries } from "@/hooks";
 
 export default function CustomersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCustomerId = searchParams.get("customerId");
   const { data: customersData, isLoading, error } = useCustomers();
   const { invalidateCustomers } = useInvalidateQueries();
 
@@ -25,9 +27,10 @@ export default function CustomersPage() {
         ? new Date(customer.jobcards[0].created_at)
         : null,
       vehicleCount: Array.isArray(customer.vehicles) ? customer.vehicles.length : 0,
-      vehicles: (Array.isArray(customer.vehicles) ? customer.vehicles : []).map((v) => ({
+      vehicles: (Array.isArray(customer.vehicles) ? customer.vehicles : []).map((v: any) => ({
         make: v.make ?? null,
         model: v.model ?? null,
+        regNo: v.licensePlate || v.reg_no || v.license_plate || null,
       })),
     }));
   }, [customersData]);
@@ -107,6 +110,7 @@ export default function CustomersPage() {
       onDeleteCustomer={handleDeleteCustomer}
       onRefresh={invalidateCustomers}
       onCreateJob={handleCreateJob}
+      initialCustomerId={initialCustomerId}
     />
   );
 }

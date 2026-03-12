@@ -87,7 +87,7 @@ export function CustomerEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-card">
         <DialogHeader>
           <DialogTitle>Edit Customer</DialogTitle>
           <DialogDescription>
@@ -107,6 +107,7 @@ export function CustomerEditDialog({
                 Full Name <span className="text-destructive">*</span>
               </Label>
               <Input
+                className="bg-black"
                 id="name"
                 value={formData.name}
                 onChange={(e) =>

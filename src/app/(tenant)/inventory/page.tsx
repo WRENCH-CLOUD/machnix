@@ -510,10 +510,6 @@ export default function InventoryPage() {
             )}
           </Autocomplete>
         </div>
-        {/* Filter button placeholder */}
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Main Inventory Table */}

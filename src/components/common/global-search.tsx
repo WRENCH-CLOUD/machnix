@@ -66,7 +66,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               type: "customer",
               title: c.name,
               subtitle: c.phone || c.email || "No contact info",
-              href: `/customers`
+              href: `/customers?customerId=${c.id}`
             })
           })
         }
@@ -112,7 +112,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               type: "vehicle",
               title: v.licensePlate || "Unknown Vehicle",
               subtitle: `${v.make || ''} ${v.model || ''}`.trim() || 'No details',
-              href: `/vehicles`
+              href: `/vehicles?vehicleId=${v.id}`
             })
           })
         }
