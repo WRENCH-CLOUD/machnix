@@ -97,7 +97,7 @@ export const usePrintableFunctions = ({
     const vehicleTitle = `${job.vehicle?.year ?? ""} ${job.vehicle?.make ?? ""
       } ${job.vehicle?.model ?? ""}`.trim();
     const vehicleReg = job.vehicle?.regNo ?? "";
-
+    //TODO: note this is a hardcoded invoice look - we can enhance this in the future to support multiple templates and designs mentioned in issue #236
     const pdfContent = `
       <!DOCTYPE html>
       <html>
