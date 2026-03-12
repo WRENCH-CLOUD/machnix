@@ -69,7 +69,7 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className={cn("space-y-0", stretch ? "flex flex-col h-full min-h-0" : "")}>
-            <div className={cn("rounded-lg border border-border bg-card overflow-auto relative", stretch ? "flex-1 min-h-0" : "")}>
+            <div className={cn("rounded-lg border border-border bg-card overflow-x-auto relative", stretch ? "flex-1 min-h-0 overflow-y-auto" : "")}>
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -100,7 +100,7 @@ export function DataTable<TData, TValue>({
                                     data-state={row.getIsSelected() && "selected"}
                                     onClick={() => onRowClick && onRowClick(row.original)}
                                     className={cn(
-                                        "transition-colors duration-100",
+                                        "group/row transition-colors duration-100",
                                         onRowClick && "cursor-pointer"
                                     )}
                                 >
@@ -131,7 +131,7 @@ export function DataTable<TData, TValue>({
             {totalPages > 1 && (
                 <div className={cn(
                     "flex items-center justify-between px-1 py-3",
-                    stretch && "mt-auto"
+                    stretch && "mt-auto shrink-0"
                 )}>
                     <div className="text-xs text-muted-foreground">
                         {totalRows} row{totalRows !== 1 ? "s" : ""} total
