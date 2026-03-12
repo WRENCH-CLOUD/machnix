@@ -45,6 +45,7 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
+  console.log("Tenant in JobInvoice:", tenantDetails);
 
 
   // Check if editing is allowed (only locked when job is completed)
@@ -238,7 +239,10 @@ export function JobInvoice({
                     </p>
                   </div>
                   <div className="text-right">
-                    <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3>
+                    {/* <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3> */}
+                    <h3 className="font-bold text-red-600 text-xl">
+                      TENANT: {tenantDetails?.name}
+                    </h3>
                     <p className="text-sm text-gray-600">
                       {tenantDetails.address}
                     </p>
