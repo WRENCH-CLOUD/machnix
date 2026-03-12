@@ -46,6 +46,7 @@ export function JobInvoice({
   onGeneratePdf,
   onGenerateInvoice,
 }: JobInvoiceProps) {
+  console.log("Tenant in JobInvoice:", tenantDetails);
 
 
   // Local string state so the input can be emptied without snapping back to "0"
@@ -247,7 +248,10 @@ export function JobInvoice({
                     </p>
                   </div>
                   <div className="text-right">
-                    <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3>
+                    {/* <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3> */}
+                    <h3 className="font-bold text-red-600 text-xl">
+                      TENANT: {tenantDetails?.name}
+                    </h3>
                     <p className="text-sm text-gray-600">
                       {tenantDetails.address}
                     </p>
