@@ -101,6 +101,7 @@ export class SupabaseTenantRepository implements TenantRepository {
       invoiceFooter: row.invoice_footer,
 
       logoUrl: row.logo_url,
+      invoiceTemplate: row.invoice_template,
       updatedAt: new Date(row.updated_at)
     };
   }
@@ -141,6 +142,7 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
     if (settings.invoiceFooter !== undefined) dbSettings.invoice_footer = settings.invoiceFooter;
     if (settings.logoUrl !== undefined) dbSettings.logo_url = settings.logoUrl;
+    if (settings.invoiceTemplate !== undefined) dbSettings.invoice_template = settings.invoiceTemplate;
 
     // Notification toggle fields
     if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;

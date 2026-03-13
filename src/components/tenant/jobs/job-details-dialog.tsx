@@ -31,6 +31,7 @@ import { AdvancedTaskPanel } from "./advance-task-model";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+import { type InvoicePrintData, type InvoiceTemplateVariant } from "./invoice-print-document";
 
 // Using compatible types that match what child components expect
 interface EstimatePartial {
@@ -94,6 +95,8 @@ interface JobDetailsDialogProps {
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
   onGenerateInvoice: () => void;
+  invoicePrintData: InvoicePrintData;
+  resolvedInvoiceTemplate: InvoiceTemplateVariant;
   // GST and discount props
   isGstBilled?: boolean;
   onGstToggle?: (value: boolean) => void;
@@ -152,6 +155,8 @@ export function JobDetailsDialog({
   onMarkPaid,
   onGenerateInvoicePdf,
   onGenerateInvoice,
+  invoicePrintData,
+  resolvedInvoiceTemplate,
   showPaymentModal,
   setShowPaymentModal,
   onPaymentComplete,
@@ -312,7 +317,7 @@ export function JobDetailsDialog({
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1 warp-break-words">
-                  <Car className="w-4 h-4 flex-shrink-0" />
+                  <Car className="w-4 h-4 shrink-0" />
                   <span className="warp-break-words">
                     {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
                   </span>
@@ -460,6 +465,8 @@ export function JobDetailsDialog({
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}
                   onGenerateInvoice={onGenerateInvoice}
+                  invoicePrintData={invoicePrintData}
+                  resolvedInvoiceTemplate={resolvedInvoiceTemplate}
                 />
               </TabsContent>
             </div>
