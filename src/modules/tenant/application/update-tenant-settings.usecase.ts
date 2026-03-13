@@ -6,16 +6,32 @@ export class UpdateTenantSettingsUseCase {
   constructor(private readonly tenantRepository: TenantRepository) {}
 
   async execute(tenantId: string, data: { name?: string } & Partial<TenantSettings>): Promise<void> {
+    const allowedTemplates = new Set(['auto', 'standard', 'compact', 'detailed'])
+
     const promises: Promise<unknown>[] = []
     const operations: string[] = []
 
-    if (data.name) {
-      promises.push(this.tenantRepository.update(tenantId, { name: data.name }))
+    const { name, id: _id, tenantId: _tenantId, updatedAt: _updatedAt, ...settings } = data
+
+    if (name) {
+      const trimmedName = name.trim()
+      if (trimmedName.length === 0) {
+        throw new Error('Tenant name cannot be empty')
+      }
+
+      promises.push(this.tenantRepository.update(tenantId, { name: trimmedName }))
       operations.push('updateName')
     }
 
-    // Extract settings fields
-    const {...settings } = data
+    if (settings.invoiceTemplate !== undefined && settings.invoiceTemplate !== null) {
+      if (!allowedTemplates.has(settings.invoiceTemplate)) {
+        throw new Error(
+          `Invalid invoiceTemplate value: ${settings.invoiceTemplate}. ` +
+          'Allowed values: auto, standard, compact, detailed.'
+        )
+      }
+    }
+
     if (Object.keys(settings).length > 0) {
       promises.push(this.tenantRepository.updateSettings(tenantId, settings))
       operations.push('updateSettings')
