@@ -213,7 +213,7 @@ function InvoiceTotals({
         <span>Parts</span>
         <span>{formatINR(data.partsSubtotal)}</span>
       </div>
-      <div className="flex justify-between">
+      <div className="flex justify-between">-
         <span>Labor</span>
         <span>{formatINR(data.laborSubtotal)}</span>
       </div>
@@ -259,37 +259,37 @@ function InvoiceTotals({
 
 function StandardTemplate({ data }: { data: InvoicePrintData }) {
   return (
-    <div className="p-8 bg-linear-to-b from-slate-50 to-white">
-      <div className="border-l-8 border-slate-800 bg-white shadow-sm rounded-lg p-6">
-        <div className="flex items-start justify-between gap-6 mb-5">
+    <div className="p-6 bg-linear-to-b from-slate-50 to-white">
+      <div className="border-l-8 border-slate-800 bg-white shadow-sm rounded-lg p-5">
+        <div className="flex items-start justify-between gap-5 mb-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Customer Invoice</p>
-            <h2 className="text-3xl font-black text-slate-900 mt-1">{data.title}</h2>
-            <p className="text-sm text-slate-700 mt-2">Invoice No: {data.invoiceNumber}</p>
+            <h2 className="text-2xl font-black text-slate-900 mt-1">{data.title}</h2>
+            <p className="text-sm text-slate-700 mt-1.5">Invoice No: {data.invoiceNumber}</p>
             <p className="text-sm text-slate-700">Invoice Date: {data.invoiceDate}</p>
             {data.dueDate ? <p className="text-sm text-slate-700">Due Date: {data.dueDate}</p> : null}
           </div>
           <div className="text-right max-w-[52%]">
-            <h3 className="text-3xl font-extrabold text-slate-900">{data.tenant.name}</h3>
+            <h3 className="text-2xl font-extrabold text-slate-900">{data.tenant.name}</h3>
             <p className="text-sm text-slate-700 whitespace-pre-line mt-1">{data.tenant.address}</p>
             {data.tenant.gstin ? <p className="text-sm text-slate-700 mt-1">GSTIN: {data.tenant.gstin}</p> : null}
             {data.tenant.panNumber ? <p className="text-sm text-slate-700">PAN: {data.tenant.panNumber}</p> : null}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 text-sm">
-          <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-5 text-sm">
+          <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Bill To</p>
             <p className="font-semibold text-slate-900">{data.customerName || "-"}</p>
             <p>{data.customerPhone || "-"}</p>
             {data.customerEmail ? <p>{data.customerEmail}</p> : null}
           </div>
-          <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+          <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Ship To</p>
             <p className="font-semibold text-slate-900">{data.customerName || "-"}</p>
             <p>{data.customerPhone || "-"}</p>
           </div>
-          <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+          <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Vehicle</p>
             <p className="font-semibold text-slate-900">{data.vehicleReg || "-"}</p>
             <p>{data.vehicleTitle || "-"}</p>
@@ -299,28 +299,28 @@ function StandardTemplate({ data }: { data: InvoicePrintData }) {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="text-left py-2 px-2 text-xs uppercase tracking-wide">Item</th>
-              <th className="text-right py-2 px-2 text-xs uppercase tracking-wide">Qty</th>
-              <th className="text-right py-2 px-2 text-xs uppercase tracking-wide">Rate</th>
-              <th className="text-right py-2 px-2 text-xs uppercase tracking-wide">Amount</th>
+              <th className="text-left py-1.5 px-2 text-xs uppercase tracking-wide">Item</th>
+              <th className="text-right py-1.5 px-2 text-xs uppercase tracking-wide">Qty</th>
+              <th className="text-right py-1.5 px-2 text-xs uppercase tracking-wide">Rate</th>
+              <th className="text-right py-1.5 px-2 text-xs uppercase tracking-wide">Amount</th>
             </tr>
           </thead>
           <tbody>
             {data.items.map((item, idx) => (
               <tr key={item.id} className={idx % 2 === 0 ? "bg-slate-50" : "bg-white"}>
-                <td className="py-2 px-2 align-top text-sm">
+                <td className="py-1.5 px-2 align-top text-sm">
                   <p className="font-medium text-slate-900">{item.name}</p>
                   {item.partNumber ? <p className="text-xs text-slate-500">{item.partNumber}</p> : null}
                 </td>
-                <td className="py-2 px-2 text-right text-sm">{item.qty}</td>
-                <td className="py-2 px-2 text-right text-sm">{formatINR(item.unitPrice)}</td>
-                <td className="py-2 px-2 text-right text-sm font-semibold">{formatINR(item.lineTotal)}</td>
+                <td className="py-1.5 px-2 text-right text-sm">{item.qty}</td>
+                <td className="py-1.5 px-2 text-right text-sm">{formatINR(item.unitPrice)}</td>
+                <td className="py-1.5 px-2 text-right text-sm font-semibold">{formatINR(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Terms and Conditions</p>
             <ul className="list-disc pl-4 space-y-1 text-sm text-slate-700">
@@ -330,7 +330,7 @@ function StandardTemplate({ data }: { data: InvoicePrintData }) {
             </ul>
           </div>
           <div className="justify-self-end">
-            <InvoiceTotals data={data} bordered />
+            <InvoiceTotals data={data} compact bordered />
           </div>
         </div>
       </div>
@@ -352,7 +352,7 @@ function CompactTemplate({ data }: { data: InvoicePrintData }) {
         </div>
         <div className="text-right">
           <h1 className="text-lg font-bold text-slate-900 uppercase">{data.tenant.name}</h1>
-          <p className="text-xs text-slate-600 max-w-[250px] whitespace-pre-line leading-tight mt-1">{data.tenant.address}</p>
+          <p className="text-xs text-slate-600 max-w-62.5 whitespace-pre-line leading-tight mt-1">{data.tenant.address}</p>
           {data.tenant.gstin && <p className="text-[10px] text-slate-500 mt-1">GSTIN: {data.tenant.gstin}</p>}
         </div>
       </div>
@@ -403,7 +403,7 @@ function CompactTemplate({ data }: { data: InvoicePrintData }) {
             ))}
           </ul>
         </div>
-        <div className="w-1/2 max-w-[240px]">
+        <div className="w-1/2 max-w-60">
           <InvoiceTotals data={data} compact />
         </div>
       </div>
@@ -413,21 +413,21 @@ function CompactTemplate({ data }: { data: InvoicePrintData }) {
 
 function DetailedTemplate({ data }: { data: InvoicePrintData }) {
   return (
-    <div className="p-8 bg-white font-serif">
+    <div className="p-6 bg-white font-serif">
       <div className="border border-gray-800">
-        <div className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
+        <div className="bg-gray-900 text-white px-5 py-2.5 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em]">Tax Document</p>
-            <h2 className="text-2xl font-bold leading-tight">{data.title}</h2>
+            <p className="text-xs/2 uppercase tracking-[0.25em]">Tax Document</p>
+            <h2 className="text-lg/2 font-bold leading-tight">{data.title}</h2>
           </div>
-          <span className="text-xs uppercase border border-white/40 px-3 py-1">Original for recipient</span>
+          <span className="text-xs/2 uppercase border border-white/40 px-3 py-1">Original for recipient</span>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="border border-gray-300 p-3">
+        <div className="p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-gray-300 p-2.5">
               <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">From</p>
-              <p className="text-2xl font-bold text-gray-900 leading-tight">{data.tenant.name}</p>
+              <p className="text-lg font-bold text-gray-900 leading-tight">{data.tenant.name}</p>
               <p className="text-sm text-gray-700 whitespace-pre-line mt-1">{data.tenant.address}</p>
               <div className="text-sm text-gray-700 mt-2">
                 {data.tenant.gstin ? <p>GSTIN: {data.tenant.gstin}</p> : null}
@@ -435,7 +435,7 @@ function DetailedTemplate({ data }: { data: InvoicePrintData }) {
                 {data.tenant.placeOfSupply ? <p>Place of Supply: {data.tenant.placeOfSupply}</p> : null}
               </div>
             </div>
-            <div className="border border-gray-300 p-3">
+            <div className="border border-gray-300 p-2.5">
               <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Document Info</p>
               <p className="text-sm"><strong>Invoice No:</strong> {data.invoiceNumber}</p>
               <p className="text-sm"><strong>Invoice Date:</strong> {data.invoiceDate}</p>
@@ -449,34 +449,34 @@ function DetailedTemplate({ data }: { data: InvoicePrintData }) {
             </div>
           </div>
 
-          <table className="w-full border-collapse mt-5 text-sm">
+          <table className="w-full border-collapse mt-4 text-sm">
             <thead>
               <tr>
-                <th className="border border-gray-700 bg-gray-100 text-left px-2 py-2 uppercase tracking-wide text-xs">Description</th>
-                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-2 uppercase tracking-wide text-xs">Qty</th>
-                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-2 uppercase tracking-wide text-xs">Rate</th>
-                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-2 uppercase tracking-wide text-xs">Tax</th>
-                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-2 uppercase tracking-wide text-xs">Amount</th>
+                <th className="border border-gray-700 bg-gray-100 text-left px-2 py-1.5 uppercase tracking-wide text-xs">Description</th>
+                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-1.5 uppercase tracking-wide text-xs">Qty</th>
+                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-1.5 uppercase tracking-wide text-xs">Rate</th>
+                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-1.5 uppercase tracking-wide text-xs">Tax</th>
+                <th className="border border-gray-700 bg-gray-100 text-right px-2 py-1.5 uppercase tracking-wide text-xs">Amount</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="border border-gray-300 px-2 py-2 align-top">
+                  <td className="border border-gray-300 px-2 py-1.5 align-top">
                     <p className="font-semibold text-gray-900">{item.name}</p>
                     {item.partNumber ? <p className="text-xs text-gray-600">Part No: {item.partNumber}</p> : null}
                   </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{item.qty}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatINR(item.unitPrice)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatINR(data.isGstBilled ? item.lineTotal * 0.18 : 0)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right font-semibold">{formatINR(item.lineTotal)}</td>
+                  <td className="border border-gray-300 px-2 py-1.5 text-right">{item.qty}</td>
+                  <td className="border border-gray-300 px-2 py-1.5 text-right">{formatINR(item.unitPrice)}</td>
+                  <td className="border border-gray-300 px-2 py-1.5 text-right">{formatINR(data.isGstBilled ? item.lineTotal * 0.18 : 0)}</td>
+                  <td className="border border-gray-300 px-2 py-1.5 text-right font-semibold">{formatINR(item.lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="border border-gray-300 p-3 text-sm">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-gray-300 p-2.5 text-sm">
               <p className="font-semibold uppercase tracking-wide mb-2">Terms and Conditions</p>
               <ol className="list-decimal pl-4 space-y-1">
                 {data.tenant.termsAndConditions?.map((term) => (
@@ -485,7 +485,7 @@ function DetailedTemplate({ data }: { data: InvoicePrintData }) {
               </ol>
             </div>
             <div className="justify-self-end">
-              <InvoiceTotals data={data} bordered />
+              <InvoiceTotals data={data} compact bordered />
             </div>
           </div>
         </div>
