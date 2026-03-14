@@ -59,11 +59,6 @@ export function JobInvoice({
     discountPercentage > 0 ? String(discountPercentage) : ""
   );
 
-  // Local string state so the input can be emptied without snapping back to "0"
-  const [discountInput, setDiscountInput] = useState(() =>
-    discountPercentage > 0 ? String(discountPercentage) : ""
-  );
-
   // Check if editing is allowed (only locked when job is completed)
   const isCompleted = job.status === "completed";
   const canEdit = !isCompleted;
