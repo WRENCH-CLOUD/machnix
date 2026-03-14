@@ -161,6 +161,7 @@ export class SupabaseEstimateRepository extends BaseSupabaseRepository<Estimate>
       )
       .eq("id", id)
       .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: true, referencedTable: "estimate_items" })
       .single();
 
     if (error) {
