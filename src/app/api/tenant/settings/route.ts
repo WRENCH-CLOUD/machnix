@@ -43,9 +43,9 @@ export async function PUT(request: NextRequest) {
     const repository = new SupabaseTenantRepository(supabase)
     const useCase = new UpdateTenantSettingsUseCase(repository)
     
-    await useCase.execute(tenantId, body)
+    const result = await useCase.execute(tenantId, body)
     
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, warnings: result.warnings })
   } catch (error: any) {
     console.error('Error updating settings:', error)
     return NextResponse.json(

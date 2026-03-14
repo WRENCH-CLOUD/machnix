@@ -5,11 +5,12 @@ import { TenantSettings } from '../domain/tenant-settings.entity'
 export class UpdateTenantSettingsUseCase {
   constructor(private readonly tenantRepository: TenantRepository) {}
 
-  async execute(tenantId: string, data: { name?: string } & Partial<TenantSettings>): Promise<void> {
+  async execute(tenantId: string, data: { name?: string } & Partial<TenantSettings>): Promise<{ warnings: string[] }> {
     const allowedTemplates = new Set(['auto', 'standard', 'compact', 'detailed'])
 
     const promises: Promise<unknown>[] = []
     const operations: string[] = []
+    const warnings: string[] = []
 
     const { name, id: _id, tenantId: _tenantId, updatedAt: _updatedAt, ...settings } = data
 
@@ -38,7 +39,7 @@ export class UpdateTenantSettingsUseCase {
     }
 
     if (promises.length === 0) {
-      return
+      return { warnings }
     }
 
     const results = await Promise.allSettled(promises)
@@ -48,11 +49,14 @@ export class UpdateTenantSettingsUseCase {
 
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        const opName = operations[index] ?? `operation_${index}`
-        failedOperations.push(opName)
-        errorMessages.push(
-          `${opName} failed: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`
-        )
+        const errMessage = result.reason instanceof Error ? result.reason.message : String(result.reason)
+        if (errMessage.includes('PARTIAL_SUCCESS')) {
+          warnings.push(errMessage.replace('PARTIAL_SUCCESS: ', ''))
+        } else {
+          const opName = operations[index] ?? `operation_${index}`
+          failedOperations.push(opName)
+          errorMessages.push(`${opName} failed: ${errMessage}`)
+        }
       }
     })
 
@@ -63,5 +67,7 @@ export class UpdateTenantSettingsUseCase {
         `Details: ${errorMessages.join(' | ')}`
       )
     }
+
+    return { warnings }
   }
 }

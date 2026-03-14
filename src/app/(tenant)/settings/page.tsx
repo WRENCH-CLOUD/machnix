@@ -100,8 +100,14 @@ export default function TenantSettingsPage() {
         throw new Error(errorMessage)
       }
 
+      const data = await res.json()
       await invalidateTenantSettings()
-      toast.success("Your garage settings have been updated.")
+      
+      if (data.warnings && data.warnings.length > 0) {
+        toast.warning(data.warnings[0], { duration: 8000 })
+      } else {
+        toast.success("Your garage settings have been updated.")
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save settings. Please try again.")
     } finally {
