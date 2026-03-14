@@ -74,14 +74,36 @@ export default function TenantSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const res = await api.put('/api/tenant/settings', profile)
+      const payload = {
+        gstNumber: profile.gstNumber,
+        address: profile.address,
+        city: profile.city,
+        state: profile.state,
+        pincode: profile.pincode,
+        businessPhone: profile.businessPhone,
+        businessEmail: profile.businessEmail,
+        invoiceTemplate: profile.invoiceTemplate,
+      }
 
-      if (!res.ok) throw new Error('Failed to update')
+      const res = await api.put('/api/tenant/settings', payload)
+
+      if (!res.ok) {
+        let errorMessage = 'Failed to update settings.'
+        try {
+          const errorBody = await res.json()
+          if (errorBody?.error && typeof errorBody.error === 'string') {
+            errorMessage = errorBody.error
+          }
+        } catch {
+          // Keep fallback message if response body is not JSON.
+        }
+        throw new Error(errorMessage)
+      }
 
       await invalidateTenantSettings()
       toast.success("Your garage settings have been updated.")
-    } catch {
-      toast.error("Failed to save settings. Please try again.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
     }
