@@ -213,7 +213,7 @@ function InvoiceTotals({
         <span>Parts</span>
         <span>{formatINR(data.partsSubtotal)}</span>
       </div>
-      <div className="flex justify-between">-
+      <div className="flex justify-between">
         <span>Labor</span>
         <span>{formatINR(data.laborSubtotal)}</span>
       </div>
@@ -258,6 +258,20 @@ function InvoiceTotals({
 }
 
 function StandardTemplate({ data }: { data: InvoicePrintData }) {
+  const termsCount = data.tenant.termsAndConditions?.length ?? 0;
+  const totalsExtraLineCount =
+    (data.discountAmount > 0 ? 1 : 0) +
+    (data.isGstBilled ? 2 : 0) +
+    (data.balanceDue > 0 ? 1 : 0);
+
+  // Keep rows generous on short invoices, but reduce fillers when footer/totals content grows
+  // so the bill is less likely to spill to an extra print page.
+  const dynamicMinimumRows = Math.max(
+    10,
+    Math.min(18, 18 - Math.ceil((termsCount + totalsExtraLineCount) / 2))
+  );
+  const fillerRowCount = Math.max(0, dynamicMinimumRows - data.items.length);
+
   return (
     <div className="p-6 bg-linear-to-b from-slate-50 to-white">
       <div className="border-l-8 border-slate-800 bg-white shadow-sm rounded-lg p-5">
@@ -269,25 +283,20 @@ function StandardTemplate({ data }: { data: InvoicePrintData }) {
             <p className="text-sm text-slate-700">Invoice Date: {data.invoiceDate}</p>
             {data.dueDate ? <p className="text-sm text-slate-700">Due Date: {data.dueDate}</p> : null}
           </div>
-          <div className="text-right max-w-[52%]">
+          <div className="text-right max-w-[44%]">
             <h3 className="text-2xl font-extrabold text-slate-900">{data.tenant.name}</h3>
-            <p className="text-sm text-slate-700 whitespace-pre-line mt-1">{data.tenant.address}</p>
-            {data.tenant.gstin ? <p className="text-sm text-slate-700 mt-1">GSTIN: {data.tenant.gstin}</p> : null}
-            {data.tenant.panNumber ? <p className="text-sm text-slate-700">PAN: {data.tenant.panNumber}</p> : null}
+            <p className="text-xs leading-snug text-slate-700 whitespace-pre-line mt-1">{data.tenant.address}</p>
+            {data.tenant.gstin ? <p className="text-xs text-slate-700 mt-1">GSTIN: {data.tenant.gstin}</p> : null}
+            {data.tenant.panNumber ? <p className="text-xs text-slate-700">PAN: {data.tenant.panNumber}</p> : null}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-5 text-sm">
+        <div className="grid grid-cols-2 gap-2.5 mb-5 text-sm">
           <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Bill To</p>
             <p className="font-semibold text-slate-900">{data.customerName || "-"}</p>
             <p>{data.customerPhone || "-"}</p>
             {data.customerEmail ? <p>{data.customerEmail}</p> : null}
-          </div>
-          <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Ship To</p>
-            <p className="font-semibold text-slate-900">{data.customerName || "-"}</p>
-            <p>{data.customerPhone || "-"}</p>
           </div>
           <div className="rounded-md bg-slate-50 border border-slate-200 p-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Vehicle</p>
@@ -317,10 +326,23 @@ function StandardTemplate({ data }: { data: InvoicePrintData }) {
                 <td className="py-1.5 px-2 text-right text-sm font-semibold">{formatINR(item.lineTotal)}</td>
               </tr>
             ))}
+            {Array.from({ length: fillerRowCount }).map((_, idx) => {
+              const rowIndex = data.items.length + idx;
+              const rowClass = rowIndex % 2 === 0 ? "bg-slate-50" : "bg-white";
+
+              return (
+                <tr key={`filler-row-${idx}`} className={rowClass} aria-hidden="true">
+                  <td className="py-1.5 px-2 text-sm"><span className="invisible">-</span></td>
+                  <td className="py-1.5 px-2 text-right text-sm"><span className="invisible">-</span></td>
+                  <td className="py-1.5 px-2 text-right text-sm"><span className="invisible">-</span></td>
+                  <td className="py-1.5 px-2 text-right text-sm"><span className="invisible">-</span></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-5 grid grid-cols-2 gap-4 items-start">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Terms and Conditions</p>
             <ul className="list-disc pl-4 space-y-1 text-sm text-slate-700">
