@@ -9,6 +9,7 @@ import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 const createSchema = z.object({
   stockKeepingUnit: z.string().optional(),
   name: z.string().min(1),
+  unitId: z.string().uuid(),
   unitCost: z.number().min(0),
   sellPrice: z.number().min(0),
   stockOnHand: z.number().int().min(0),
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const items = await useCase.execute()
 
     return NextResponse.json(items)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching inventory items:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     const item = await useCase.execute(result.data)
 
     return NextResponse.json(item, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating inventory item:', error)
     if (error.message?.includes('already exists')) {
       return NextResponse.json({ error: error.message }, { status: 409 })

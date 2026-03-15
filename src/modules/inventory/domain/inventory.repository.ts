@@ -1,4 +1,14 @@
-import { CreateItemInput, CreateTransactionInput, InventoryItem, InventoryTransaction, ReferenceType, UpdateItemInput } from './inventory.entity'
+import {
+  CreateItemInput,
+  CreateTransactionInput,
+  CreateUnitInput,
+  InventoryItem,
+  InventoryTransaction,
+  ReferenceType,
+  Unit,
+  UpdateItemInput,
+  UpdateUnitInput,
+} from './inventory.entity'
 
 export interface InventoryRepository {
   // Items CRUD
@@ -19,4 +29,13 @@ export interface InventoryRepository {
   findTransactionsByItem(itemId: string): Promise<InventoryTransaction[]>
   findTransactionsByReference(type: ReferenceType, id: string): Promise<InventoryTransaction[]>
   createTransaction(input: CreateTransactionInput): Promise<InventoryTransaction>
+}
+
+export interface UnitRepository {
+  findAll(): Promise<Unit[]>
+  findById(id: string): Promise<Unit | null>
+  findByName(name: string): Promise<Unit | null>
+  create(input: CreateUnitInput): Promise<Unit>
+  update(id: string, input: UpdateUnitInput): Promise<Unit>
+  delete(id: string): Promise<void>
 }

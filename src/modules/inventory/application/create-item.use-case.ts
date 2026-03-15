@@ -7,6 +7,7 @@ export class CreateItemUseCase {
   ) {}
 
   async execute(input: CreateItemInput): Promise<InventoryItem> {
+    if (!input.unitId) throw new Error('Unit is required for every inventory item')
     if (input.unitCost < 0) throw new Error('Unit cost cannot be negative')
     if (input.sellPrice < 0) throw new Error('Sell price cannot be negative')
 
