@@ -101,6 +101,7 @@ export class SupabaseTenantRepository implements TenantRepository {
       invoiceFooter: row.invoice_footer,
 
       logoUrl: row.logo_url,
+      invoiceTemplate: row.invoice_template,
       updatedAt: new Date(row.updated_at)
     };
   }
@@ -115,6 +116,18 @@ export class SupabaseTenantRepository implements TenantRepository {
 
     if (error) throw error;
     return data ? this.toSettingsDomain(data) : null;
+  }
+
+  private isMissingColumnError(error: any, columnName: string): boolean {
+    if (!error) return false;
+    
+    const isPgrst204 = error.code === 'PGRST204';
+    const isPgrst200 = error.code === 'PGRST200';
+    const messageMatches = error.message && error.message.includes(columnName);
+    const detailsMatch = error.details && error.details.includes(columnName);
+    const codeMatch = error.code === '42703'; // PostgreSQL unknown column code
+    
+    return isPgrst204 || codeMatch || (isPgrst200 && (messageMatches || detailsMatch));
   }
 
   async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<void> {
@@ -141,6 +154,7 @@ export class SupabaseTenantRepository implements TenantRepository {
     if (settings.estimatePrefix !== undefined) dbSettings.estimate_prefix = settings.estimatePrefix;
     if (settings.invoiceFooter !== undefined) dbSettings.invoice_footer = settings.invoiceFooter;
     if (settings.logoUrl !== undefined) dbSettings.logo_url = settings.logoUrl;
+    if (settings.invoiceTemplate !== undefined) dbSettings.invoice_template = settings.invoiceTemplate;
 
     // Notification toggle fields
     if (settings.smsEnabled !== undefined) dbSettings.sms_enabled = settings.smsEnabled;
@@ -154,7 +168,27 @@ export class SupabaseTenantRepository implements TenantRepository {
         .from("settings")
         .upsert(dbSettings, { onConflict: 'tenant_id' });
 
-      if (error) throw error;
+      if (error) {
+        // Handle PR environment / missing schema column gracefully to prevent complete save failure
+        if (dbSettings.invoice_template !== undefined && this.isMissingColumnError(error, 'invoice_template')) {
+          const attemptedTemplate = dbSettings.invoice_template;
+          delete dbSettings.invoice_template;
+          
+          if (Object.keys(dbSettings).length > 1) { // > 1 because tenant_id is 1
+            const { error: retryError } = await this.supabase
+              .schema("tenant")
+              .from("settings")
+              .upsert(dbSettings, { onConflict: 'tenant_id' });
+            
+            if (retryError) throw retryError;
+          }
+          
+          // Throw partial success error format that will be caught by use case and turned into a warning
+          throw new Error('PARTIAL_SUCCESS: Settings saved, but Invoice Template could not be saved because the "invoice_template" column does not exist in this environment\'s database. Please run the database migration.');
+        }
+        
+        throw error;
+      }
     }
   }
 

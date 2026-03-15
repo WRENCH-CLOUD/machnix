@@ -30,6 +30,7 @@ export interface TenantSettings {
   
   // Branding
   logoUrl: string | null
+  invoiceTemplate: 'auto' | 'standard' | 'compact' | 'detailed' | null
   
   updatedAt: Date
 }

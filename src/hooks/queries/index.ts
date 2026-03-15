@@ -25,6 +25,7 @@ export function transformTenantSettingsForJobDetails(tenantSettings: TenantSetti
       .filter(Boolean)
       .join(", ") || "",
     gstin: settings?.gstNumber || "",
+    invoiceTemplate: settings?.invoiceTemplate || "auto",
   };
 }
 

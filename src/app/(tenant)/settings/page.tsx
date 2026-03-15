@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 // import { useAuth } from "@/providers/auth-provider"
@@ -15,7 +22,6 @@ import { api } from "@/lib/supabase/client"
 
 // Helper type to handle form state where DB fields might be null but form inputs need defined values (e.g. empty strings)
 type GarageProfile = {
-  name: string
   businessHours: string
   gstNumber: string
   address: string
@@ -24,6 +30,7 @@ type GarageProfile = {
   pincode: string
   businessPhone: string
   businessEmail: string
+  invoiceTemplate: 'auto' | 'standard' | 'compact' | 'detailed'
 }
 
 export default function TenantSettingsPage() {
@@ -36,7 +43,6 @@ export default function TenantSettingsPage() {
 
   // Initialize with empty strings to avoid uncontrolled inputs
   const [profile, setProfile] = useState<GarageProfile>({
-    name: "",
     gstNumber: "",
     address: "",
     city: "",
@@ -44,6 +50,7 @@ export default function TenantSettingsPage() {
     pincode: "",
     businessPhone: "",
     businessEmail: "",
+    invoiceTemplate: "auto",
     businessHours: "" // Note: Not in DB schema yet, handled as local state mostly for now
   })
 
@@ -52,7 +59,6 @@ export default function TenantSettingsPage() {
     if (tenantSettings) {
       setProfile(prev => ({
         ...prev,
-        name: tenantSettings.legalName || "",
         gstNumber: tenantSettings.gstNumber || "",
         address: tenantSettings.address || "",
         city: tenantSettings.city || "",
@@ -60,6 +66,7 @@ export default function TenantSettingsPage() {
         pincode: tenantSettings.pincode || "",
         businessPhone: tenantSettings.businessPhone || "",
         businessEmail: tenantSettings.businessEmail || "",
+        invoiceTemplate: tenantSettings.invoiceTemplate || "auto",
       }))
     }
   }, [tenantSettings])
@@ -67,14 +74,42 @@ export default function TenantSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const res = await api.put('/api/tenant/settings', profile)
+      const payload = {
+        gstNumber: profile.gstNumber,
+        address: profile.address,
+        city: profile.city,
+        state: profile.state,
+        pincode: profile.pincode,
+        businessPhone: profile.businessPhone,
+        businessEmail: profile.businessEmail,
+        invoiceTemplate: profile.invoiceTemplate,
+      }
 
-      if (!res.ok) throw new Error('Failed to update')
+      const res = await api.put('/api/tenant/settings', payload)
 
+      if (!res.ok) {
+        let errorMessage = 'Failed to update settings.'
+        try {
+          const errorBody = await res.json()
+          if (errorBody?.error && typeof errorBody.error === 'string') {
+            errorMessage = errorBody.error
+          }
+        } catch {
+          // Keep fallback message if response body is not JSON.
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data = await res.json()
       await invalidateTenantSettings()
-      toast.success("Your garage settings have been updated.")
-    } catch {
-      toast.error("Failed to save settings. Please try again.")
+      
+      if (data.warnings && data.warnings.length > 0) {
+        toast.warning(data.warnings[0], { duration: 8000 })
+      } else {
+        toast.success("Your garage settings have been updated.")
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
     }
@@ -219,6 +254,40 @@ export default function TenantSettingsPage() {
             />
             <p className="text-xs text-muted-foreground">
               Business hours configuration coming soon.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Invoice Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Invoice Preferences</CardTitle>
+          <CardDescription>
+            Configure default invoice template used across job invoices and print preview.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="invoiceTemplate">Default Invoice Template</Label>
+            <Select
+              value={profile.invoiceTemplate}
+              onValueChange={(value: 'auto' | 'standard' | 'compact' | 'detailed') =>
+                setProfile({ ...profile, invoiceTemplate: value })
+              }
+            >
+              <SelectTrigger id="invoiceTemplate" className="max-w-xs">
+                <SelectValue placeholder="Select template" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto (recommended)</SelectItem>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="compact">Compact</SelectItem>
+                <SelectItem value="detailed">Detailed</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Auto selects best template by invoice details and line item count.
             </p>
           </div>
         </CardContent>
