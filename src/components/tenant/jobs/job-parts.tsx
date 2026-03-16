@@ -266,7 +266,7 @@ export function JobParts({
             <CardTitle className="text-sm font-semibold">
               Add New Items
               <span className="text-xs font-normal text-muted-foreground ml-2">
-                ({loadingInventory ? "Loading..." : inventoryError ? "Error loading" : `${inventoryItems?.length || 0} items available`})
+                ({loadingInventory ? "Loading..." : inventoryError ? "Error loading" : `${inventoryItems?.length || 0} items available in inventory`})
               </span>
             </CardTitle>
             <Button
@@ -281,7 +281,7 @@ export function JobParts({
               }
             >
               <Plus className="w-4 h-4" />
-              Add Item
+              Add New Item
             </Button>
           </CardHeader>
           <CardContent>
@@ -293,7 +293,7 @@ export function JobParts({
                 <div className="col-span-1">Qty</div>
                 <div className="col-span-2">Unit Price</div>
                 <div className="col-span-2">Labor</div>
-                <div className="col-span-2"></div>
+                <div className="col-span-2">Actions</div>
               </div>
 
               {/* Temporary Parts List */}
@@ -337,6 +337,7 @@ export function JobParts({
                       <AutocompleteInput
                         placeholder="Type part name..."
                         autoComplete="off"
+                        isLoading={loadingInventory}
                         className={cn(
                           "h-9 px-3",
                           part.inventoryItemId &&
@@ -436,7 +437,7 @@ export function JobParts({
                       />
                     </div>
                   </div>
-                  <div className="col-span-2 flex gap-1">
+                  <div className="col-span-1 flex gap-1">
                     <Button
                       variant="default"
                       size="sm"
@@ -446,13 +447,13 @@ export function JobParts({
                         !part.name || part.quantity <= 0 || isEstimateLocked
                       }
                     >
-                      <Check className="w-3 h-3 mr-1" />
-                      Add to Estimate
+                      <Check className="w-3 h-3 mr-2" />
+                      Add Item
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive h-9 w-9"
+                      className="text-destructive hover:text-destructive h-9 w-9."
                       onClick={() => removePart(part.id)}
                       disabled={isEstimateLocked}
                     >

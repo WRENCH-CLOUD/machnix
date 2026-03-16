@@ -276,6 +276,8 @@ export function JobDetailsContainer({
     handleGenerateInvoicePdf,
     handleGenerateEstimatePdf,
     handleGenerateJobPdf,
+    invoicePrintData,
+    resolvedInvoiceTemplate,
   } = usePrintableFunctions({
     job,
     estimateItems,
@@ -394,6 +396,8 @@ export function JobDetailsContainer({
       onMarkPaid={handleMarkPaid}
       onGenerateInvoicePdf={handleGenerateInvoicePdf}
       onGenerateInvoice={handleGenerateInvoice}
+      invoicePrintData={invoicePrintData}
+      resolvedInvoiceTemplate={resolvedInvoiceTemplate}
       showPaymentModal={showPaymentModal}
       setShowPaymentModal={setShowPaymentModal}
       onPaymentComplete={handlePaymentComplete}

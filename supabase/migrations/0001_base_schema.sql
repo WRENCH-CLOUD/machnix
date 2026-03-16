@@ -539,6 +539,8 @@ CREATE TABLE IF NOT EXISTS tenant.settings (
   job_prefix text DEFAULT 'JOB-',
   estimate_prefix text DEFAULT 'EST-',
   invoice_footer text,
+  --invoice/estimate template
+  invoice_template text DEFAULT 'auto',
   -- Branding (S3 storage paths)
   logo_url text,
   logo_storage_path text,
