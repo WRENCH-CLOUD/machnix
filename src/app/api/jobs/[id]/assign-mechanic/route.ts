@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase';
-import { AssignMechanicUseCase } from '@/modules/job/application/assign-mechanic.usecase';
+import { SupabaseJobRepository } from '@/modules/job';
+import { AssignMechanicUseCase } from '@/modules/job';
 import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
 
 export async function POST(

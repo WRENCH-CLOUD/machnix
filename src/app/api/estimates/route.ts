@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { GetAllEstimatesUseCase } from '@/modules/estimate/application/get-all-estimates.use-case'
+import { SupabaseEstimateRepository } from '@/modules/estimate'
+import { GetAllEstimatesUseCase } from '@/modules/estimate'
 import { apiGuardRead } from '@/lib/auth/api-guard'
 
 export async function GET(request: NextRequest) {
