@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { DataTable } from "@/components/ui/data-grid";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import type { TenantWithStats } from "@/modules/tenant";
 
@@ -82,7 +82,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate pr-2">
                 {stat.title}
               </CardTitle>
-              <div className={`p-1.5 md:p-2 rounded-lg ${stat.bg} flex-shrink-0`}>
+              <div className={`p-1.5 md:p-2 rounded-lg ${stat.bg} shrink-0`}>
                 <stat.icon className={`w-3 h-3 md:w-4 md:h-4 ${stat.color}`} />
               </div>
             </CardHeader>
@@ -105,7 +105,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                 <CardTitle className="text-base md:text-lg">Recent Jobs</CardTitle>
                 <CardDescription className="text-xs md:text-sm truncate">Latest service requests and ongoing repairs</CardDescription>
               </div>
-              <Badge variant="outline" className="gap-1 flex-shrink-0 text-xs">
+              <Badge variant="outline" className="gap-1 shrink-0 text-xs">
                 <Calendar className="w-3 h-3" />
                 <span className="hidden sm:inline">Today</span>
               </Badge>

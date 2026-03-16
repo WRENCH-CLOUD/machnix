@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-grid";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
     Select,
     SelectContent,
@@ -110,7 +110,7 @@ export default function TransactionsPage() {
             {/* Filters */}
 
             <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[200px]">
+                <div className="flex-1 min-w-50">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -122,7 +122,7 @@ export default function TransactionsPage() {
                     </div>
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-37.5">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,7 +135,7 @@ export default function TransactionsPage() {
                     </SelectContent>
                 </Select>
                 <Select value={modeFilter} onValueChange={setModeFilter}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-37.5">
                         <SelectValue placeholder="Payment Mode" />
                     </SelectTrigger>
                     <SelectContent>
@@ -166,7 +166,7 @@ export default function TransactionsPage() {
                             <p>No transactions found</p>
                         </div>
                     ) : (
-                        <div className="w-full h-[350px] overflow-y-auto">
+                        <div className="w-full h-87.5 overflow-y-auto">
                             {(() => {
                                 const columns: ColumnDef<any>[] = [
                                     {

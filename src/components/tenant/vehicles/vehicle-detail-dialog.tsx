@@ -56,7 +56,7 @@ export function VehicleDetailDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="w-full sm:max-w-[540px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl bg-card"
+        className="w-full sm:max-w-135 p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl bg-card"
         showCloseButton={false}
       >
         <VisuallyHidden>
