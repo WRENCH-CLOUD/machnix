@@ -28,10 +28,10 @@ export function transformVehicleToViewModel(vehicle: Record<string, any>): Vehic
     id: vehicle.id,
     makeName: vehicle.make || "Unknown",
     modelName: vehicle.model || "Unknown",
-    regNo: vehicle.reg_no,
+    regNo: vehicle.licensePlate || vehicle.reg_no || vehicle.license_plate || "",
     year: vehicle.year,
     color: vehicle.color,
-    odometer: vehicle.odometer,
+    odometer: vehicle.mileage || vehicle.odometer,
     ownerName: vehicle.customer?.name || "Unknown",
     totalJobs: vehicle.jobs?.length || 0,
     lastService: vehicle.jobs?.[0]?.created_at

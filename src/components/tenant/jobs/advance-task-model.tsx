@@ -23,9 +23,7 @@ import {
     RiEyeOffLine,
     RiInformationLine,
     RiFileCopyLine,
-    RiBarChartFill,
     RiTimeLine,
-    RiUserLine,
     RiPriceTag3Line,
     RiReceiptLine,
     RiArrowGoBackLine,
@@ -44,10 +42,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -157,31 +153,28 @@ export interface AdvancedTaskPanelProps {
 interface TaskFormValues {
     taskName: string;
     description: string;
-    laborCost: number;
+    laborCost: string;
     showInEstimate: boolean;
     selectedItem: InventorySnapshotItem | null;
-    inventorySearch: string;
-    qty: number;
+    qty: string;
 }
 
 const defaultForm = (): TaskFormValues => ({
     taskName: "",
     description: "",
-    laborCost: 0,
+    laborCost: "0",
     showInEstimate: true,
     selectedItem: null,
-    inventorySearch: "",
-    qty: 1,
+    qty: "1",
 });
 
 function fromTask(task: JobCardTaskWithItem): TaskFormValues {
     return {
         taskName: task.taskName,
         description: task.description ?? "",
-        laborCost: task.laborCostSnapshot ?? 0,
+        laborCost: String(task.laborCostSnapshot ?? 0),
         showInEstimate: task.showInEstimate,
-        inventorySearch: task.inventoryItem?.name ?? "",
-        qty: task.qty ?? 1,
+        qty: String(task.qty ?? 1),
         selectedItem: task.inventoryItem
             ? ({
                 id: task.inventoryItem.id,
@@ -201,7 +194,7 @@ function fromTask(task: JobCardTaskWithItem): TaskFormValues {
 
 interface TaskFormProps {
     initialValues?: TaskFormValues;
-    onSubmit: (data: CreateTaskInput) => Promise<void>;
+    onSubmit: (data: CreateTaskInput, opts?: { keepOpen?: boolean }) => Promise<void>;
     onCancel: () => void;
     isLoading: boolean;
     searchInventory?: (query: string, limit?: number) => InventorySnapshotItem[];
@@ -210,280 +203,503 @@ interface TaskFormProps {
 
 function TaskForm({ initialValues, onSubmit, onCancel, isLoading, searchInventory, mode }: TaskFormProps) {
     const [form, setForm] = useState<TaskFormValues>(initialValues ?? defaultForm());
-    const [popoverOpen, setPopoverOpen] = useState(false);
+    const [mentionActive, setMentionActive] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState('');
+    const [mentionAnchorPos, setMentionAnchorPos] = useState(0);
+    const [mentionHighlight, setMentionHighlight] = useState(0);
+    const [createMore, setCreateMore] = useState(false);
+    const [showDescription, setShowDescription] = useState(!!(initialValues?.description));
     const inputRef = useRef<HTMLInputElement>(null);
-
-    const searchResults = useMemo(() => {
-        if (!searchInventory || !form.inventorySearch.trim()) return [];
-        return searchInventory(form.inventorySearch.trim(), 6);
-    }, [searchInventory, form.inventorySearch]);
+    // Tracks where the selected part's name sits inside form.taskName so we can remove it atomically
+    const selectedItemRangeRef = useRef<{ start: number; end: number } | null>(null);
 
     const patch = (partial: Partial<TaskFormValues>) =>
         setForm((prev) => ({ ...prev, ...partial }));
 
-    const canSubmit = !!form.taskName.trim();
-    const stockAvail = form.selectedItem ? form.selectedItem.stockAvailable : 0;
-    const qtyExceeds = form.selectedItem ? form.qty > stockAvail : false;
-    const partsSubtotal = form.selectedItem ? (form.selectedItem.sellPrice ?? 0) * form.qty : 0;
-    const grandTotal = partsSubtotal + form.laborCost;
+    // Synchronous search from in-memory inventory snapshot
+    const mentionResults = useMemo(() => {
+        if (!searchInventory || !mentionActive) return [];
+        return searchInventory(mentionQuery.trim(), 8);
+    }, [searchInventory, mentionActive, mentionQuery]);
+
+    const parsedQty = Math.max(1, parseInt(form.qty) || 1);
+    const parsedLaborCost = parseFloat(form.laborCost) || 0;
+    const stockAvail = form.selectedItem?.stockAvailable ?? 0;
+    const qtyExceeds = form.selectedItem ? parsedQty > stockAvail : false;
+    const partsSubtotal = form.selectedItem ? (form.selectedItem.sellPrice ?? 0) * parsedQty : 0;
+    const grandTotal = partsSubtotal + parsedLaborCost;
+
+    // Backdrop highlight: split taskName around the selected part's range
+    const hlRange = form.selectedItem ? selectedItemRangeRef.current : null;
+    const hlBefore = hlRange ? form.taskName.slice(0, hlRange.start) : '';
+    const hlPart   = hlRange ? form.taskName.slice(hlRange.start, hlRange.end) : '';
+    const hlAfter  = hlRange ? form.taskName.slice(hlRange.end) : '';
+
+    const handleMentionSelect = (item: InventorySnapshotItem) => {
+        if (item.stockOnHand <= 0) return;
+        const before = form.taskName.slice(0, mentionAnchorPos);
+        const rawAfter = form.taskName.slice(mentionAnchorPos + 1 + mentionQuery.length);
+        const after = rawAfter && !rawAfter.startsWith(' ') ? ' ' + rawAfter : rawAfter;
+        const newName = (before + item.name + after).trim();
+        // Record exactly where the part name lives so we can remove it atomically later
+        const nameIdx = newName.indexOf(item.name);
+        selectedItemRangeRef.current = nameIdx !== -1
+            ? { start: nameIdx, end: nameIdx + item.name.length }
+            : null;
+        patch({ taskName: newName, selectedItem: item, qty: '1' });
+        setMentionActive(false);
+        setMentionQuery('');
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                const pos = nameIdx !== -1 ? nameIdx + item.name.length : newName.length;
+                inputRef.current.setSelectionRange(pos, pos);
+            }
+        }, 0);
+    };
+
+    const handleTaskNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+
+        // If a part is already linked, keep the range in sync with any text edits
+        if (form.selectedItem) {
+            const idx = val.indexOf(form.selectedItem.name);
+            if (idx === -1) {
+                // User manually edited the part name away — clear the card, keep whatever text remains
+                selectedItemRangeRef.current = null;
+                setForm(prev => ({ ...prev, taskName: val, selectedItem: null, qty: '1' }));
+            } else {
+                selectedItemRangeRef.current = { start: idx, end: idx + form.selectedItem.name.length };
+                patch({ taskName: val });
+            }
+            return; // don't re-open the mention dropdown while a part is selected
+        }
+
+        patch({ taskName: val });
+        if (!searchInventory) return;
+        const cursorPos = e.target.selectionStart ?? val.length;
+        const textBeforeCursor = val.slice(0, cursorPos);
+        const lastAtIdx = textBeforeCursor.lastIndexOf('#');
+        if (lastAtIdx !== -1) {
+            const query = textBeforeCursor.slice(lastAtIdx + 1);
+            if (!query.includes(' ')) {
+                setMentionActive(true);
+                setMentionQuery(query);
+                setMentionAnchorPos(lastAtIdx);
+                setMentionHighlight(0);
+                return;
+            }
+        }
+        setMentionActive(false);
+    };
+
+    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (mentionActive) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMentionHighlight(i => (i + 1) % Math.max(1, mentionResults.length));
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMentionHighlight(i => (i - 1 + Math.max(1, mentionResults.length)) % Math.max(1, mentionResults.length));
+                return;
+            }
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                const item = mentionResults[mentionHighlight];
+                if (item && item.stockOnHand > 0) handleMentionSelect(item);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setMentionActive(false);
+                const before = form.taskName.slice(0, mentionAnchorPos);
+                const after = form.taskName.slice(mentionAnchorPos + 1 + mentionQuery.length);
+                patch({ taskName: (before + after).trimEnd() });
+                return;
+            }
+        } else {
+            // Backspace anywhere within the linked part name → nuke the whole token
+            if (e.key === 'Backspace' && form.selectedItem && selectedItemRangeRef.current) {
+                const range = selectedItemRangeRef.current;
+                const cursor = inputRef.current?.selectionStart ?? 0;
+                const selEnd = inputRef.current?.selectionEnd ?? cursor;
+                if (cursor > range.start && selEnd <= range.end + 1) {
+                    e.preventDefault();
+                    const beforePart = form.taskName.slice(0, range.start).trimEnd();
+                    const afterPart = form.taskName.slice(range.end).trimStart();
+                    const sep = beforePart && afterPart ? ' ' : '';
+                    const newName = beforePart + sep + afterPart;
+                    selectedItemRangeRef.current = null;
+                    patch({ taskName: newName, selectedItem: null, qty: '1' });
+                    setTimeout(() => {
+                        if (inputRef.current) {
+                            inputRef.current.focus();
+                            inputRef.current.setSelectionRange(beforePart.length, beforePart.length);
+                        }
+                    }, 0);
+                    return;
+                }
+            }
+            if (e.key === 'Escape') { onCancel(); return; }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+        }
+    };
 
     const handleSubmit = async () => {
-        if (!canSubmit) return;
-        const hasItem = !!form.selectedItem && form.qty > 0;
+        if (!form.taskName.trim() || isLoading) return;
+        const hasItem = !!form.selectedItem && parsedQty > 0;
         const data: CreateTaskInput = {
             taskName: form.taskName.trim(),
             description: form.description.trim() || undefined,
             actionType: hasItem ? "REPLACED" : "LABOR_ONLY",
-            laborCostSnapshot: form.laborCost,
+            laborCostSnapshot: parsedLaborCost,
             showInEstimate: form.showInEstimate,
         };
         if (hasItem && form.selectedItem) {
             data.inventoryItemId = form.selectedItem.id;
-            data.qty = form.qty;
+            data.qty = parsedQty;
             data.unitPriceSnapshot = form.selectedItem.sellPrice ?? form.selectedItem.unitCost ?? 0;
         }
-        await onSubmit(data);
+        try {
+            await onSubmit(data, { keepOpen: mode === 'add' && createMore });
+            if (mode === 'add' && createMore) {
+                setForm(defaultForm());
+                setShowDescription(false);
+                setTimeout(() => inputRef.current?.focus(), 50);
+            }
+        } catch {
+            // error toast handled by parent
+        }
     };
 
     return (
         <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-background/40">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/40">
                 <div className="flex items-center gap-2">
                     {mode === "add"
-                        ? <RiAddLine className="h-5 w-5 text-primary" />
-                        : <RiEditLine className="h-5 w-5 text-primary" />
+                        ? <RiAddLine className="h-4 w-4 text-primary" />
+                        : <RiEditLine className="h-4 w-4 text-primary" />
                     }
-                    <span className="text-s font-semibold text-foreground/80 uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
                         {mode === "add" ? "New Task" : "Edit Task"}
+                    </span>
+                    <span className="text-xs text-muted-foreground/40 hidden sm:inline">
+                        · ⌘↵ save{searchInventory ? " · # part" : ""}
                     </span>
                 </div>
                 <button onClick={onCancel} className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                    <RiCloseLine className="h-5 w-5" />
+                    <RiCloseLine className="h-4 w-4" />
                 </button>
             </div>
 
-            <div className="p-4 space-y-4">
-                {/* Task Name */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                        Task Name <span className="text-destructive">*</span>
-                    </Label>
+            <div className="p-4 space-y-3">
+                {/* Task Name with #-mention trigger */}
+                <div className="relative">
                     <Input
                         ref={inputRef}
                         autoFocus
-                        placeholder="e.g. Replace brake pads"
+                        placeholder={
+                            searchInventory
+                                ? "Task name — type # to add a part"
+                                : "e.g. Oil change, brake inspection"
+                        }
                         value={form.taskName}
-                        onChange={(e) => patch({ taskName: e.target.value })}
-                        className="bg-background/70 border-border/60 focus-visible:ring-primary/40 h-11"
-                        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                        onChange={handleTaskNameChange}
+                        onKeyDown={handleNameKeyDown}
+                        className={cn(
+                            "border-border/60 focus-visible:ring-primary/40 h-11 caret-foreground",
+                            hlRange ? "bg-transparent" : "bg-background/70"
+                        )}
+                        style={hlRange ? { color: 'transparent' } : undefined}
                     />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                    <Textarea
-                        placeholder="Describe the work to be done, any special instructions..."
-                        value={form.description}
-                        onChange={(e) => patch({ description: e.target.value })}
-                        rows={2}
-                        className="bg-background/70 border-border/60 resize-none text-base focus-visible:ring-primary/40"
-                    />
-                </div>
-
-                {/* Two-column: Labor cost + Quantity */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                            <RiToolsLine className="h-4 w-4" /> Labor Cost (₹)
-                        </Label>
-                        <Input
-                            type="number" min={0} step={50}
-                            value={form.laborCost}
-                            onChange={(e) => patch({ laborCost: parseFloat(e.target.value) || 0 })}
-                            className="bg-background/70 border-border/60 h-11 focus-visible:ring-primary/40"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                            <RiBox3Line className="h-4 w-4" /> Quantity
-                        </Label>
-                        <Input
-                            type="number" min={1}
-                            value={form.qty}
-                            disabled={!form.selectedItem}
-                            onChange={(e) => patch({ qty: parseInt(e.target.value) || 1 })}
-                            className={cn(
-                                "bg-background/70 border-border/60 h-11 focus-visible:ring-primary/40",
-                                !form.selectedItem && "opacity-40 cursor-not-allowed"
-                            )}
-                        />
-                    </div>
-                </div>
-
-                {/* Inventory Search via Popover */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <RiBox3Line className="h-5 w-5" />
-                        Link Part / Inventory Item
-                        <span className="text-muted-foreground/50 font-normal">(optional)</span>
-                    </Label>
-
-                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <div
-                                role="button"
-                                className={cn(
-                                    "flex h-11 w-full items-center gap-2 rounded-md border bg-background/70 px-4 text-base cursor-pointer transition-all",
-                                    form.selectedItem
-                                        ? "border-emerald-500/50 ring-1 ring-emerald-500/20"
-                                        : "border-border/60 hover:border-border"
-                                )}
-                                onClick={() => setPopoverOpen(true)}
-                            >
-                                {form.selectedItem ? (
-                                    <>
-                                        <RiBox3Line className="h-5 w-5 text-emerald-400 shrink-0" />
-                                        <span className="flex-1 truncate">{form.selectedItem.name}</span>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                patch({ selectedItem: null, inventorySearch: "", qty: 1 });
-                                            }}
-                                            className="text-muted-foreground hover:text-foreground rounded"
-                                        >
-                                            <RiCloseLine className="h-5 w-5" />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <RiBox3Line className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <span className="flex-1 text-muted-foreground">Search inventory...</span>
-                                        <RiArrowDownSLine className="h-5 w-5 text-muted-foreground" />
-                                    </>
-                                )}
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-[340px] p-0 shadow-xl border-border/60" onOpenAutoFocus={(e) => e.preventDefault()}>
-                            <div className="p-2 border-b border-border/40">
-                                <Input
-                                    autoFocus
-                                    placeholder="Search by name, SKU..."
-                                    value={form.inventorySearch}
-                                    onChange={(e) => patch({ inventorySearch: e.target.value })}
-                                    className="h-10 bg-muted/50 border-border/40 text-base focus-visible:ring-primary/40"
-                                />
-                            </div>
-                            <div className="max-h-56 overflow-y-auto">
-                                {searchResults.length > 0 ? (
-                                    <div className="p-1.5 space-y-0.5">
-                                        {searchResults.map((item) => {
-                                            const avail = item.stockOnHand;
-                                            const isSelected = form.selectedItem?.id === item.id;
-                                            const outOfStock = avail <= 0;
-                                            return (
-                                                <button
-                                                    key={item.id}
-                                                    disabled={outOfStock}
-                                                    className={cn(
-                                                        "w-full text-left rounded-lg px-4 py-2.5 text-base transition-colors",
-                                                        isSelected ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/70",
-                                                        outOfStock && "opacity-40 cursor-not-allowed"
-                                                    )}
-                                                    onClick={() => {
-                                                        if (outOfStock) return;
-                                                        patch({ selectedItem: item, inventorySearch: item.name, qty: 1 });
-                                                        setPopoverOpen(false);
-                                                    }}
-                                                >
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium truncate">{item.name}</p>
-                                                            {item.stockKeepingUnit && (
-                                                                <p className="text-sm text-muted-foreground mt-0.5">SKU: {item.stockKeepingUnit}</p>
-                                                            )}
-                                                        </div>
-                                                        <div className="shrink-0 text-right">
-                                                            <p className="text-sm font-semibold">₹{item.sellPrice?.toFixed(0)}</p>
-                                                            <p className={cn("text-sm mt-0.5", avail > 0 ? "text-emerald-400" : "text-red-400")}>
-                                                                {avail > 0 ? `${avail} avail` : "Out of stock"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                ) : form.inventorySearch.trim() ? (
-                                    <div className="py-10 text-center text-base text-muted-foreground">No items found</div>
-                                ) : (
-                                    <div className="py-10 text-center">
-                                        <RiBox3Line className="h-10 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                                        <p className="text-sm text-muted-foreground">Start typing to search inventory</p>
-                                    </div>
-                                )}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-
-                    {qtyExceeds && (
-                        <p className="flex items-center gap-1 text-sm text-amber-400">
-                            <RiAlertLine className="h-5 w-5" />
-                            Only {stockAvail} unit{stockAvail === 1 ? "" : "s"} available
-                        </p>
+                    {/* Highlight backdrop — visible only when a part is selected */}
+                    {hlRange && (
+                        <div
+                            aria-hidden
+                            className="absolute inset-px flex items-center px-3 pointer-events-none overflow-hidden text-sm select-none rounded-[calc(var(--radius)-1px)] text-foreground"
+                            style={{ fontFamily: 'inherit', letterSpacing: 'inherit' }}
+                        >
+                            <span className="whitespace-pre">
+                                {hlBefore}
+                                <span
+                                    className="bg-blue-500/20 text-blue-400 rounded-[3px]"
+                                    style={{ padding: '1px 1px' }}
+                                >
+                                    {hlPart}
+                                </span>
+                                {hlAfter}
+                            </span>
+                        </div>
                     )}
 
-                    {form.selectedItem && (
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-4 py-2 text-sm">
-                            <div className="flex items-center justify-between">
-                                <span className="text-emerald-400 font-medium">{form.qty} × {form.selectedItem.name}</span>
-                                <span className="text-muted-foreground">₹{partsSubtotal.toFixed(2)}</span>
+                    {/* # mention dropdown */}
+                    {mentionActive && searchInventory && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border/60 bg-popover shadow-xl overflow-hidden">
+                            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 bg-muted/40">
+                                <RiBox3Line className="h-3.5 w-3.5 text-muted-foreground/60" />
+                                <span className="text-xs text-muted-foreground">
+                                    {mentionQuery
+                                        ? <><span className="text-foreground/70 font-medium">"{mentionQuery}"</span> in inventory</>
+                                        : "Inventory — start typing to filter"
+                                    }
+                                </span>
+                                <span className="ml-auto text-xs text-muted-foreground/40 hidden sm:inline">↑↓ navigate · ↵ select · ⎋ close</span>
                             </div>
+                            {mentionResults.length > 0 ? (
+                                <div className="py-1 max-h-60 overflow-y-auto">
+                                    {mentionResults.map((item, idx) => {
+                                        const outOfStock = item.stockOnHand <= 0;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                disabled={outOfStock}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => !outOfStock && handleMentionSelect(item)}
+                                                onMouseEnter={() => !outOfStock && setMentionHighlight(idx)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors text-sm",
+                                                    idx === mentionHighlight && !outOfStock ? "bg-muted/80" : "hover:bg-muted/40",
+                                                    outOfStock && "opacity-40 cursor-not-allowed"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/15 border border-blue-500/20 shrink-0">
+                                                        <RiBox3Line className="h-3.5 w-3.5 text-blue-400" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium truncate">{item.name}</p>
+                                                        {item.stockKeepingUnit && (
+                                                            <p className="text-xs text-muted-foreground">SKU: {item.stockKeepingUnit}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    <p className="font-semibold tabular-nums">₹{(item.sellPrice ?? 0).toFixed(0)}</p>
+                                                    <p className={cn(
+                                                        "text-xs tabular-nums mt-0.5",
+                                                        item.stockAvailable > 0 ? "text-emerald-400" : "text-red-400"
+                                                    )}>
+                                                        {item.stockAvailable > 0 ? `${item.stockAvailable} avail` : "Out of stock"}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : mentionQuery ? (
+                                <div className="py-6 text-center">
+                                    <p className="text-sm text-muted-foreground">No parts matching "{mentionQuery}"</p>
+                                    <p className="text-xs text-muted-foreground/50 mt-1">Press ⎋ to dismiss</p>
+                                </div>
+                            ) : (
+                                <div className="py-6 text-center">
+                                    <RiBox3Line className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
+                                    <p className="text-sm text-muted-foreground">Type to search parts</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Selected part pill + quantity stepper */}
+                {form.selectedItem && (
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-1 items-center gap-2 min-w-0 rounded-lg border border-blue-500/30 bg-blue-500/8 px-3 py-2">
+                            <RiBox3Line className="h-4 w-4 text-blue-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{form.selectedItem.name}</p>
+                                <p className="text-xs text-muted-foreground tabular-nums">
+                                    ₹{(form.selectedItem.sellPrice ?? 0).toFixed(0)} · {form.selectedItem.stockAvailable} avail
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Also strip the part name from the task name text
+                                    const range = selectedItemRangeRef.current;
+                                    let newName = form.taskName;
+                                    if (range) {
+                                        const beforePart = newName.slice(0, range.start).trimEnd();
+                                        const afterPart = newName.slice(range.end).trimStart();
+                                        const sep = beforePart && afterPart ? ' ' : '';
+                                        newName = beforePart + sep + afterPart;
+                                    } else if (form.selectedItem) {
+                                        const idx = newName.indexOf(form.selectedItem.name);
+                                        if (idx !== -1) {
+                                            const beforePart = newName.slice(0, idx).trimEnd();
+                                            const afterPart = newName.slice(idx + form.selectedItem.name.length).trimStart();
+                                            const sep = beforePart && afterPart ? ' ' : '';
+                                            newName = beforePart + sep + afterPart;
+                                        }
+                                    }
+                                    selectedItemRangeRef.current = null;
+                                    patch({ selectedItem: null, qty: '1', taskName: newName });
+                                    setTimeout(() => inputRef.current?.focus(), 0);
+                                }}
+                                className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground rounded transition-colors"
+                                aria-label="Remove part"
+                            >
+                                <RiCloseLine className="h-4 w-4" />
+                            </button>
+                        </div>
+                        {/* Quantity stepper */}
+                        <div className="flex items-center rounded-lg border border-border/60 bg-background/70 overflow-hidden shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => patch({ qty: String(Math.max(1, parsedQty - 1)) })}
+                                className="h-9 w-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-base leading-none border-r border-border/40"
+                            >−</button>
+                            <input
+                                type="number" min={1}
+                                value={form.qty}
+                                onChange={(e) => patch({ qty: e.target.value })}
+                                className="w-10 h-9 text-center text-sm font-semibold bg-transparent border-none outline-none tabular-nums"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => patch({ qty: String(parsedQty + 1) })}
+                                className="h-9 w-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-base leading-none border-l border-border/40"
+                            >+</button>
+                        </div>
+                    </div>
+                )}
+
+                {qtyExceeds && (
+                    <p className="flex items-center gap-1.5 text-xs text-amber-400">
+                        <RiAlertLine className="h-3.5 w-3.5 shrink-0" />
+                        Only {stockAvail} unit{stockAvail === 1 ? "" : "s"} in stock
+                    </p>
+                )}
+
+                {/* Labor Cost */}
+                <div className="relative">
+                    <RiToolsLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                        type="number" min={0} step={50}
+                        value={form.laborCost}
+                        onChange={(e) => patch({ laborCost: e.target.value })}
+                        onKeyDown={(e) => {
+                            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+                            if (e.key === 'Escape') onCancel();
+                        }}
+                        placeholder="Labor cost (₹)"
+                        className="pl-9 h-10 bg-background/70 border-border/60 focus-visible:ring-primary/40"
+                    />
+                </div>
+
+                {/* Description — expandable on demand */}
+                {showDescription ? (
+                    <div className="space-y-1">
+                        <Textarea
+                            autoFocus={mode === 'add'}
+                            placeholder="Optional notes or instructions..."
+                            value={form.description}
+                            onChange={(e) => patch({ description: e.target.value })}
+                            rows={2}
+                            className="bg-background/70 border-border/60 resize-none text-sm focus-visible:ring-primary/40"
+                            onKeyDown={(e) => {
+                                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+                            }}
+                        />
+                        {!form.description && (
+                            <button
+                                type="button"
+                                onClick={() => setShowDescription(false)}
+                                className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                            >
+                                Remove
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => setShowDescription(true)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    >
+                        <RiAddLine className="h-3.5 w-3.5" />
+                        Add notes
+                    </button>
+                )}
 
                 {/* Live cost preview */}
                 {grandTotal > 0 && (
-                    <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                            <RiBarChartFill className="h-5 w-5 text-primary" />
-                            <span className="text-sm font-medium">Estimated Total</span>
+                    <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-primary/5 px-3 py-2">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {partsSubtotal > 0 && (
+                                <span className="flex items-center gap-1">
+                                    <RiBox3Line className="h-3.5 w-3.5" />
+                                    ₹{partsSubtotal.toFixed(0)}
+                                </span>
+                            )}
+                            {parsedLaborCost > 0 && (
+                                <span className="flex items-center gap-1">
+                                    <RiToolsLine className="h-3.5 w-3.5" />
+                                    ₹{parsedLaborCost.toFixed(0)}
+                                </span>
+                            )}
                         </div>
-                        <span className="text-base font-bold text-primary">₹{grandTotal.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-primary">₹{grandTotal.toFixed(2)}</span>
                     </div>
                 )}
 
                 {/* Show in estimate */}
-                <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/50 px-4 py-2.5">
+                <div className="flex items-center justify-between rounded-lg border border-border/30 bg-background/40 px-3 py-2">
                     <div className="flex items-center gap-2">
-                        {form.showInEstimate ? (
-                            <RiEyeLine className="h-5 w-5 text-blue-400" />
-                        ) : (
-                            <RiEyeOffLine className="h-5 w-5 text-muted-foreground" />
-                        )}
-                        <div>
-                            <p className="text-base font-medium leading-none">Show in Estimate</p>
-                            <p className="text-sm text-muted-foreground mt-0.5">Include in customer-facing estimate</p>
-                        </div>
+                        {form.showInEstimate
+                            ? <RiEyeLine className="h-4 w-4 text-blue-400" />
+                            : <RiEyeOffLine className="h-4 w-4 text-muted-foreground/60" />
+                        }
+                        <span className={cn(
+                            "text-sm",
+                            form.showInEstimate ? "text-foreground/80" : "text-muted-foreground"
+                        )}>
+                            Show in estimate
+                        </span>
                     </div>
                     <Switch checked={form.showInEstimate} onCheckedChange={(val) => patch({ showInEstimate: val })} />
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 h-11" onClick={onCancel} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button size="sm" className="flex-1 h-11 gap-2" onClick={handleSubmit} disabled={isLoading || !canSubmit}>
-                        {isLoading ? (
-                            <RiLoader4Line className="h-5 w-5 animate-spin" />
-                        ) : (
-                            <RiCheckDoubleLine className="h-5 w-5" />
-                        )}
-                        {mode === "add" ? "Add Task" : "Save Changes"}
-                    </Button>
+                <div className="flex items-center gap-3 pt-0.5">
+                    {mode === "add" && (
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={createMore}
+                                onChange={(e) => setCreateMore(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded accent-primary cursor-pointer"
+                            />
+                            <span className="text-xs text-muted-foreground">Create another</span>
+                        </label>
+                    )}
+                    <div className="flex items-center gap-2 ml-auto">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 px-3 text-sm text-muted-foreground"
+                            onClick={onCancel}
+                            disabled={isLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="h-9 gap-1.5 px-4 min-w-22.5"
+                            onClick={handleSubmit}
+                            disabled={isLoading || !form.taskName.trim()}
+                        >
+                            {isLoading
+                                ? <RiLoader4Line className="h-4 w-4 animate-spin" />
+                                : <RiCheckDoubleLine className="h-4 w-4" />
+                            }
+                            {mode === "add" ? (createMore ? "Add & Next" : "Add Task") : "Save"}
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -803,31 +1019,6 @@ function TaskRow({
                                     </div>
                                 )}
 
-                                {/* Cost summary grid */}
-                                <div>
-                                    <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60 mb-1.5">Cost Breakdown</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {[
-                                            { label: "Parts", value: lineTotal, icon: RiBox3Line, color: "text-blue-400" },
-                                            { label: "Labor", value: task.laborCostSnapshot ?? 0, icon: RiToolsLine, color: "text-violet-400" },
-                                            { label: "Task Total", value: rowTotal, icon: RiPriceTag3Line, color: "text-primary", highlight: true },
-                                        ].map(({ label, value, icon: Icon, color, highlight }) => (
-                                            <div key={label} className={cn(
-                                                "rounded-lg border px-4 py-2.5 text-center transition-colors",
-                                                highlight
-                                                    ? "border-primary/20 bg-primary/5"
-                                                    : "border-border/30 bg-muted/30"
-                                            )}>
-                                                <Icon className={cn("h-5 w-5 mx-auto mb-1", color)} />
-                                                <p className="text-xs text-muted-foreground uppercase font-medium">{label}</p>
-                                                <p className={cn("text-base font-bold mt-0.5", highlight && "text-primary")}>
-                                                    {formatCurrency(value)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
                                 {/* Audit trail */}
                                 <div className="space-y-1.5">
                                     <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground/60">Timeline</p>
@@ -938,9 +1129,9 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
     const taskActions = useTaskActions(jobId);
     const totals = useMemo(() => calculateTaskTotals(tasks), [tasks]);
 
-    const handleAdd = async (data: CreateTaskInput) => {
+    const handleAdd = async (data: CreateTaskInput, opts?: { keepOpen?: boolean }) => {
         await createTask.mutateAsync(data);
-        setShowAddForm(false);
+        if (!opts?.keepOpen) setShowAddForm(false);
     };
 
     const handleEdit = async (task: JobCardTaskWithItem, data: CreateTaskInput) => {
@@ -1073,7 +1264,7 @@ export function AdvancedTaskPanel({ jobId, disabled = false, className, searchIn
                 <div className="space-y-1">
                     <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
                         <div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-700"
+                            className="h-full rounded-full bg-linear-to-r from-emerald-600 to-emerald-400 transition-all duration-700"
                             style={{ width: `${progressPct}%` }}
                         />
                     </div>

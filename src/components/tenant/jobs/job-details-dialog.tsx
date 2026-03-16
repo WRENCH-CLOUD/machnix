@@ -10,10 +10,11 @@ import {
   Printer,
   CheckCircle2,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ import { AdvancedTaskPanel } from "./advance-task-model";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UnpaidWarningDialog } from "@/components/tenant/dialogs/unpaid-warning-dialog";
 import type { InventorySnapshotItem } from "@/modules/inventory/domain/inventory.entity";
+import { type InvoicePrintData, type InvoiceTemplateVariant } from "./invoice-print-document";
 
 // Using compatible types that match what child components expect
 interface EstimatePartial {
@@ -93,6 +95,8 @@ interface JobDetailsDialogProps {
   onMarkPaid: () => void;
   onGenerateInvoicePdf: () => void;
   onGenerateInvoice: () => void;
+  invoicePrintData: InvoicePrintData;
+  resolvedInvoiceTemplate: InvoiceTemplateVariant;
   // GST and discount props
   isGstBilled?: boolean;
   onGstToggle?: (value: boolean) => void;
@@ -151,6 +155,8 @@ export function JobDetailsDialog({
   onMarkPaid,
   onGenerateInvoicePdf,
   onGenerateInvoice,
+  invoicePrintData,
+  resolvedInvoiceTemplate,
   showPaymentModal,
   setShowPaymentModal,
   onPaymentComplete,
@@ -207,23 +213,18 @@ export function JobDetailsDialog({
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-4 px-4"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
           className={cn(
-            "w-full bg-card rounded-xl border border-border shadow-2xl overflow-hidden my-4 relative h-[90vh] flex flex-col",
-            isMechanicMode ? "max-w-lg" : "max-w-5xl"
+            "w-full p-0 gap-0 flex flex-col h-[90vh] overflow-hidden",
+            isMechanicMode ? "sm:max-w-lg" : "sm:max-w-5xl"
           )}
-          onClick={(e) => e.stopPropagation()}
+          showCloseButton={false}
         >
+          <VisuallyHidden>
+            <DialogTitle>Job Details: {job.jobNumber}</DialogTitle>
+          </VisuallyHidden>
+
           {/* Loading Overlay */}
           {isRefreshing && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -237,7 +238,7 @@ export function JobDetailsDialog({
           )}
 
           {/* Header */}
-          <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30">
+          <div className="flex items-start justify-between p-6 border-b border-border bg-secondary/30 shrink-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground warp-break-word">
@@ -316,7 +317,7 @@ export function JobDetailsDialog({
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1 warp-break-words">
-                  <Car className="w-4 h-4 flex-shrink-0" />
+                  <Car className="w-4 h-4 shrink-0" />
                   <span className="warp-break-words">
                     {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
                   </span>
@@ -351,7 +352,7 @@ export function JobDetailsDialog({
                 {!isMechanicMode && (
                   <TabsTrigger
                     value="overview"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none p-2 h-12"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Overview
@@ -361,7 +362,7 @@ export function JobDetailsDialog({
                 {!isMechanicMode && (
                   <TabsTrigger
                     value="tasks"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none p-2 h-12"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Tasks
@@ -381,7 +382,7 @@ export function JobDetailsDialog({
                   <>
                     <TabsTrigger
                       value="parts"
-                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none p-2 h-12"
                     >
                       <Car className="w-4 h-4 mr-2" />
                       Parts & Estimate
@@ -391,7 +392,7 @@ export function JobDetailsDialog({
                       disabled={
                         job.status !== "ready" && job.status !== "completed"
                       }
-                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none p-2 h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
                       Invoice
@@ -464,12 +465,14 @@ export function JobDetailsDialog({
                   onMarkPaid={onMarkPaid}
                   onGeneratePdf={onGenerateInvoicePdf}
                   onGenerateInvoice={onGenerateInvoice}
+                  invoicePrintData={invoicePrintData}
+                  resolvedInvoiceTemplate={resolvedInvoiceTemplate}
                 />
               </TabsContent>
             </div>
           </Tabs>
-        </motion.div>
-      </motion.div>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Modal */}
       {invoice && (

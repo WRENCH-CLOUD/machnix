@@ -12,6 +12,7 @@ import {
     SortingState,
     useReactTable,
 } from "@tanstack/react-table"
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 import {
     Table,
@@ -29,6 +30,7 @@ interface DataTableProps<TData, TValue> {
     onRowClick?: (row: TData) => void
     pageSize?: number
     stretch?: boolean
+    emptyMessage?: string
 }
 
 import { cn } from "@/lib/utils"
@@ -39,6 +41,7 @@ export function DataTable<TData, TValue>({
     onRowClick,
     pageSize = 10,
     stretch = false,
+    emptyMessage = "No results found.",
 }: DataTableProps<TData, TValue>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
@@ -60,18 +63,22 @@ export function DataTable<TData, TValue>({
         },
     })
 
+    const totalRows = table.getFilteredRowModel().rows.length
+    const currentPage = table.getState().pagination.pageIndex + 1
+    const totalPages = table.getPageCount() || 1
+
     return (
-        <div className={cn("space-y-4", stretch ? "flex flex-col h-full min-h-0" : "")}>
-            <div className={cn("rounded-xl border border-border bg-card shadow-sm overflow-auto relative", stretch ? "flex-1 min-h-0" : "")}>
+        <div className={cn("space-y-0", stretch ? "flex flex-col h-full min-h-0" : "")}>
+            <div className={cn("rounded-lg border border-border bg-card overflow-x-auto relative", stretch ? "flex-1 min-h-0 overflow-y-auto" : "")}>
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className={(header.column.columnDef.meta as any)?.headerClassName}
+                                            className={(header.column.columnDef.meta as Record<string, string>)?.headerClassName}
                                         >
                                             {header.isPlaceholder
                                                 ? null
@@ -92,12 +99,15 @@ export function DataTable<TData, TValue>({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     onClick={() => onRowClick && onRowClick(row.original)}
-                                    className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                                    className={cn(
+                                        "group/row transition-colors duration-100",
+                                        onRowClick && "cursor-pointer"
+                                    )}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}
-                                            className={(cell.column.columnDef.meta as any)?.cellClassName}
+                                            className={(cell.column.columnDef.meta as Record<string, string>)?.cellClassName}
                                         >
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
@@ -106,8 +116,10 @@ export function DataTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                <TableCell colSpan={columns.length} className="h-32 text-center">
+                                    <div className="flex flex-col items-center justify-center gap-1 text-muted-foreground">
+                                        <span className="text-sm">{emptyMessage}</span>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}
@@ -116,33 +128,39 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Pagination Controls */}
-            <div className={cn("flex items-center justify-between px-2 pt-4 border-transparent", stretch ? "mt-auto" : "")}>
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredRowModel().rows.length} row(s) total.
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <div className="flex items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} of{" "}
-                        {table.getPageCount() || 1}
+            {totalPages > 1 && (
+                <div className={cn(
+                    "flex items-center justify-between px-1 py-3",
+                    stretch && "mt-auto shrink-0"
+                )}>
+                    <div className="text-xs text-muted-foreground">
+                        {totalRows} row{totalRows !== 1 ? "s" : ""} total
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            <ChevronLeftIcon className="size-4" />
+                            <span className="sr-only">Previous page</span>
+                        </Button>
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums min-w-[4rem] text-center">
+                            {currentPage} / {totalPages}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            <ChevronRightIcon className="size-4" />
+                            <span className="sr-only">Next page</span>
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditCard, Download, Check, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type UIJob } from "@/modules/job/application/job-transforms-service";
+import {
+  InvoicePrintDocument,
+  type InvoicePrintData,
+  type InvoiceTemplateVariant,
+} from "./invoice-print-document";
 
 interface JobInvoiceProps {
   tenantDetails: {
@@ -28,10 +34,11 @@ interface JobInvoiceProps {
   onRetry: () => void;
   onMarkPaid: () => void;
   onGeneratePdf: () => void;
+  invoicePrintData: InvoicePrintData;
+  resolvedInvoiceTemplate: InvoiceTemplateVariant;
 }
 
 export function JobInvoice({
-  tenantDetails,
   job,
   invoice,
   estimateItems,
@@ -43,9 +50,14 @@ export function JobInvoice({
   onRetry,
   onMarkPaid,
   onGeneratePdf,
+  invoicePrintData,
+  resolvedInvoiceTemplate,
   onGenerateInvoice,
 }: JobInvoiceProps) {
-
+  // Local string state so the input can be emptied without snapping back to "0"
+  const [discountInput, setDiscountInput] = useState(() =>
+    discountPercentage > 0 ? String(discountPercentage) : ""
+  );
 
   // Check if editing is allowed (only locked when job is completed)
   const isCompleted = job.status === "completed";
@@ -67,27 +79,6 @@ export function JobInvoice({
   const previewTaxableAmount = subtotal - previewDiscountAmount;
   const previewTax = isGstBilled ? previewTaxableAmount * 0.18 : 0;
   const previewTotal = previewTaxableAmount + previewTax;
-
-  // Use invoice values if available (after generation)
-  const hasInvoice = Boolean(invoice);
-  const invoiceIsGstBilled = invoice?.is_gst_billed ?? true;
-  const invoiceDiscountPercentage = invoice?.discount_percentage ?? 0;
-  const finalDiscount = invoice?.discount_amount ?? previewDiscountAmount;
-  const finalTax = invoice?.tax_amount ?? previewTax;
-  const finalTotal = invoice?.total_amount ?? previewTotal;
-  const finalParts = invoice?.parts_total ?? partsSubtotal;
-  const finalLabor = invoice?.labor_total ?? laborSubtotal;
-  const paidAmount = invoice?.paid_amount ?? 0;
-
-  // Use invoice values or current toggle state
-  // Show GST line only if GST is enabled AND tax amount > 0
-  const showGst = hasInvoice
-    ? (invoiceIsGstBilled && finalTax > 0)
-    : (isGstBilled && previewTax > 0);
-  // Show discount line only if discount > 0
-  const showDiscount = hasInvoice
-    ? finalDiscount > 0
-    : discountPercentage > 0;
 
   // GST/Discount controls component - reused in both pre and post invoice states
   const GstDiscountControls = () => (
@@ -122,8 +113,11 @@ export function JobInvoice({
             min={0}
             max={100}
             step={0.5}
-            value={discountPercentage}
-            onChange={(e) => onDiscountChange?.(parseFloat(e.target.value) || 0)}
+            value={discountInput}
+            onChange={(e) => {
+              setDiscountInput(e.target.value);
+              onDiscountChange?.(parseFloat(e.target.value) || 0);
+            }}
             className="w-24"
             disabled={!canEdit}
           />
@@ -220,171 +214,22 @@ export function JobInvoice({
               </div>
             )}
 
-            {/* Invoice Preview */}
-            <Card className="bg-white text-black">
-              <CardContent className="p-8">
-                {/* Invoice Header */}
-                <div className="flex justify-between items-start mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {showGst ? "TAX INVOICE" : "BILL OF SUPPLY"}
-                    </h2>
-                    <p className="text-gray-600">
-                      {invoice.invoice_number || job.jobNumber}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Date:{" "}
-                      {new Date(invoice.invoice_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-bold text-gray-900">{tenantDetails.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {tenantDetails.address}
-                    </p>
-                    {showGst && (
-                      <p className="text-sm text-gray-600">
-                        GSTIN: {tenantDetails.gstin}
-                      </p>
-                    )}
-                  </div>
+            <Card className="bg-card">
+              <CardContent className="p-4 md:p-6 space-y-4">
+                <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
+                  <span className="text-sm text-muted-foreground">
+                    Active template: <span className="font-semibold text-foreground capitalize">{resolvedInvoiceTemplate}</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Managed in Settings
+                  </span>
                 </div>
 
-                {/* Bill To */}
-                <div className="grid grid-cols-2 gap-8 mb-8">
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">
-                      BILL TO
-                    </h4>
-                    <p className="font-semibold text-gray-900">
-                      {job.customer?.name}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {job.customer?.phone}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {job.customer?.email}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">
-                      VEHICLE
-                    </h4>
-                    <p className="font-semibold text-gray-900">
-                      {job.vehicle?.year} {job.vehicle?.make}{" "}
-                      {job.vehicle?.model}
-                    </p>
-                    <p className="text-sm text-gray-600 font-mono">
-                      {job.vehicle?.regNo}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Line Items */}
-                <table className="w-full mb-8">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="text-left py-2 text-sm font-semibold text-gray-500">
-                        Description
-                      </th>
-                      <th className="text-right py-2 text-sm font-semibold text-gray-500">
-                        Qty
-                      </th>
-                      <th className="text-right py-2 text-sm font-semibold text-gray-500">
-                        Rate
-                      </th>
-                      <th className="text-right py-2 text-sm font-semibold text-gray-500">
-                        Labor
-                      </th>
-                      <th className="text-right py-2 text-sm font-semibold text-gray-500">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estimateItems.map((item) => {
-                      const partsAmount = item.qty * item.unit_price;
-                      const laborAmount = item.labor_cost || 0;
-                      const lineTotal = partsAmount + laborAmount;
-
-                      return (
-                        <tr key={item.id} className="border-b border-gray-100">
-                          <td className="py-3">
-                            <p className="font-medium text-gray-900">
-                              {item.custom_name}
-                            </p>
-                            {item.custom_part_number && (
-                              <p className="text-xs text-gray-500">
-                                {item.custom_part_number}
-                              </p>
-                            )}
-                          </td>
-                          <td className="text-right py-3 text-gray-600">
-                            {item.qty}
-                          </td>
-                          <td className="text-right py-3 text-gray-600">
-                            ₹{item.unit_price.toLocaleString()}
-                          </td>
-                          <td className="text-right py-3 text-gray-600">
-                            {laborAmount > 0
-                              ? `₹${laborAmount.toLocaleString()}`
-                              : "-"}
-                          </td>
-                          <td className="text-right py-3 font-medium text-gray-900">
-                            ₹{lineTotal.toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {/* Totals */}
-                <div className="flex justify-end">
-                  <div className="w-64 space-y-2">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Parts</span>
-                      <span>₹{finalParts.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Labor</span>
-                      <span>₹{finalLabor.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600 pt-2 border-t border-gray-200">
-                      <span>Subtotal</span>
-                      <span>₹{(finalParts + finalLabor).toLocaleString()}</span>
-                    </div>
-                    {showDiscount && (
-                      <div className="flex justify-between text-amber-600">
-                        <span>Discount ({invoiceDiscountPercentage || discountPercentage}%)</span>
-                        <span>-₹{finalDiscount.toLocaleString()}</span>
-                      </div>
-                    )}
-                    {showGst && (
-                      <div className="flex justify-between text-gray-600">
-                        <span>GST (18%)</span>
-                        <span>₹{finalTax.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
-                      <span>Total</span>
-                      <span>₹{finalTotal.toLocaleString()}</span>
-                    </div>
-                    {paidAmount > 0 && (
-                      <>
-                        <div className="flex justify-between text-emerald-600">
-                          <span>Paid</span>
-                          <span>₹{Number(paidAmount).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-lg font-bold text-amber-600 pt-2 border-t border-gray-200">
-                          <span>Balance Due</span>
-                          <span>
-                            ₹{(finalTotal - paidAmount).toLocaleString()}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                <div className="invoice-print-root">
+                  <InvoicePrintDocument
+                    data={invoicePrintData}
+                    variant={resolvedInvoiceTemplate}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -397,7 +242,7 @@ export function JobInvoice({
                 onClick={onGeneratePdf}
               >
                 <Download className="w-4 h-4" />
-                Generate PDF
+                Print
               </Button>
               <Button
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700"

@@ -73,7 +73,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 ">
+    <div className="space-y-4 md:space-y-6 ml-6 mr-6 pt-6 ">
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         {stats.map((stat, i) => (
@@ -128,12 +128,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                   </Empty>
                 </div>
               ) : (
-                <Card className="flex flex-col h-[250px]">
-                  <CardHeader className="shrink-0">
-                    <CardTitle>Recent Jobs</CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="flex-1 min-h-0">
+              
                     <div className="h-full overflow-y-auto">
                       {(() => {
                         const columns: ColumnDef<any>[] = [
@@ -172,8 +167,7 @@ export function TenantDashboard({ stats: dynamicStats }: { stats?: DashboardStat
                         return <DataTable data={recentJobs} columns={columns} />;
                       })()}
                     </div>
-                  </CardContent>
-                </Card>
+                
               )}
             </div>
           </CardContent>

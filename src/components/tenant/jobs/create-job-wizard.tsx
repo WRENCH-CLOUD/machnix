@@ -35,6 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleServiceHistory } from "./vehicle-service-history";
 import { MechanicSelect } from "./mechanic-select";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 interface CreateJobWizardProps {
   isOpen: boolean;
@@ -52,11 +54,11 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Form State
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [jobDetails, setJobDetails] = useState({
+  const [jobDetails, setJobDetails] = useState<{ serviceType: string; description: string; priority: string; estimatedCompletion: Date | undefined }>({
     serviceType: "repair",
     description: "",
     priority: "medium",
-    estimatedCompletion: "",
+    estimatedCompletion: undefined,
   });
 
   // Search/Data State
@@ -305,12 +307,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2" dir="ltr">
                   <Label>Phone Number</Label>
-                  <Input
-                    placeholder="e.g. +91 9876543210"
+                  <PhoneInput
+                    defaultCountry="IN"
+                    placeholder="e.g. 9876543210"
                     value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                    onChange={(val) => setNewCustomer({ ...newCustomer, phone: val ? String(val) : "" })}
                   />
                 </div>
               </div>
@@ -438,9 +441,9 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                       const val = e.target.value.toUpperCase();
                       setNewVehicle({ ...newVehicle, reg_no: val });
                     }}
-                    className={newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
+                    className={newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
                   />
-                  {newVehicle.reg_no && !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
+                  {newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
                     <p className="text-[10px] text-destructive">Invalid Indian vehicle registration format (e.g. MH12AB1234)</p>
                   )}
                 </div>
@@ -460,7 +463,6 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   !newVehicle.makeId ||
                   !newVehicle.modelId ||
                   !newVehicle.reg_no ||
-                  !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ||
                   loading
                 }
               >
@@ -549,6 +551,14 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     <SelectItem value="urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2 col-span-2 md:col-span-1">
+                <Label>Estimated Completion</Label>
+                <DateTimePicker
+                  date={jobDetails.estimatedCompletion}
+                  setDate={(date) => setJobDetails({ ...jobDetails, estimatedCompletion: date })}
+                  className="w-full"
+                />
               </div>
             </div>
             <div className="space-y-2">

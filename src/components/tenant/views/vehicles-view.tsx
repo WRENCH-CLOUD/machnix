@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ColumnDef } from "@tanstack/react-table";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -50,13 +49,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/ui/data-grid";
+import { DataTable, type ColumnDef } from "@/components/ui/data-grid";
 import { ViewToggle, ViewMode } from "@/components/common/view-toggle";
 import { GridPagination } from "@/components/common/grid-pagination";
 import { VehicleViewModel, VehicleFormData } from "@/lib/transformers";
 import { VehicleDetailDialog } from "@/components/tenant/vehicles/vehicle-detail-dialog";
 import { VehicleEditDialog } from "@/components/tenant/vehicles/vehicle-edit-dialog";
 import { VehicleDeleteDialog } from "@/components/tenant/vehicles/vehicle-delete-dialog";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 interface VehicleEditFormData {
   make: string;
@@ -79,6 +79,7 @@ interface VehiclesViewProps {
   onDeleteVehicle?: (id: string) => Promise<void>;
   onRetry: () => void;
   onCreateJob?: (vehicle: VehicleViewModel) => void;
+  initialVehicleId?: string | null;
 }
 
 export function VehiclesView({
@@ -93,6 +94,7 @@ export function VehiclesView({
   onDeleteVehicle,
   onRetry,
   onCreateJob,
+  initialVehicleId,
 }: VehiclesViewProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +118,19 @@ export function VehiclesView({
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Auto-open vehicle detail from URL param
+  const hasAutoOpened = useRef(false);
+  useEffect(() => {
+    if (initialVehicleId && vehicles.length > 0 && !hasAutoOpened.current) {
+      const vehicle = vehicles.find(v => v.id === initialVehicleId);
+      if (vehicle) {
+        hasAutoOpened.current = true;
+        setSelectedVehicle(vehicle);
+        setShowDetailDialog(true);
+      }
+    }
+  }, [initialVehicleId, vehicles]);
 
   const stats = useMemo(() => {
     return {
@@ -443,13 +458,14 @@ export function VehiclesView({
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2" dir="ltr">
                     <Label>Owner Phone (for linking)</Label>
-                    <Input
-                      placeholder="+91 99999 99999"
+                    <PhoneInput
+                      defaultCountry="IN"
+                      placeholder="9999999999"
                       value={formData.ownerPhone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, ownerPhone: e.target.value })
+                      onChange={(val) =>
+                        setFormData({ ...formData, ownerPhone: val ? String(val) : "" })
                       }
                     />
                   </div>

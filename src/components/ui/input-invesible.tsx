@@ -16,7 +16,7 @@ export const InvisibleInput = forwardRef<HTMLInputElement, InvisibleInputProps>(
     <Input
       ref={ref}
       className={cn(
-        "border-none bg-transparent p-0 shadow-none focus-visible:ring-0",
+        "border-none bg-transparent dark:bg-transparent p-0 shadow-none focus-visible:ring-0",
         className
       )}
       {...props}

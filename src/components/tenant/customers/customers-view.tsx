@@ -1,7 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { ColumnDef } from "@tanstack/react-table"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { Search, Plus, Phone, Mail, MapPin, Car, MoreHorizontal, User, Briefcase, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DataTable } from "@/components/ui/data-grid"
+import { ColumnDef, DataTable } from "@/components/ui/data-grid"
 import { ViewToggle, ViewMode } from "@/components/common/view-toggle"
 import { GridPagination } from "@/components/common/grid-pagination"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -37,7 +36,7 @@ export interface CustomerWithStats {
   totalJobs: number
   lastVisit: Date | null
   vehicleCount: number
-  vehicles: Array<{ make: string | null; model: string | null }>
+  vehicles: Array<{ make: string | null; model: string | null; regNo?: string | null }>
 }
 
 export interface CustomerFormData {
@@ -56,6 +55,7 @@ interface CustomersViewProps {
   onDeleteCustomer: (id: string) => Promise<void>
   onRefresh: () => void
   onCreateJob?: (customer: CustomerWithStats) => void
+  initialCustomerId?: string | null
 }
 
 export function CustomersView({
@@ -67,6 +67,7 @@ export function CustomersView({
   onDeleteCustomer,
   onRefresh,
   onCreateJob,
+  initialCustomerId,
 }: CustomersViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -87,6 +88,19 @@ export function CustomersView({
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // Auto-open customer detail from URL param
+  const hasAutoOpened = useRef(false)
+  useEffect(() => {
+    if (initialCustomerId && customers.length > 0 && !hasAutoOpened.current) {
+      const customer = customers.find(c => c.id === initialCustomerId)
+      if (customer) {
+        hasAutoOpened.current = true
+        setSelectedCustomer(customer)
+        setShowDetailDialog(true)
+      }
+    }
+  }, [initialCustomerId, customers])
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(
