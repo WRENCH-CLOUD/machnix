@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
-import { AddEstimateItemUseCase } from "@/modules/estimate/application/add-estimate-item.use-case";
+import { SupabaseEstimateRepository } from "@/modules/estimate";
+import { AddEstimateItemUseCase } from "@/modules/estimate";
 import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
 import { syncInvoiceToEstimate } from "@/lib/utils/invoice-estimate-sync";
 

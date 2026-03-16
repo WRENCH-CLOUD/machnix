@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { ApproveEstimateUseCase } from '@/modules/estimate/application/approve-estimate.use-case'
+import { SupabaseEstimateRepository } from '@/modules/estimate'
+import { ApproveEstimateUseCase } from '@/modules/estimate'
 import { apiGuardAdmin, validateRouteId } from '@/lib/auth/api-guard'
 
 export async function POST(

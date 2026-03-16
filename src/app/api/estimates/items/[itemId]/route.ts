@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SupabaseEstimateRepository } from "@/modules/estimate/infrastructure/estimate.repository.supabase";
-import { RemoveEstimateItemUseCase } from "@/modules/estimate/application/remove-estimate-item.use-case";
-import { UpdateEstimateItemUseCase } from "@/modules/estimate/application/update-estimate-item.use-case";
+import { SupabaseEstimateRepository } from "@/modules/estimate";
+import { RemoveEstimateItemUseCase } from "@/modules/estimate";
+import { UpdateEstimateItemUseCase } from "@/modules/estimate";
 import { apiGuardWrite, validateRouteId } from '@/lib/auth/api-guard';
 import { syncInvoiceToEstimate } from "@/lib/utils/invoice-estimate-sync";
 

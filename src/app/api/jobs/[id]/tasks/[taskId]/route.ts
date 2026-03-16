@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { SupabaseTaskRepository } from '@/modules/job'
 import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
-import { TaskEstimateSyncService } from '@/modules/job/application/task-estimate-sync.service'
+import { TaskEstimateSyncService } from '@/modules/job'
 import { z } from 'zod'
-import type { TaskActionType } from '@/modules/job/domain/task.entity'
+import type { TaskActionType } from '@/modules/job'
 import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Validation schema for updates
