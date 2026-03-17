@@ -102,7 +102,7 @@ export function VehicleEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-card">
         <DialogHeader>
           <DialogTitle>Edit Vehicle</DialogTitle>
           <DialogDescription>
@@ -127,7 +127,7 @@ export function VehicleEditDialog({
                       setFormData({ ...formData, make: val })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger >
                       <SelectValue placeholder="Select make" />
                     </SelectTrigger>
                     <SelectContent>

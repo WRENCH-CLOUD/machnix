@@ -235,28 +235,34 @@ export function VehiclesView({
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleViewDetails(row.original)}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(row.original); }}>
               View History
             </DropdownMenuItem>
             {onEditVehicle && (
-              <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
                 Edit Vehicle
               </DropdownMenuItem>
             )}
             {onCreateJob && (
-              <DropdownMenuItem onClick={() => handleCreateJob(row.original)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(row.original); }}>
                 Create Job
               </DropdownMenuItem>
             )}
             {onDeleteVehicle && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(row.original)}>
+                <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(row.original); }}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -532,7 +538,7 @@ export function VehiclesView({
         </div>
 
         {/* Search + View Toggle */}
-        <div className="flex items-center gap-3 mt-5 mb-5">
+        <div className="flex items-center justify-between gap-3 mt-5 mb-5">
           <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input

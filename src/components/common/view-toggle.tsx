@@ -8,11 +8,13 @@ export type ViewMode = "grid" | "table"
 interface ViewToggleProps {
   value: ViewMode
   onChange: (value: ViewMode) => void
+  className?: string
 }
 
-export function ViewToggle({ value, onChange }: ViewToggleProps) {
+export function ViewToggle({ value, onChange, className }: ViewToggleProps) {
   return (
     <ToggleGroup
+      className={className}
       type="single"
       value={value}
       onValueChange={(v) => {
