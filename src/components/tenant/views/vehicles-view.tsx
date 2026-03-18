@@ -342,21 +342,19 @@ export function VehiclesView({
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      <div className="space-y-4 md:space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col sticky sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg md:text-2xl font-bold text-foreground">Vehicles</h1>
-            <p className="text-muted-foreground text-xs md:text-sm">
-              Vehicle registry and service history
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">Vehicles</h1>
+            <p className="text-muted-foreground">Vehicle registry and service history</p>
           </div>
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-2 w-fit">
+              <Button className="gap-2">
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add</span> Vehicle
+                Add Vehicle
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -496,21 +494,19 @@ export function VehiclesView({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 md:gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card px-3 md:px-4 py-4 md:py-8 rounded-xl border border-border"
+            className="bg-card border border-border rounded-xl p-4"
           >
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Car className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Car className="w-5 h-5 text-primary" />
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-lg md:text-2xl font-bold">{stats.total}</div>
-                <div className="text-[10px] md:text-sm text-muted-foreground">
-                  Total Vehicles
-                </div>
+              <div>
+                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-sm text-muted-foreground">Total Vehicles</div>
               </div>
             </div>
           </motion.div>
@@ -519,19 +515,15 @@ export function VehiclesView({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-card px-3 md:px-4 py-4 md:py-8 rounded-xl border border-border"
+            className="bg-card border border-border rounded-xl p-4"
           >
-            <div className="flex flex-col sm:flex-row items-center gap-2 md:gap-3">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Wrench className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Wrench className="w-5 h-5 text-emerald-500" />
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-lg md:text-2xl font-bold">
-                  {stats.servicedThisMonth}
-                </div>
-                <div className="text-[10px] md:text-sm text-muted-foreground">
-                  Serviced This Month
-                </div>
+              <div>
+                <div className="text-2xl font-bold">{stats.servicedThisMonth}</div>
+                <div className="text-sm text-muted-foreground">Serviced This Month</div>
               </div>
             </div>
           </motion.div>
@@ -606,7 +598,7 @@ export function VehiclesView({
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card
-                    className="hover:border-primary/50 transition-colors cursor-pointer group"
+                    className="min-h-55 hover:border-primary/50 transition-colors cursor-pointer group"
                     onClick={() => handleViewDetails(vehicle)}
                   >
                     <CardHeader className="pb-3">

@@ -426,14 +426,14 @@ export function CustomersView({
         </div>
 
         {/* Search + View Toggle */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex items-center justify-between gap-3 mt-5 mb-5">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, phone, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-9 md:h-10 bg-background"
             />
           </div>
           <ViewToggle value={viewMode} onChange={setViewMode} />
@@ -502,7 +502,7 @@ export function CustomersView({
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card
-                    className="hover:border-primary/50 transition-colors cursor-pointer"
+                    className="min-h-55 hover:border-primary/50 transition-colors cursor-pointer"
                     onClick={() => handleViewDetails(customer)}
                   >
                     <CardHeader className="pb-3">
