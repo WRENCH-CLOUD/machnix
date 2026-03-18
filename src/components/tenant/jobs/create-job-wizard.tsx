@@ -84,7 +84,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
-  const regRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/;
+  const regRegex = /^[A-Z]{2}/;
 
   const handleAddCustomer = async () => {
     try {
