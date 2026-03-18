@@ -144,14 +144,6 @@ export function JobOverview({
                     {job.vehicle.regNo}
                   </span>
                 </div>
-                {job.vehicle.regNo && (
-                  <div className="flex items-start gap-2">
-                    <Hash className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="text-sm font-mono break-all">
-                      {job.vehicle.regNo}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           </CardContent>
