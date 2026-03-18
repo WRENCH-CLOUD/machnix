@@ -57,6 +57,7 @@ import { VehicleDetailDialog } from "@/components/tenant/vehicles/vehicle-detail
 import { VehicleEditDialog } from "@/components/tenant/vehicles/vehicle-edit-dialog";
 import { VehicleDeleteDialog } from "@/components/tenant/vehicles/vehicle-delete-dialog";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { useLocalStorageState } from "@/hooks/use-local-storage-state";
 
 interface VehicleEditFormData {
   make: string;
@@ -96,6 +97,9 @@ export function VehiclesView({
   onCreateJob,
   initialVehicleId,
 }: VehiclesViewProps) {
+  const isViewMode = (value: unknown): value is ViewMode =>
+    value === "grid" || value === "table";
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<VehicleFormData>({
@@ -109,7 +113,11 @@ export function VehiclesView({
   });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
+    "tenant-vehicles-view-mode",
+    "grid",
+    isViewMode
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
@@ -121,6 +129,7 @@ export function VehiclesView({
 
   // Auto-open vehicle detail from URL param
   const hasAutoOpened = useRef(false);
+
   useEffect(() => {
     if (initialVehicleId && vehicles.length > 0 && !hasAutoOpened.current) {
       const vehicle = vehicles.find(v => v.id === initialVehicleId);

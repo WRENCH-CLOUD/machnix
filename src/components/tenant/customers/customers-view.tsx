@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { CustomerDetailDialog } from "./customer-detail-dialog"
 import { CustomerEditDialog } from "./customer-edit-dialog"
 import { CustomerDeleteDialog } from "./customer-delete-dialog"
+import { useLocalStorageState } from "@/hooks/use-local-storage-state"
 
 export interface CustomerWithStats {
   id: string
@@ -69,6 +70,9 @@ export function CustomersView({
   onCreateJob,
   initialCustomerId,
 }: CustomersViewProps) {
+  const isViewMode = (value: unknown): value is ViewMode =>
+    value === "grid" || value === "table"
+
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [addFormData, setAddFormData] = useState<CustomerFormData>({
@@ -79,7 +83,11 @@ export function CustomersView({
   })
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
+    "tenant-customers-view-mode",
+    "grid",
+    isViewMode,
+  )
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
 
@@ -91,6 +99,7 @@ export function CustomersView({
 
   // Auto-open customer detail from URL param
   const hasAutoOpened = useRef(false)
+
   useEffect(() => {
     if (initialCustomerId && customers.length > 0 && !hasAutoOpened.current) {
       const customer = customers.find(c => c.id === initialCustomerId)
