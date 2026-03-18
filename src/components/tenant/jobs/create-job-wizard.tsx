@@ -84,7 +84,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
-  const regRegex = /^[A-Z]{2} [0-9]{2} [A-Z]{1,2} [0-9]{4}$/;
+  const regRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/;
 
   const handleAddCustomer = async () => {
     try {
@@ -438,7 +438,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 <Label>Registration Number</Label>
 
                 <Input
-                  placeholder="e.g. MH 12 31 0009"
+                  placeholder="e.g. MH12DR0009"
                   value={newVehicle.reg_no}
                   onChange={(e) => {
                     const val = e.target.value.toUpperCase();
@@ -453,7 +453,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
 
                 {newVehicle.reg_no && !regRegex.test(newVehicle.reg_no) && (
                   <p className="text-[10px] text-destructive">
-                    Invalid Indian vehicle registration format (e.g. MH 12 31 0009)
+                    Invalid Indian vehicle registration format (e.g. MH12DR0009)
                   </p>
                 )}
               </div>
