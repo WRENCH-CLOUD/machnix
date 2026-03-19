@@ -25,6 +25,30 @@ ALTER TABLE tenant.units
 CREATE INDEX IF NOT EXISTS idx_units_tenant_id
   ON tenant.units(tenant_id);
 
+-- Enable RLS and tenant-scoped policies for units
+ALTER TABLE tenant.units ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_units_select
+  ON tenant.units
+  FOR SELECT
+  USING (public.is_platform_admin() OR tenant_id = public.current_tenant_id());
+
+CREATE POLICY tenant_units_insert
+  ON tenant.units
+  FOR INSERT
+  WITH CHECK (public.is_platform_admin() OR tenant_id = public.current_tenant_id());
+
+CREATE POLICY tenant_units_update
+  ON tenant.units
+  FOR UPDATE
+  USING (public.is_platform_admin() OR tenant_id = public.current_tenant_id())
+  WITH CHECK (public.is_platform_admin() OR tenant_id = public.current_tenant_id());
+
+CREATE POLICY tenant_units_delete
+  ON tenant.units
+  FOR DELETE
+  USING (public.is_platform_admin() OR tenant_id = public.current_tenant_id());
+
 -- 2) Link inventory_items → units
 ALTER TABLE tenant.inventory_items
   ADD COLUMN IF NOT EXISTS unit_id uuid;
