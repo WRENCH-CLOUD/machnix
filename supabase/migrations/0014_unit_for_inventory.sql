@@ -10,8 +10,20 @@ CREATE TABLE IF NOT EXISTS tenant.units (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL,
   unit_name  text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Ensure updated_at exists for existing tables and keep it in sync on UPDATE
+ALTER TABLE tenant.units
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
+DROP TRIGGER IF EXISTS set_updated_at ON tenant.units;
+
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON tenant.units
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Ensure FK to tenants
 ALTER TABLE tenant.units
