@@ -5,6 +5,7 @@ import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/
 import { GetItemsUseCase } from '@/modules/inventory/application/get-items.use-case'
 import { CreateItemUseCase } from '@/modules/inventory/application/create-item.use-case'
 import { requireAuth, isAuthError } from '@/lib/auth-helpers'
+import { Message } from 'react-hook-form'
 
 const createSchema = z.object({
   stockKeepingUnit: z.string().optional(),
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     const item = await useCase.execute(result.data)
 
     return NextResponse.json(item, { status: 201 })
-  } catch (error: unknown) {
+  } catch (error: Message | any) {
     console.error('Error creating inventory item:', error)
     if (error.message?.includes('already exists')) {
       return NextResponse.json({ error: error.message }, { status: 409 })
