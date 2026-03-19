@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0014_unit_for_inventory.sql
--- Adds a units reference table and links inventory_items to it via FK
+-- Adds a units reference table and links inventory_items to it via Foreign Key.
 -- =============================================================================
 
 BEGIN;
