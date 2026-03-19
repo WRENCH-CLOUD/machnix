@@ -515,12 +515,13 @@ export class SupabaseUnitRepository extends BaseSupabaseRepository<Unit> impleme
 
   async findByName(name: string): Promise<Unit | null> {
     const tenantId = this.getContextTenantId()
+    const normalizedName = name.trim()
     const { data, error } = await this.supabase
       .schema('tenant')
       .from('units')
       .select('*')
       .eq('tenant_id', tenantId)
-      .ilike('unit_name', name)
+      .eq('unit_name', normalizedName)
       .maybeSingle()
 
     if (error) throw error
