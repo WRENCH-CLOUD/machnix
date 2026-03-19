@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { DataTable } from "@/components/ui/data-grid";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { InventoryTransaction } from "@/modules/inventory/domain/inventory.entity";
 import { Badge } from "@/components/ui/badge";
 

@@ -5,7 +5,7 @@ import { Plus, Search, MoreVertical, Pencil, Trash2, ToggleLeft, ToggleRight } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-grid";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -217,7 +217,7 @@ export default function MechanicsPage() {
             </div>
 
             {/* Table */}
-            <Card className="overflow-y-auto h-[380px]" >
+            <Card className="overflow-y-auto h-95" >
                 <CardHeader>
                     <CardTitle>All Mechanics</CardTitle>
                     <CardDescription>

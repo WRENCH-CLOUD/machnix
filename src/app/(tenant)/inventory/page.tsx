@@ -5,7 +5,7 @@ import { Plus, Search, Filter, AlertTriangle, MoreHorizontal, Edit, Trash, Histo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-grid";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -346,7 +346,7 @@ export default function InventoryPage() {
       accessorKey: "itemName",
       header: "Item",
       cell: ({ row }) => (
-        <span className="font-medium truncate block max-w-[160px]" title={row.original.itemName}>
+        <span className="font-medium truncate block max-w-40" title={row.original.itemName}>
           {row.original.itemName}
         </span>
       ),
@@ -374,7 +374,7 @@ export default function InventoryPage() {
       accessorKey: "itemName",
       header: "Item",
       cell: ({ row }) => (
-        <span className="font-medium truncate block max-w-[140px]" title={row.original.itemName || 'Unknown'}>
+        <span className="font-medium truncate block max-w-35" title={row.original.itemName || 'Unknown'}>
           {row.original.itemName || 'Unknown'}
         </span>
       ),
@@ -428,7 +428,7 @@ export default function InventoryPage() {
       {/* Reserved Stock & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Reserved Stock Card */}
-        <Card className="flex flex-col min-h-[300px] max-h-[380px]">
+        <Card className="flex flex-col min-h-75 max-h-95">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -449,7 +449,7 @@ export default function InventoryPage() {
         </Card>
 
         {/* Recent Transactions Card */}
-        <Card className="flex flex-col min-h-[300px] max-h-[380px]">
+        <Card className="flex flex-col min-h-75 max-h-95">
           <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -498,7 +498,7 @@ export default function InventoryPage() {
               />
             </div>
             {search && (
-              <AutocompleteContent align="start" showBackdrop={false} className="w-[300px]">
+              <AutocompleteContent align="start" showBackdrop={false} className="w-75">
                 <AutocompleteStatus>
                   {filteredItems.length === 0
                     ? `No items found`

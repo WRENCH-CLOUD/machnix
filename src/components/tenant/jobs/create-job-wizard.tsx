@@ -350,7 +350,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <ScrollArea className="h-[300px] border rounded-md p-2">
+            <ScrollArea className="h-75 border rounded-md p-2">
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -490,7 +490,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 <Plus className="h-4 w-4 mr-2" /> Add New Vehicle
               </Button>
             </div>
-            <ScrollArea className="h-[300px] border rounded-md p-2">
+            <ScrollArea className="h-75 border rounded-md p-2">
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -577,7 +577,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 placeholder="Describe the issues or services required..."
                 value={jobDetails.description}
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
-                className="max-h-15 overflow-y-auto resize-none break-words"
+                className="max-h-15 overflow-y-auto resize-none wrap-break-word"
                 style={{ overflowWrap: 'anywhere' }}
               />
             </div>
@@ -644,7 +644,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                     {jobDetails.priority} Priority
                   </Badge>
                 </div>
-                <p className="text-sm italic break-words whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
+                <p className="text-sm italic wrap-break-word whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
           </div>
@@ -690,7 +690,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                   </span>
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`w-12 h-[2px] mx-2 mb-4 ${isCompleted ? "bg-primary" : "bg-muted"
+                  <div className={`w-12 h-0.5 mx-2 mb-4 ${isCompleted ? "bg-primary" : "bg-muted"
                     }`} />
                 )}
               </div>
