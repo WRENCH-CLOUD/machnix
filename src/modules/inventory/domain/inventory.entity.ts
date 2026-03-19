@@ -54,7 +54,7 @@ export interface InventoryTransaction {
 
 // Input types
 export interface CreateItemInput {
-  unitId: string
+  unitId?: string
   stockKeepingUnit?: string
   name: string
   unitCost: number
