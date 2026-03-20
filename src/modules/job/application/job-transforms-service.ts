@@ -3,8 +3,8 @@
  * Converts field names and enriches with dummy data
  */
 
+import 'reflect-metadata'
 import { container } from 'tsyringe'
-
 import { REPOSITORY_TOKENS } from '@/shared/container/bindings'
 import type { EstimateRepository } from '@/modules/estimate/domain/estimate.repository'
 import type { JobCardWithRelations } from '@/modules/job/domain/job.entity'

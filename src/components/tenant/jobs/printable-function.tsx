@@ -115,6 +115,7 @@ export const usePrintableFunctions = ({
     };
 
     window.addEventListener("afterprint", cleanup);
+    document.title = `invoice_${job.vehicle.make}_${job.vehicle.regNo}`
     window.print();
 
     // Fallback cleanup for browsers that don't fire afterprint reliably.
@@ -162,7 +163,7 @@ export const usePrintableFunctions = ({
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Estimate - ${escapeHtml(job.jobNumber)}</title>
+        <title>Estimate_${job.vehicle.make}_${job.vehicle.regNo}</title>
         <style>
           @media print {
             @page { margin: 1cm; }

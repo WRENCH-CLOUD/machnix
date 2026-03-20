@@ -29,6 +29,42 @@ import { GlobeIcon } from "lucide-react"
 
 type PhoneInputSize = "sm" | "default" | "lg"
 
+function normalizePhoneValue(
+  value: BasePhoneInput.Value | string | undefined,
+  defaultCountry?: BasePhoneInput.Country,
+): BasePhoneInput.Value | undefined {
+  if (!value) return undefined
+
+  const trimmedValue = String(value).trim()
+  if (!trimmedValue) return undefined
+
+  if (trimmedValue.startsWith("+")) {
+    return trimmedValue as BasePhoneInput.Value
+  }
+
+  const digits = trimmedValue.replace(/\D/g, "")
+  if (!digits) return undefined
+
+  if (!defaultCountry) {
+    return `+${digits}` as BasePhoneInput.Value
+  }
+
+  const countryCallingCode = BasePhoneInput.getCountryCallingCode(defaultCountry)
+  const digitsWithoutIntlPrefix = digits.replace(/^00+/, "")
+
+  if (digitsWithoutIntlPrefix.startsWith(countryCallingCode)) {
+    return `+${digitsWithoutIntlPrefix}` as BasePhoneInput.Value
+  }
+
+  const nationalNumber = digitsWithoutIntlPrefix.replace(/^0+/, "")
+
+  if (nationalNumber.startsWith(countryCallingCode)) {
+    return `+${nationalNumber}` as BasePhoneInput.Value
+  }
+
+  return `+${countryCallingCode}${nationalNumber}` as BasePhoneInput.Value
+}
+
 const PhoneInputContext = createContext<{
   variant: PhoneInputSize
   popupClassName?: string
@@ -63,6 +99,8 @@ function PhoneInput({
   ...props
 }: PhoneInputProps) {
   const phoneInputSize = variant || "default"
+  const normalizedValue = normalizePhoneValue(value, props.defaultCountry)
+
   return (
     <PhoneInputContext.Provider
       value={{ variant: phoneInputSize, popupClassName, scrollAreaClassName }}
@@ -78,7 +116,7 @@ function PhoneInput({
         countrySelectComponent={CountrySelect}
         inputComponent={InputComponent}
         smartCaret={false}
-        value={value || undefined}
+        value={normalizedValue}
         onChange={(value) => onChange?.(value || ("" as BasePhoneInput.Value))}
         {...props}
       />
@@ -180,7 +218,7 @@ function CountrySelect({
         <ComboboxList>
           <div className="relative flex max-h-full">
             <div className="flex max-h-[min(var(--available-height),24rem)] w-full scroll-pt-2 scroll-pb-2 flex-col overscroll-contain">
-              <ScrollArea className="size-full min-h-0 **:data-[slot=scroll-area-scrollbar]:m-0 [&_[data-slot=scroll-area-viewport]]:h-full [&_[data-slot=scroll-area-viewport]]:overscroll-contain">
+              <ScrollArea className="size-full min-h-0 **:data-[slot=scroll-area-scrollbar]:m-0 **:data-[slot=scroll-area-viewport]:h-full **:data-[slot=scroll-area-viewport]:overscroll-contain">
                 {filteredCountries.map((item: CountryEntry) =>
                   item.value ? (
                     <ComboboxItem

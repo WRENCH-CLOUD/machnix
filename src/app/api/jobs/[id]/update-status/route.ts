@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseJobRepository } from '@/modules/job/infrastructure/job.repository.supabase'
-import { UpdateJobStatusUseCase } from '@/modules/job/application/update-job-status.use-case'
-import { JobStatus } from '@/modules/job/domain/job.entity'
+import { SupabaseJobRepository, UpdateJobStatusUseCase, JobStatus } from '@/modules/job'
 import { jobStatusCommand } from '@/processes/job-lifecycle/job-lifecycle.types'
-import { SupabaseEstimateRepository } from '@/modules/estimate/infrastructure/estimate.repository.supabase'
-import { SupabaseInvoiceRepository } from '@/modules/invoice/infrastructure/invoice.repository.supabase'
-import { SupabaseCustomerRepository } from '@/modules/customer/infrastructure/customer.repository.supabase'
-import { SupabaseTenantRepository } from '@/modules/tenant/infrastructure/tenant.repository.supabase'
+import { SupabaseEstimateRepository } from '@/modules/estimate'
+import { SupabaseInvoiceRepository } from '@/modules/invoice'
+import { SupabaseCustomerRepository } from '@/modules/customer'
+import { SupabaseTenantRepository } from '@/modules/tenant'
 import { apiGuard, validateRouteId, RATE_LIMITS } from '@/lib/auth/api-guard'
-import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
+import { InventoryAllocationService } from '@/modules/inventory'
 
 export async function POST(
   request: NextRequest,

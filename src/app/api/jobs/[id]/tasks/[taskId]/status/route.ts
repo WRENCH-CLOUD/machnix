@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkUserRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limiter'
-import { SupabaseTaskRepository } from '@/modules/job/infrastructure/task.repository.supabase'
+import { SupabaseTaskRepository } from '@/modules/job'
 import { InventoryAllocationService } from '@/modules/inventory/application/inventory-allocation.service'
 import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/inventory.repository.supabase'
 import { z } from 'zod'
-import type { TaskStatus } from '@/modules/job/domain/task.entity'
+import type { TaskStatus } from '@/modules/job'
 import { requireAuth, isAuthError } from '@/lib/auth-helpers'
 
 // Simplified status transitions (manager workflow)

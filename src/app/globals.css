@@ -219,7 +219,7 @@
 
 @media print {
   @page {
-    margin: 10mm;
+    margin: 4mm;
     size: auto;
   }
 
@@ -252,6 +252,10 @@
     overflow: visible !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  body.invoice-printing .invoice-print-root > div {
+    padding-top: 8px !important;
   }
 
   body.invoice-printing .invoice-print-root table {
