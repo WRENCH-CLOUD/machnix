@@ -1,12 +1,13 @@
 import { BaseSupabaseRepository } from '@/shared/infrastructure/base-supabase.repository'
-import { CreateItemInput, CreateTransactionInput, InventoryItem, InventoryTransaction, ReferenceType, TransactionType, UpdateItemInput } from '../domain/inventory.entity'
-import { InventoryRepository } from '../domain/inventory.repository'
+import { CreateItemInput, CreateTransactionInput, CreateUnitInput, InventoryItem, InventoryTransaction, ReferenceType, TransactionType, Unit, UpdateItemInput, UpdateUnitInput } from '../domain/inventory.entity'
+import { InventoryRepository, UnitRepository } from '../domain/inventory.repository'
 
 export class SupabaseInventoryRepository extends BaseSupabaseRepository<InventoryItem> implements InventoryRepository {
   protected toDomain(row: Record<string, unknown>): InventoryItem {
     return {
       id: row.id as string,
       tenantId: row.tenant_id as string,
+      unitId: row.unit_id as string,
       stockKeepingUnit: (row.stock_keeping_unit as string | null) ?? undefined,
       name: row.name as string,
       unitCost: Number(row.unit_cost),
@@ -26,6 +27,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     return {
       tenant_id: entity.tenantId,
       stock_keeping_unit: entity.stockKeepingUnit ?? null,
+      unit_id: entity.unitId,
       name: entity.name,
       unit_cost: entity.unitCost,
       sell_price: entity.sellPrice,
@@ -87,6 +89,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     const dbInput = {
       tenant_id: tenantId,
       stock_keeping_unit: input.stockKeepingUnit,
+      unit_id: input.unitId,
       name: input.name,
       unit_cost: input.unitCost,
       sell_price: input.sellPrice,
@@ -109,6 +112,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
   async update(id: string, input: UpdateItemInput): Promise<InventoryItem> {
     const tenantId = this.getContextTenantId()
     const updates: Record<string, unknown> = {}
+    if (input.unitId !== undefined) updates.unit_id = input.unitId
     if (input.stockKeepingUnit !== undefined) updates.stock_keeping_unit = input.stockKeepingUnit ?? null
     if (input.name !== undefined) updates.name = input.name
     if (input.unitCost !== undefined) updates.unit_cost = input.unitCost
@@ -176,7 +180,7 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
     }
 
     // Simple update - race condition possible but acceptable for MVP
-    await this.update(itemId, { stockOnHand: newStock })
+    await this.update(itemId, { stockOnHand: newStock, unitId: item.unitId })
   }
 
   /**
@@ -462,5 +466,113 @@ export class SupabaseInventoryRepository extends BaseSupabaseRepository<Inventor
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))
+  }
+}
+
+export class SupabaseUnitRepository extends BaseSupabaseRepository<Unit> implements UnitRepository {
+  protected toDomain(row: Record<string, unknown>): Unit {
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      unitName: row.unit_name as string,
+      createdAt: new Date(row.created_at as string),
+    }
+  }
+
+  protected toDatabase(entity: Omit<Unit, 'id' | 'createdAt' | 'updatedAt'>): Record<string, unknown> {
+    return {
+      tenant_id: entity.tenantId,
+      unit_name: entity.unitName,
+    }
+  }
+
+  async findAll(): Promise<Unit[]> {
+    const tenantId = this.getContextTenantId()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('unit_name', { ascending: true })
+
+    if (error) throw error
+    return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findById(id: string): Promise<Unit | null> {
+    const tenantId = this.getContextTenantId()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+
+    if (error) throw error
+    return data ? this.toDomain(data) : null
+  }
+
+  async findByName(name: string): Promise<Unit | null> {
+    const tenantId = this.getContextTenantId()
+    const normalizedName = name.trim()
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('unit_name', normalizedName)
+      .maybeSingle()
+
+    if (error) throw error
+    return data ? this.toDomain(data) : null
+  }
+
+  async create(input: CreateUnitInput): Promise<Unit> {
+    const tenantId = this.getContextTenantId()
+    const dbInput = {
+      tenant_id: tenantId,
+      unit_name: input.unitName.trim(),
+    }
+
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .insert(dbInput)
+      .select()
+      .single()
+
+    if (error) throw error
+    return this.toDomain(data)
+  }
+
+  async update(id: string, input: UpdateUnitInput): Promise<Unit> {
+    const tenantId = this.getContextTenantId()
+    const updates: Record<string, unknown> = {}
+    if (input.unitName !== undefined) updates.unit_name = input.unitName.trim()
+
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .update(updates)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return this.toDomain(data)
+  }
+
+  async delete(id: string): Promise<void> {
+    const tenantId = this.getContextTenantId()
+    const { error } = await this.supabase
+      .schema('tenant')
+      .from('units')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+
+    if (error) throw error
   }
 }

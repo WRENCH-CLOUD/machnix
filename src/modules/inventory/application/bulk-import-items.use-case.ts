@@ -24,6 +24,7 @@ export class BulkImportItemsUseCase {
       try {
         // Sanitize: trim name, clamp negatives, fallback NaN to 0
         const input: CreateItemInput = {
+          unitId: rawInput.unitId,
           name: (rawInput.name || '').trim(),
           stockKeepingUnit: rawInput.stockKeepingUnit?.trim() || undefined,
           unitCost: Math.max(0, Number(rawInput.unitCost) || 0),
@@ -32,9 +33,13 @@ export class BulkImportItemsUseCase {
           reorderLevel: Math.max(0, Math.floor(Number(rawInput.reorderLevel) || 0)),
         }
 
-        // Validate: name is required
+        // Validate: name and unit are required
         if (!input.name) {
           result.errors.push({ row: _row, name: '(empty)', error: 'Name is required' })
+          continue
+        }
+        if (!input.unitId) {
+          result.errors.push({ row: _row, name: input.name, error: 'Unit is required' })
           continue
         }
 

@@ -3,9 +3,14 @@ export type TransactionType = 'purchase' | 'sale' | 'adjustment_in' | 'adjustmen
 
 export type ReferenceType = 'jobcard' | 'invoice' | 'purchase_order' | 'manual' | 'allocation'
 
+// ============================================================================
+// Core Inventory Entities
+// ============================================================================
+
 export interface InventoryItem {
   id: string
   tenantId: string
+  unitId: string
   stockKeepingUnit?: string
   name: string
   unitCost: number
@@ -18,6 +23,13 @@ export interface InventoryItem {
   updatedAt: Date
   deletedAt?: Date
   deletedBy?: string
+}
+
+export interface Unit {
+  id: string
+  tenantId: string
+  unitName: string
+  createdAt: Date
 }
 
 /**
@@ -42,6 +54,7 @@ export interface InventoryTransaction {
 
 // Input types
 export interface CreateItemInput {
+  unitId?: string
   stockKeepingUnit?: string
   name: string
   unitCost: number
@@ -52,6 +65,7 @@ export interface CreateItemInput {
 }
 
 export interface UpdateItemInput {
+  unitId?: string
   stockKeepingUnit?: string
   name?: string
   unitCost?: number
@@ -59,6 +73,14 @@ export interface UpdateItemInput {
   stockOnHand?: number
   reorderLevel?: number
   metadata?: Record<string, any>
+}
+
+export interface CreateUnitInput {
+  unitName: string
+}
+
+export interface UpdateUnitInput {
+  unitName: string
 }
 
 export interface CreateTransactionInput {

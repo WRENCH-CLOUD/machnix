@@ -74,6 +74,7 @@ function mapRowToInput(row: Record<string, string>, headerMap: Map<string, keyof
   return {
     name,
     stockKeepingUnit: input.stockKeepingUnit,
+    unitId: input.unitId,
     unitCost: input.unitCost ?? 0,
     sellPrice: input.sellPrice ?? 0,
     stockOnHand: input.stockOnHand ?? 0,
