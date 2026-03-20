@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Car,
   Calendar,
@@ -40,12 +42,21 @@ export function VehicleDetailDialog({
   onDelete,
   onCreateJob,
 }: VehicleDetailDialogProps) {
-  if (!vehicle || !isOpen) return null;
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const prevIsOpenRef = useRef(false);
+
+  // Reset to details tab when dialog opens
+  if (isOpen && !prevIsOpenRef.current) {
+    setActiveTab("details");
+  }
+  prevIsOpenRef.current = isOpen;
+
+  if (!vehicle || !isOpen || typeof window === "undefined") return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="w-full sm:max-w-[540px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl bg-card"
+        className="w-full sm:max-w-135 p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] rounded-2xl bg-card"
         showCloseButton={false}
       >
         <VisuallyHidden>

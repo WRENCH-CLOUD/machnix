@@ -2,16 +2,14 @@
 
 import { useState } from "react"
 import {
-    ColumnDef,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
-    PaginationState,
-    SortingState,
     useReactTable,
 } from "@tanstack/react-table"
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 import {
@@ -146,7 +144,7 @@ export function DataTable<TData, TValue>({
                             <ChevronLeftIcon className="size-4" />
                             <span className="sr-only">Previous page</span>
                         </Button>
-                        <span className="text-xs font-medium text-muted-foreground tabular-nums min-w-[4rem] text-center">
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums min-w-16 text-center">
                             {currentPage} / {totalPages}
                         </span>
                         <Button
@@ -164,3 +162,5 @@ export function DataTable<TData, TValue>({
         </div>
     )
 }
+
+export type { ColumnDef }

@@ -103,6 +103,8 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
+  const regRegex = /^[A-Z]{2}/;
+
   const handleAddCustomer = async () => {
     try {
       setLoading(true);
@@ -402,7 +404,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <ScrollArea className="h-[300px] border rounded-md p-2">
+            <ScrollArea className="h-75 border rounded-md p-2">
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -486,21 +488,29 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Registration Number</Label>
-                  <Input
-                    placeholder="e.g. MH12AB1234"
-                    value={newVehicle.reg_no}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      setNewVehicle({ ...newVehicle, reg_no: val });
-                    }}
-                    className={newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) ? "border-destructive" : ""}
-                  />
-                  {newVehicle.reg_no || !/^[A-Z]{2}[ \-]{0,1}[0-9]{2}[ \-]{0,1}[A-Z]{1,2}[ \-]{0,1}[0-9]{4}$/.test(newVehicle.reg_no) && (
-                    <p className="text-[10px] text-destructive">Invalid Indian vehicle registration format (e.g. MH12AB1234)</p>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Label>Registration Number</Label>
+
+                <Input
+                  placeholder="e.g. MH12DR0009"
+                  value={newVehicle.reg_no}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase();
+                    setNewVehicle({ ...newVehicle, reg_no: val });
+                  }}
+                  className={
+                    newVehicle.reg_no && !regRegex.test(newVehicle.reg_no)
+                      ? "border-destructive"
+                      : ""
+                  }
+                />
+
+                {newVehicle.reg_no && !regRegex.test(newVehicle.reg_no) && (
+                  <p className="text-[10px] text-destructive">
+                    Invalid Indian vehicle registration format (e.g. MH12DR0009)
+                  </p>
+                )}
+              </div>
                 <div className="space-y-2">
                   <Label>VIN / Chassis No (Optional)</Label>
                   <Input
@@ -534,7 +544,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                 <Plus className="h-4 w-4 mr-2" /> Add New Vehicle
               </Button>
             </div>
-            <ScrollArea className="h-[300px] border rounded-md p-2">
+            <ScrollArea className="h-75 border rounded-md p-2">
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -621,7 +631,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                 placeholder="Describe the issues or services required..."
                 value={jobDetails.description}
                 onChange={(e) => setJobDetails({ ...jobDetails, description: e.target.value })}
-                className="max-h-15 overflow-y-auto resize-none break-words"
+                className="max-h-15 overflow-y-auto resize-none wrap-break-word"
                 style={{ overflowWrap: 'anywhere' }}
               />
             </div>
@@ -688,7 +698,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                     {jobDetails.priority} Priority
                   </Badge>
                 </div>
-                <p className="text-sm italic break-words whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
+                <p className="text-sm italic wrap-break-word whitespace-pre-wrap max-h-15 overflow-y-auto pr-1" style={{ overflowWrap: 'anywhere' }}>"{jobDetails.description || 'No description provided'}"</p>
               </div>
             </div>
           </div>
@@ -734,7 +744,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                   </span>
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`w-12 h-[2px] mx-2 mb-4 ${isCompleted ? "bg-primary" : "bg-muted"
+                  <div className={`w-12 h-0.5 mx-2 mb-4 ${isCompleted ? "bg-primary" : "bg-muted"
                     }`} />
                 )}
               </div>

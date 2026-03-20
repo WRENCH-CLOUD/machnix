@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ColumnDef, DataTable } from "@/components/ui/data-grid"
+import { ViewToggle, ViewMode } from "@/components/common/view-toggle"
+import { GridPagination } from "@/components/common/grid-pagination"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -23,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { CustomerDetailDialog } from "./customer-detail-dialog"
 import { CustomerEditDialog } from "./customer-edit-dialog"
 import { CustomerDeleteDialog } from "./customer-delete-dialog"
+import { useLocalStorageState } from "@/hooks/use-local-storage-state"
 
 export interface CustomerWithStats {
   id: string
@@ -66,6 +70,9 @@ export function CustomersView({
   onCreateJob,
   initialCustomerId,
 }: CustomersViewProps) {
+  const isViewMode = (value: unknown): value is ViewMode =>
+    value === "grid" || value === "table"
+
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [addFormData, setAddFormData] = useState<CustomerFormData>({
@@ -76,6 +83,13 @@ export function CustomersView({
   })
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useLocalStorageState<ViewMode>(
+    "tenant-customers-view-mode",
+    "grid",
+    isViewMode,
+  )
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
 
   // Dialog states
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null)
@@ -85,6 +99,7 @@ export function CustomersView({
 
   // Auto-open customer detail from URL param
   const hasAutoOpened = useRef(false)
+
   useEffect(() => {
     if (initialCustomerId && customers.length > 0 && !hasAutoOpened.current) {
       const customer = customers.find(c => c.id === initialCustomerId)
@@ -104,6 +119,120 @@ export function CustomersView({
         customer.email?.toLowerCase().includes(searchQuery.toLowerCase()),
     )
   }, [customers, searchQuery])
+
+  // Reset to page 1 when search changes
+  useMemo(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize)
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredCustomers.slice(start, start + pageSize)
+  }, [filteredCustomers, currentPage, pageSize])
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setCurrentPage(1)
+  }
+
+  // Table columns
+  const customerColumns: ColumnDef<CustomerWithStats>[] = useMemo(() => [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {row.original.name.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{row.original.name}</div>
+            {row.original.email && (
+              <div className="text-xs text-muted-foreground">{row.original.email}</div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => row.original.phone || "—",
+    },
+    {
+      accessorKey: "address",
+      header: "Address",
+      cell: ({ row }) => (
+        <span className="truncate max-w-50 block">{row.original.address || "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "vehicleCount",
+      header: "Vehicles",
+      cell: ({ row }) => (
+        <Badge variant="secondary">{row.original.vehicleCount}</Badge>
+      ),
+    },
+    {
+      accessorKey: "totalJobs",
+      header: "Jobs",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.original.totalJobs}</Badge>
+      ),
+    },
+    {
+      accessorKey: "lastVisit",
+      header: "Last Visit",
+      cell: ({ row }) =>
+        row.original.lastVisit
+          ? row.original.lastVisit.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "N/A",
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e)=> e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(row.original); }}>
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
+              Edit Customer
+            </DropdownMenuItem>
+            {onCreateJob && (
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(row.original); }}>
+                Create Job
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(row.original); }}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      meta: { headerClassName: "w-[50px]" },
+    },
+  ], [onCreateJob])
 
   const stats = useMemo(
     () => ({
@@ -305,15 +434,18 @@ export function CustomersView({
           </motion.div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, phone, or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        {/* Search + View Toggle */}
+        <div className="flex items-center justify-between gap-3 mt-5 mb-5">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, phone, or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-9 md:h-10 bg-background"
+            />
+          </div>
+          <ViewToggle value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 
@@ -358,118 +490,137 @@ export function CustomersView({
           </div>
         )}
 
+        {/* Table View */}
+        {!loading && !error && filteredCustomers.length > 0 && viewMode === "table" && (
+          <DataTable
+            columns={customerColumns}
+            data={filteredCustomers}
+            onRowClick={handleViewDetails}
+          />
+        )}
+
         {/* Customer Grid */}
-        {!loading && !error && filteredCustomers.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCustomers.map((customer, index) => (
-              <motion.div
-                key={customer.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card
-                  className="hover:border-primary/50 transition-colors cursor-pointer"
-                  onClick={() => handleViewDetails(customer)}
+        {!loading && !error && filteredCustomers.length > 0 && viewMode === "grid" && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedCustomers.map((customer, index) => (
+                <motion.div
+                  key={customer.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12">
-                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                            {customer.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-base">{customer.name}</CardTitle>
-                          <CardDescription className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {customer.phone || "No phone"}
-                          </CardDescription>
+                  <Card
+                    className="min-h-55 hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => handleViewDetails(customer)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-12 h-12">
+                            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                              {customer.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-base">{customer.name}</CardTitle>
+                            <CardDescription className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {customer.phone || "No phone"}
+                            </CardDescription>
+                          </div>
                         </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(customer); }}>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>
-                            Edit Customer
-                          </DropdownMenuItem>
-                          {onCreateJob && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(customer); }}>
-                              Create Job
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(customer); }}>
+                              View Details
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(customer); }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {customer.email && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span className="truncate">{customer.email}</span>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>
+                              Edit Customer
+                            </DropdownMenuItem>
+                            {onCreateJob && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCreateJob(customer); }}>
+                                Create Job
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(customer); }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    )}
-                    {customer.address && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{customer.address}</span>
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-1.5 pt-2">
-                      {customer.vehicles.length > 0 ? (
-                        customer.vehicles.map((vehicle, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {vehicle.make && vehicle.model
-                              ? `${vehicle.make} ${vehicle.model}`
-                              : "Unknown Vehicle"}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No vehicles registered</span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <div className="text-center">
-                        <div className="text-lg font-semibold">{customer.totalJobs}</div>
-                        <div className="text-xs text-muted-foreground">Jobs</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-semibold">{customer.vehicleCount}</div>
-                        <div className="text-xs text-muted-foreground">Vehicles</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium">
-                          {customer.lastVisit
-                            ? customer.lastVisit.toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                            })
-                            : "N/A"}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {customer.email && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span className="truncate">{customer.email}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground">Last Visit</div>
+                      )}
+                      {customer.address && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{customer.address}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-1.5 pt-2">
+                        {customer.vehicles.length > 0 ? (
+                          customer.vehicles.map((vehicle, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {vehicle.make && vehicle.model
+                                ? `${vehicle.make} ${vehicle.model}`
+                                : "Unknown Vehicle"}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No vehicles registered</span>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-border">
+                        <div className="text-center">
+                          <div className="text-lg font-semibold">{customer.totalJobs}</div>
+                          <div className="text-xs text-muted-foreground">Jobs</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-semibold">{customer.vehicleCount}</div>
+                          <div className="text-xs text-muted-foreground">Vehicles</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium">
+                            {customer.lastVisit
+                              ? customer.lastVisit.toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                              })
+                              : "N/A"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Last Visit</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            <GridPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredCustomers.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </>
         )}
 
         {/* Detail Dialog */}
