@@ -112,13 +112,10 @@ export default function VehiclesPage() {
       vehicleModel: vehicle.modelName || '',
       vehicleRegNo: vehicle.regNo || '',
     });
-    
+
     if (vehicle.customer) {
       params.append('customerId', vehicle.customer.id);
-      params.append('customerName', vehicle.customer.name || '');
-      params.append('customerPhone', vehicle.customer.phone || '');
     }
-    
     router.push(`/jobs-board?${params.toString()}`);
   };
 

@@ -100,8 +100,6 @@ export default function CustomersPage() {
     const params = new URLSearchParams({
       create: 'true',
       customerId: customer.id,
-      customerName: customer.name || '',
-      customerPhone: customer.phone || ''
     });
     router.push(`/jobs-board?${params.toString()}`);
   };

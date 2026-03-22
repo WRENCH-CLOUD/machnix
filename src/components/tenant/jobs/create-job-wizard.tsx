@@ -103,7 +103,30 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
+  // Safety net: if initialCustomer was provided with an id but empty name
+  // (can happen due to URL param timing), fetch fresh data from the API once.
+  useEffect(() => {
+    if (initialCustomer?.id && !initialCustomer.name.trim()) {
+      fetch(`/api/customers/${initialCustomer.id}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { id: string; name: string; phone?: string; email?: string } | null) => {
+          if (data?.id && data?.name) {
+            const refreshed: WizardCustomer = {
+              id: data.id,
+              name: data.name,
+              phone: data.phone || '',
+              email: data.email,
+            };
+            setSelectedCustomer(refreshed);
+            setCustomers([refreshed]);
+          }
+        })
+        .catch((err: unknown) => console.error('[CreateJobWizard] Failed to refresh customer data:', err));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const regRegex = /^[A-Z]{2}/;
+
 
   const handleAddCustomer = async () => {
     try {
@@ -200,10 +223,13 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
   // Load customers on search
   useEffect(() => {
     if (step === "customer" && !showAddCustomer) {
-      if (!searchQuery && initialCustomer) {
-        // If search is empty but we have an initial customer, ensure it stays in the list
-        setCustomers([initialCustomer]);
-        return;
+      if (!searchQuery) {
+        // If search is empty and we already have a selected/initial customer, preserve it
+        const customerToShow = initialCustomer ?? selectedCustomer;
+        if (customerToShow) {
+          setCustomers([customerToShow]);
+          return;
+        }
       }
 
       const delayDebounceFn = setTimeout(() => {
@@ -211,7 +237,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
       }, 300);
       return () => clearTimeout(delayDebounceFn);
     }
-  }, [searchQuery, step, showAddCustomer, initialCustomer]);
+  }, [searchQuery, step, showAddCustomer, initialCustomer, selectedCustomer]);
 
   // Load vehicles when customer is selected
   useEffect(() => {
@@ -409,31 +435,41 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, i
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-              ) : customers.length > 0 ? (
-                <div className="space-y-2">
-                  {customers.map((c) => (
-                    <div
-                      key={c.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCustomer?.id === c.id
-                        ? "bg-primary/10 border-primary"
-                        : "hover:bg-muted"
-                        }`}
-                      onClick={() => setSelectedCustomer(c)}
-                    >
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-sm text-muted-foreground">{c.phone}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                  <User className="h-8 w-8 opacity-20" />
-                  <p>No customers found</p>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddCustomer(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add New Customer
-                  </Button>
-                </div>
-              )}
+              ) : (() => {
+                // When search is empty and a customer is already selected, show that
+                // customer directly from state (guaranteed to have correct name/phone)
+                // instead of relying on the customers array which may be stale
+                const visibleCustomers: WizardCustomer[] =
+                  !searchQuery && selectedCustomer
+                    ? [selectedCustomer]
+                    : customers;
+
+                return visibleCustomers.length > 0 ? (
+                  <div className="space-y-2">
+                    {visibleCustomers.map((c) => (
+                      <div
+                        key={c.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCustomer?.id === c.id
+                          ? "bg-primary/10 border-primary"
+                          : "hover:bg-muted"
+                          }`}
+                        onClick={() => setSelectedCustomer(c)}
+                      >
+                        <div className="font-medium">{c.name}</div>
+                        <div className="text-sm text-muted-foreground">{c.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+                    <User className="h-8 w-8 opacity-20" />
+                    <p>No customers found</p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddCustomer(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Add New Customer
+                    </Button>
+                  </div>
+                );
+              })()}
             </ScrollArea>
           </div>
         );
