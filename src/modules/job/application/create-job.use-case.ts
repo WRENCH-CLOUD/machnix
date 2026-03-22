@@ -35,10 +35,10 @@ export class CreateJobUseCase {
       throw new Error('Vehicle ID is required')
     }
 
+    const complaintText = dto.notes?.trim() || dto.description?.trim()
+
     // Generate job number (format: JOB-YYYYMMDD-XXXX)
     const jobNumber = generateFormattedId('JOB')
-
-    const complaintText = dto.notes?.trim() || dto.description?.trim()
 
     const details = {
       ...(dto.details || {}),

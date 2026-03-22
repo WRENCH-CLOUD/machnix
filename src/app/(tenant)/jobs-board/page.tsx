@@ -18,6 +18,8 @@ export default function JobsPage() {
   const { user, tenantId } = useAuth()
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null)
   const [showCreateJob, setShowCreateJob] = useState(false)
+  const [initialCustomer, setInitialCustomer] = useState<{ id: string, name: string, phone: string } | null>(null)
+  const [initialVehicle, setInitialVehicle] = useState<{ id: string, make: string, model: string, reg_no: string } | null>(null)
   const queryClient = useQueryClient()
 
   // Use centralized query key for cache consistency with all-jobs page
@@ -40,6 +42,23 @@ export default function JobsPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
       setShowCreateJob(true);
+      const custId = params.get('customerId');
+      if (custId) {
+        setInitialCustomer({
+          id: custId,
+          name: params.get('customerName') || '',
+          phone: params.get('customerPhone') || ''
+        });
+      }
+      const vehId = params.get('vehicleId');
+      if (vehId) {
+        setInitialVehicle({
+          id: vehId,
+          make: params.get('vehicleMake') || '',
+          model: params.get('vehicleModel') || '',
+          reg_no: params.get('vehicleRegNo') || ''
+        });
+      }
       // Clean up search params
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -345,11 +364,19 @@ export default function JobsPage() {
       {showCreateJob && (
         <CreateJobWizard
           isOpen={showCreateJob}
-          onClose={() => setShowCreateJob(false)}
+          onClose={() => {
+            setShowCreateJob(false)
+            setInitialCustomer(null)
+            setInitialVehicle(null)
+          }}
           onSuccess={async () => {
             setShowCreateJob(false)
+            setInitialCustomer(null)
+            setInitialVehicle(null)
             await queryClient.invalidateQueries({ queryKey: jobsQueryKey })
           }}
+          initialCustomer={initialCustomer}
+          initialVehicle={initialVehicle}
         />
       )}
 

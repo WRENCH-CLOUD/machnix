@@ -31,14 +31,14 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
     }
   }
 
-  private toDomainWithRelations(row: any): JobCardWithRelations {
-    return {
-      ...this.toDomain(row),
-      customer: row.customer,
-      vehicle: row.vehicle,
-      mechanic: row.mechanic,
-    }
-  }
+  // private toDomainWithRelations(row: any): JobCardWithRelations {
+  //   return {
+  //     ...this.toDomain(row),
+  //     customer: row.customer,
+  //     vehicle: row.vehicle,
+  //     mechanic: row.mechanic,
+  //   }
+  // }
 
   /**
    * Helper to fetch vehicles from tenant.vehicles for a list of vehicle IDs
@@ -217,6 +217,26 @@ export class SupabaseJobRepository extends BaseSupabaseRepository<JobCard> imple
 
     if (error) throw error
     return (data || []).map(row => this.toDomain(row))
+  }
+
+  async findActiveByVehicleAndCustomer(vehicleId: string, customerId: string): Promise<JobCard | null> {
+    const tenantId = this.getContextTenantId()
+
+    const { data, error } = await this.supabase
+      .schema('tenant')
+      .from('jobcards')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('vehicle_id', vehicleId)
+      .eq('customer_id', customerId)
+      .not('status', 'in', '(completed,cancelled)')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    return data ? this.toDomain(data) : null
   }
 
   async findByMechanicId(mechanicId: string): Promise<JobCard[]> {

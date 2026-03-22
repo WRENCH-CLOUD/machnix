@@ -42,18 +42,37 @@ interface CreateJobWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialCustomer?: { id: string; name: string; phone: string } | null;
+  initialVehicle?: { id: string; make: string; model: string; reg_no: string } | null;
 }
 
 type Step = "customer" | "vehicle" | "details" | "review";
 
-export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardProps) {
-  const [step, setStep] = useState<Step>("customer");
+export interface WizardCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+}
+
+export interface WizardVehicle {
+  id: string;
+  make: string;
+  model: string;
+  reg_no?: string;
+  license_plate?: string;
+}
+
+export function CreateJobWizard({ isOpen, onClose, onSuccess, initialCustomer, initialVehicle }: CreateJobWizardProps) {
+  const [step, setStep] = useState<Step>(
+    initialVehicle ? "details" : (initialCustomer ? "vehicle" : "customer")
+  );
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   // Form State
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<WizardCustomer | null>(initialCustomer || null);
+  const [selectedVehicle, setSelectedVehicle] = useState<WizardVehicle | null>(initialVehicle || null);
   const [jobDetails, setJobDetails] = useState<{ serviceType: string; description: string; priority: string; estimatedCompletion: Date | undefined }>({
     serviceType: "repair",
     description: "",
@@ -62,8 +81,8 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   });
 
   // Search/Data State
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<WizardCustomer[]>(initialCustomer ? [initialCustomer] : []);
+  const [vehicles, setVehicles] = useState<WizardVehicle[]>(initialVehicle ? [initialVehicle as WizardVehicle] : []);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
@@ -79,12 +98,35 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
 
   // Duplicate customer dialog state
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [existingCustomer, setExistingCustomer] = useState<any>(null);
+  const [existingCustomer, setExistingCustomer] = useState<WizardCustomer | null>(null);
 
   // Mechanic assignment (optional during creation)
   const [selectedMechanicId, setSelectedMechanicId] = useState<string>("");
 
+  // Safety net: if initialCustomer was provided with an id but empty name
+  // (can happen due to URL param timing), fetch fresh data from the API once.
+  useEffect(() => {
+    if (initialCustomer?.id && !initialCustomer.name.trim()) {
+      fetch(`/api/customers/${initialCustomer.id}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { id: string; name: string; phone?: string; email?: string } | null) => {
+          if (data?.id && data?.name) {
+            const refreshed: WizardCustomer = {
+              id: data.id,
+              name: data.name,
+              phone: data.phone || '',
+              email: data.email,
+            };
+            setSelectedCustomer(refreshed);
+            setCustomers([refreshed]);
+          }
+        })
+        .catch((err: unknown) => console.error('[CreateJobWizard] Failed to refresh customer data:', err));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const regRegex = /^[A-Z]{2}/;
+
 
   const handleAddCustomer = async () => {
     try {
@@ -115,8 +157,12 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
         const err = await res.json();
         throw new Error(err.error || "Failed to create customer");
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Unknown error occurred", variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
@@ -135,6 +181,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   };
 
   const handleAddVehicle = async () => {
+    if (!selectedCustomer) {
+      toast({ title: "Error", description: "No customer selected", variant: "destructive" });
+      return;
+    }
     try {
       setLoading(true);
       const res = await fetch("/api/vehicles/create", {
@@ -159,8 +209,12 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
         const err = await res.json();
         throw new Error(err.error || "Failed to create vehicle");
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Unknown error occurred", variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
@@ -169,19 +223,32 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   // Load customers on search
   useEffect(() => {
     if (step === "customer" && !showAddCustomer) {
+      if (!searchQuery) {
+        // If search is empty and we already have a selected/initial customer, preserve it
+        const customerToShow = initialCustomer ?? selectedCustomer;
+        if (customerToShow) {
+          setCustomers([customerToShow]);
+          return;
+        }
+      }
+
       const delayDebounceFn = setTimeout(() => {
         searchCustomers();
       }, 300);
       return () => clearTimeout(delayDebounceFn);
     }
-  }, [searchQuery, step, showAddCustomer]);
+  }, [searchQuery, step, showAddCustomer, initialCustomer, selectedCustomer]);
 
   // Load vehicles when customer is selected
   useEffect(() => {
     if (selectedCustomer && !showAddVehicle) {
+      if (initialVehicle && initialCustomer && selectedCustomer.id === initialCustomer.id) {
+        setVehicles([initialVehicle]);
+        return;
+      }
       loadCustomerVehicles();
     }
-  }, [selectedCustomer, showAddVehicle]);
+  }, [selectedCustomer, showAddVehicle, initialVehicle, initialCustomer]);
 
   // Load makes when vehicle form is shown
   useEffect(() => {
@@ -239,6 +306,7 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   };
 
   const loadCustomerVehicles = async () => {
+    if (!selectedCustomer) return;
     try {
       setIsSearching(true);
       const res = await fetch(`/api/vehicles?customerId=${selectedCustomer.id}`);
@@ -254,6 +322,10 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
   };
 
   const handleCreateJob = async () => {
+    if (!selectedCustomer || !selectedVehicle) {
+      toast({ title: "Error", description: "Please select both a customer and a vehicle.", variant: "destructive" });
+      return;
+    }
     try {
       setLoading(true);
       const res = await fetch("/api/jobs/create", {
@@ -277,12 +349,20 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
         const err = await res.json();
         throw new Error(err.error || "Failed to create job");
       }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -355,31 +435,41 @@ export function CreateJobWizard({ isOpen, onClose, onSuccess }: CreateJobWizardP
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-              ) : customers.length > 0 ? (
-                <div className="space-y-2">
-                  {customers.map((c) => (
-                    <div
-                      key={c.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCustomer?.id === c.id
-                        ? "bg-primary/10 border-primary"
-                        : "hover:bg-muted"
-                        }`}
-                      onClick={() => setSelectedCustomer(c)}
-                    >
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-sm text-muted-foreground">{c.phone}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                  <User className="h-8 w-8 opacity-20" />
-                  <p>No customers found</p>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddCustomer(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add New Customer
-                  </Button>
-                </div>
-              )}
+              ) : (() => {
+                // When search is empty and a customer is already selected, show that
+                // customer directly from state (guaranteed to have correct name/phone)
+                // instead of relying on the customers array which may be stale
+                const visibleCustomers: WizardCustomer[] =
+                  !searchQuery && selectedCustomer
+                    ? [selectedCustomer]
+                    : customers;
+
+                return visibleCustomers.length > 0 ? (
+                  <div className="space-y-2">
+                    {visibleCustomers.map((c) => (
+                      <div
+                        key={c.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCustomer?.id === c.id
+                          ? "bg-primary/10 border-primary"
+                          : "hover:bg-muted"
+                          }`}
+                        onClick={() => setSelectedCustomer(c)}
+                      >
+                        <div className="font-medium">{c.name}</div>
+                        <div className="text-sm text-muted-foreground">{c.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+                    <User className="h-8 w-8 opacity-20" />
+                    <p>No customers found</p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddCustomer(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Add New Customer
+                    </Button>
+                  </div>
+                );
+              })()}
             </ScrollArea>
           </div>
         );

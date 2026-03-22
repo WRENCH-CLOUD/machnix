@@ -105,7 +105,18 @@ export default function VehiclesPage() {
   };
 
   const handleCreateJob = (vehicle: VehicleViewModel) => {
-    router.push(`/jobs-board?vehicleId=${vehicle.id}`);
+    const params = new URLSearchParams({
+      create: 'true',
+      vehicleId: vehicle.id,
+      vehicleMake: vehicle.makeName || '',
+      vehicleModel: vehicle.modelName || '',
+      vehicleRegNo: vehicle.regNo || '',
+    });
+
+    if (vehicle.customer) {
+      params.append('customerId', vehicle.customer.id);
+    }
+    router.push(`/jobs-board?${params.toString()}`);
   };
 
   return (

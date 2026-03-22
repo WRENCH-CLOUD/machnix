@@ -97,7 +97,11 @@ export default function CustomersPage() {
 
   const handleCreateJob = (customer: CustomerWithStats) => {
     // Navigate to job creation with customer pre-selected
-    router.push(`/jobs-board?customerId=${customer.id}`);
+    const params = new URLSearchParams({
+      create: 'true',
+      customerId: customer.id,
+    });
+    router.push(`/jobs-board?${params.toString()}`);
   };
 
   return (

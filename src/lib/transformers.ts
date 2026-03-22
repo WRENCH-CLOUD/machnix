@@ -9,6 +9,11 @@ export interface VehicleViewModel {
   ownerName?: string;
   totalJobs?: number;
   lastService?: Date;
+  customer?: {
+    id: string;
+    name: string;
+    phone?: string;
+  };
 }
 
 export interface VehicleFormData {
@@ -36,6 +41,11 @@ export function transformVehicleToViewModel(vehicle: Record<string, any>): Vehic
     totalJobs: vehicle.jobs?.length || 0,
     lastService: vehicle.jobs?.[0]?.created_at
       ? new Date(vehicle.jobs[0].created_at)
-      : undefined
+      : undefined,
+    customer: vehicle.customer ? {
+      id: vehicle.customer.id,
+      name: vehicle.customer.name,
+      phone: vehicle.customer.phone
+    } : undefined
   };
 }
