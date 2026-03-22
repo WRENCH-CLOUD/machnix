@@ -38,12 +38,7 @@ export class CreateJobUseCase {
     const complaintText = dto.notes?.trim() || dto.description?.trim()
 
     // Check for existing active job for this vehicle and customer
-    const existingJobs = await this.repository.findByVehicleId(dto.vehicleId)
-    const activeJob = existingJobs.find(job => 
-      job.customerId === dto.customerId && 
-      job.status !== 'completed' && 
-      job.status !== 'cancelled'
-    )
+    const activeJob = await this.repository.findActiveByVehicleAndCustomer(dto.vehicleId, dto.customerId)
 
     if (activeJob) {
       // Append new complaints if provided and not already present

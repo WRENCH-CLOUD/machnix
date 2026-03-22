@@ -31,6 +31,11 @@ export interface JobRepository {
   findByVehicleId(vehicleId: string): Promise<JobCard[]>
 
   /**
+   * Find an active job by vehicle and customer
+   */
+  findActiveByVehicleAndCustomer(vehicleId: string, customerId: string): Promise<JobCard | null>
+
+  /**
    * Find jobs assigned to a mechanic
    */
   findByMechanicId(mechanicId: string): Promise<JobCard[]>
