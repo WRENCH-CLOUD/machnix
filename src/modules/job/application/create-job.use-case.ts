@@ -37,40 +37,6 @@ export class CreateJobUseCase {
 
     const complaintText = dto.notes?.trim() || dto.description?.trim()
 
-    // Check for existing active job for this vehicle and customer
-    const existingJobs = await this.repository.findByVehicleId(dto.vehicleId)
-    const activeJob = existingJobs.find(job => 
-      job.customerId === dto.customerId && 
-      job.status !== 'completed' && 
-      job.status !== 'cancelled'
-    )
-
-    if (activeJob) {
-      // Append new complaints if provided and not already present
-      let updatedComplaints = activeJob.notes || activeJob.description || ''
-      if (complaintText && updatedComplaints && !updatedComplaints.includes(complaintText)) {
-        updatedComplaints = `${updatedComplaints}\n\n${complaintText}`
-      } else if (complaintText && !updatedComplaints) {
-        updatedComplaints = complaintText
-      }
-
-      const updatedDetails = {
-        ...(activeJob.details || {}),
-        ...(dto.details || {}),
-        complaints: updatedComplaints,
-        serviceType: dto.serviceType || activeJob.details?.serviceType,
-        priority: dto.priority || activeJob.details?.priority,
-        estimatedCompletion: dto.estimatedCompletion || activeJob.details?.estimatedCompletion,
-      }
-
-      return await this.repository.update(activeJob.id, {
-        description: updatedComplaints,
-        notes: updatedComplaints,
-        assignedMechanicId: dto.assignedMechanicId || activeJob.assignedMechanicId,
-        details: updatedDetails,
-      })
-    }
-
     // Generate job number (format: JOB-YYYYMMDD-XXXX)
     const jobNumber = generateFormattedId('JOB')
 

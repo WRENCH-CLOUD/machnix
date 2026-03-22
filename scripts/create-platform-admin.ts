@@ -63,6 +63,7 @@ async function run() {
       password: ADMIN_PASSWORD,
       email_confirm: true,
       user_metadata: { name: ADMIN_NAME, phone: ADMIN_PHONE }
+      
     })
 
     let userId: string | null = null
